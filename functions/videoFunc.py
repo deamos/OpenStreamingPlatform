@@ -743,10 +743,14 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
             "-y",
             "-i",
             inputPath,
-            #"-codec",
-            #"copy",
-            #"-movflags",
-            #"+faststart",
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
+            "b:a",
+            "128k",
+            "-movflags",
+            "faststart",
             destinationPath,
         ]
     )
