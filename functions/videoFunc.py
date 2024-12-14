@@ -750,7 +750,7 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
             "b:a",
             "128k",
             "-movflags",
-            "faststart",
+            "+faststart",
             destinationPath,
         ]
     )
