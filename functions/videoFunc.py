@@ -738,11 +738,11 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
     processedStreamVideo = subprocess.call(
         [
             "/usr/bin/ffmpeg",
-            #'-hwaccel',
-            #'auto',
+            '-hwaccel',
+            'auto',
             "-y",
             "-i",
-            path,
+            inputPath,
             "-codec",
             "copy",
             "-movflags",
