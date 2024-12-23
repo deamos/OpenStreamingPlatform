@@ -740,8 +740,14 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
             "/usr/bin/ffmpeg",
             '-hwaccel',
             'auto',
+            "-y",
             "-i",
             inputPath,
+            "-codec",
+            "copy",
+            "-copyts",
+            "-movflags",
+            "+faststart",
             destinationPath,
         ]
     )
