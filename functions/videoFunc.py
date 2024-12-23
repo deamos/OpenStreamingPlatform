@@ -745,6 +745,8 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
             inputPath,
             "-muxdelay",
             "0",
+            "-async",
+            "1",
             "-codec",
             "copy",
             "-copyts",
