@@ -85,28 +85,25 @@
     <script src="/static/vendor/videojs/js/video.js"></script>
     <script type="text/javascript" src="/static/js/videoplayer.js"></script>
     <script>
-        const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
-        if (isFirefox === false) {
-            var player = videojs('video', {
-                    autoplay: true,
-                    errorDisplay: false,
-                    liveui: false,
-                    liveTracker:true,
-                    playbackRates: [.25, 0.5, 1, 1.5, 2],
-                    html5:
-                        {
-                            nativeAudioTracks: false,
-                            nativeVideoTracks: false,
-                            hls:
-                                {
-                                    overrideNative: true
-                                }
-                        }
-                });
-            {% if video.owningUser == current_user.id %}
-            var clipplayer = videojs('videoClip', { autoplay: false });
-            {% endif %}
-        }
+        var player = videojs('video', {
+                autoplay: true,
+                errorDisplay: false,
+                liveui: false,
+                liveTracker:true,
+                playbackRates: [.25, 0.5, 1, 1.5, 2],
+                html5:
+                    {
+                        nativeAudioTracks: true,
+                        nativeVideoTracks:true,
+                        hls:
+                            {
+                                overrideNative: true
+                            }
+                    }
+            });
+        {% if video.owningUser == current_user.id %}
+        var clipplayer = videojs('videoClip', { autoplay: false });
+        {% endif %}
     </script>
 
     <script>
@@ -182,41 +179,39 @@
     <link href="/static/vendor/videojs-theater-mode/videojs.theaterMode.css" rel="stylesheet">
     <script src="/static/vendor/videojs-theater-mode/videojs.theaterMode.js"></script>
     <script>
-        if (isFirefox === false) {
-            player.theaterMode({ elementToToggle: 'videoContainer', className: 'vid-theater-mode' });
-            // get default maxHeight
-            var videoMaxHeight = document.getElementById("video").style.maxHeight;
-            player.on('theaterMode', function (elm, data) {
-                if (data.theaterModeIsOn) {
-                    document.getElementById("nav").style.display = 'none';
-                    document.getElementById("leftnav").style.display = 'none';
-                    document.getElementById("vidControls").style.display = 'none';
-                    document.getElementById("video").style.maxHeight = '100vh';
-                    document.getElementById("video_html5_api").style.maxHeight = '100vh';
-                    document.getElementById("video_html5_api").style.setProperty('height', '100vh', 'important');
-                    document.getElementById("sidePanel").style.display = 'none';
-                    document.getElementById("commentsContainer").style.display = 'none';
-                } else {
-                    document.getElementById("nav").style.display = 'block';
-                    document.getElementById("leftnav").style.display = 'block';
-                    document.getElementById("vidControls").style.display = 'block';
-                    document.getElementById("video").style.maxHeight = videoMaxHeight;
-                    document.getElementById("video_html5_api").style.maxHeight = videoMaxHeight;
-                    document.getElementById("video_html5_api").style.removeProperty('height');
-                    document.getElementById("sidePanel").style.removeProperty('display');
-                    document.getElementById("commentsContainer").style.removeProperty('display');
-                }
-            });
+        player.theaterMode({ elementToToggle: 'videoContainer', className: 'vid-theater-mode' });
+        // get default maxHeight
+        var videoMaxHeight = document.getElementById("video").style.maxHeight;
+        player.on('theaterMode', function (elm, data) {
+            if (data.theaterModeIsOn) {
+                document.getElementById("nav").style.display = 'none';
+                document.getElementById("leftnav").style.display = 'none';
+                document.getElementById("vidControls").style.display = 'none';
+                document.getElementById("video").style.maxHeight = '100vh';
+                document.getElementById("video_html5_api").style.maxHeight = '100vh';
+                document.getElementById("video_html5_api").style.setProperty('height', '100vh', 'important');
+                document.getElementById("sidePanel").style.display = 'none';
+                document.getElementById("commentsContainer").style.display = 'none';
+            } else {
+                document.getElementById("nav").style.display = 'block';
+                document.getElementById("leftnav").style.display = 'block';
+                document.getElementById("vidControls").style.display = 'block';
+                document.getElementById("video").style.maxHeight = videoMaxHeight;
+                document.getElementById("video_html5_api").style.maxHeight = videoMaxHeight;
+                document.getElementById("video_html5_api").style.removeProperty('height');
+                document.getElementById("sidePanel").style.removeProperty('display');
+                document.getElementById("commentsContainer").style.removeProperty('display');
+            }
+        });
 
-            player.on('fullscreenchange', function (elm, data) {
-                if (player.isFullscreen()) {
-                    document.getElementById("video_html5_api").style.maxHeight = '100vh';
-                } else if ($("#videoContainer").hasClass("vid-theater-mode")) {
-                    document.getElementById("video_html5_api").style.maxHeight = '100vh';
-                } else {
-                    document.getElementById("video_html5_api").style.maxHeight = videoMaxHeight;
-                }
-            });
-        }
+        player.on('fullscreenchange', function (elm, data) {
+            if (player.isFullscreen()) {
+                document.getElementById("video_html5_api").style.maxHeight = '100vh';
+            } else if ($("#videoContainer").hasClass("vid-theater-mode")) {
+                document.getElementById("video_html5_api").style.maxHeight = '100vh';
+            } else {
+                document.getElementById("video_html5_api").style.maxHeight = videoMaxHeight;
+            }
+        });
     </script>
 {% endblock %}
