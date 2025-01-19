@@ -100,11 +100,26 @@ def user_auth_check():
                                     'auto',
                                     "-i",
                                     inputLocation,
-                                    "-c",
-                                    "copy",
                                     "-f",
                                     "flv",
                                     destination["url"],
+                                    "-c:v",
+                                    "libx264",
+                                    "-maxrate",
+                                    str(
+                                        sysSettingsResults["results"][
+                                            "restreamMaxBitRate"
+                                        ]
+                                    )
+                                    + "k",
+                                    "-bufsize",
+                                    "6000k",
+                                    "-c:a",
+                                    "aac",
+                                    "-b:a",
+                                    "160k",
+                                    "-ac",
+                                    "2",
                                 ],
                                 stdout=subprocess.DEVNULL,
                                 stderr=subprocess.DEVNULL,
