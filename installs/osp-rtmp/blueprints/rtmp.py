@@ -100,19 +100,8 @@ def user_auth_check():
                                     'auto',
                                     "-i",
                                     inputLocation,
-                                    "-c:v",
-                                    "libx264",
-                                    "-maxrate",
-                                    str(
-                                        sysSettingsResults["results"][
-                                            "restreamMaxBitRate"
-                                        ]
-                                    )
-                                    + "k",
-                                    "-c:a",
-                                    "aac",
-                                    "-b:a",
-                                    "160k",
+                                    "-codec",
+                                    "copy",
                                     "-f",
                                     "flv",
                                     destination["url"],
