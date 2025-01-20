@@ -1204,7 +1204,7 @@
 
 {% macro user_channel_settings_settings(channel, maxTags=4, maxTagLength=12) %}
 <div id="settingsWindow-{{channel.id}}" style="display:none;">
-    <form action="/settings/channels" enctype=multipart/form-data method="post">
+    <form action="/settings/channels/" enctype=multipart/form-data method="post">
         <div id="channelCard-{{channel.id}}" class="my-2 ml-2">
             <div>
                 <div class="row">
