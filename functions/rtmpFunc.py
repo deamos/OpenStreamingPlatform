@@ -670,7 +670,7 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
             db.session.commit()
 
             pendingVideo = RecordedVideo.RecordedVideo.query.filter_by(
-                channelID=requestedChannel.id, id=pendingVideoID, pending=True
+                channelID=requestedChannel.id, id=pendingVideoID,
                 ).with_entities(
                     RecordedVideo.RecordedVideo.id,
                     RecordedVideo.RecordedVideo.channelName,
