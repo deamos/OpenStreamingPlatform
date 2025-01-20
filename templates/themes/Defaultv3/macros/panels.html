@@ -1240,7 +1240,7 @@
                                     {% if channel.imageLocation == None %}
                                     <img class="img-fluid boxShadow" src="/static/img/channel-profile-placeholder.jpg">
                                     {% else %}
-                                    <img class="img-fluid boxShadow" src="/images/{{channel.imageLocation}}">
+                                    <img class="img-fluid boxShadow" src="/images/{{channel.imageLocation}}" onerror="this.onerror=null;this.src='/static/img/channel-profile-placeholder.jpg';">
                                     {% endif %}
                                 <input type="file" name="photo" class="form-control boxShadow" value="Upload a Photo" style="margin-top:10px;width:100%;">
                               </div>
@@ -1252,7 +1252,7 @@
                                     {% if channel.offlineImageLocation == None %}
                                     <img class="img-fluid boxShadow" src="/static/img/channel-offline-placeholder.jpg">
                                     {% else %}
-                                    <img src="/images/{{channel.offlineImageLocation}}" class=" img-fluid boxShadow">
+                                    <img src="/images/{{channel.offlineImageLocation}}" class=" img-fluid boxShadow" onerror="this.onerror=null;this.src='/static/img/channel-offline-placeholder.jpg';">
                                     {% endif %}
                                 <input type="file" name="offlinephoto" class="form-control boxShadow" value="Upload a Photo" style="margin-top:10px;width:100%;">
                               </div>
@@ -1264,7 +1264,7 @@
                                     {% if channel.channelBannerImageLocation == None %}
                                     <img class="img-fluid boxShadow" src="/static/img/channel-banner-placeholder.jpg">
                                     {% else %}
-                                    <img src="/images/{{channel.channelBannerLocation}}" class="img-fluid boxShadow">
+                                    <img src="/images/{{channel.channelBannerLocation}}" class="img-fluid boxShadow" onerror="this.onerror=null;this.src='/static/img/channel-banner-placeholder.jpg';">
                                     {% endif %}
                                 <input type="file" name="channelbannerphoto" class="form-control boxShadow" value="Upload a Photo" style="margin-top:10px;width:100%;">
                               </div>
