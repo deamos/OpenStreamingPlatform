@@ -104,6 +104,8 @@ def user_auth_check():
                                     "copy",
                                     "-c:a",
                                     "copy",
+                                    "-f",
+                                    "flv",
                                     destination["url"],
                                 ],
                                 stdout=subprocess.DEVNULL,
