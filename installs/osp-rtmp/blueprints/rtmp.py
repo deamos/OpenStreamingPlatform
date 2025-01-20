@@ -102,6 +102,8 @@ def user_auth_check():
                                     inputLocation,
                                     "-c:v",
                                     "libx264",
+                                    "-preset",
+                                    "veryfast",
                                     "-maxrate",
                                     str(
                                         sysSettingsResults["results"][
