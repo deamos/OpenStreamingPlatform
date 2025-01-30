@@ -735,43 +735,26 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
     inputPath = globalvars.videoRoot + "pending/" + path
     destinationPath = f"{globalvars.videoRoot}videos/{channelLoc}/{path.replace('flv', 'mp4')}"
 
-    #processedStreamVideo = subprocess.call(
-    #    [
-    #        "/usr/bin/ffmpeg",
-    #        '-hwaccel',
-    #        'auto',
-    #        "-y",
-    #        "-i",
-    #        inputPath,
-    #        "-c:v",
-    #        "copy",
-    #        "-c:a",
-    #        "copy",
-    #        "-movflags",
-    #        "+faststart",
-    #        destinationPath,
-    #    ]
-    #)
+    processedStreamVideo = subprocess.call(
+        [
+            "/usr/bin/ffmpeg",
+            '-hwaccel',
+            'auto',
+            "-y",
+            "-i",
+            inputPath,
+            "-c:v",
+            "copy",
+            "-c:a",
+            "mp3",
+            "-movflags",
+            "+faststart",
+            "-f",
+            "mp4",
+            destinationPath,
+        ]
+    )
 
-    processedStreamVideo = subprocess.call([
-        "/usr/bin/ffmpeg",
-        '-hwaccel',
-        'auto',
-        '-y'
-        "-i",
-        inputPath,
-        "-c:v",
-        "copy",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "160k",
-        "-movflags",
-        "+faststart",
-        "-f",
-        "mp4",
-        destinationPath,
-    ])
     destinationFilePath = pathlib.Path(destinationPath)
     if destinationFilePath.is_file() == False:
         return False
