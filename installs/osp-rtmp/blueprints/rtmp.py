@@ -146,31 +146,14 @@ def user_auth_check():
                             node["address"]
                             != sysSettingsResults["results"]["siteAddress"]
                         ):
-                            #subprocessConstructor = [
-                            #    "/usr/bin/ffmpeg",
-                            #    '-hwaccel',
-                            #    'auto',
-                            #    "-i",
-                            #    inputLocation,
-                            #    "-c",
-                            #    "copy",
-                            #]
                             subprocessConstructor = [
                                 "/usr/bin/ffmpeg",
                                 '-hwaccel',
                                 'auto',
                                 "-i",
                                 inputLocation,
-                                "-c:v",
-                                "libx264",
-                                "-preset",
-                                "veryfast",
-                                "-c:a",
-                                "aac",
-                                "-b:a",
-                                "160k",
-                                "-ac",
-                                "2",
+                                "-c",
+                                "copy",
                             ]
                             subprocessConstructor.append("-f")
                             subprocessConstructor.append("flv")
