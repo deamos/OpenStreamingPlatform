@@ -746,7 +746,7 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
             "-c:v",
             "copy",
             "-c:a",
-            "mp3",
+            "copy",
             "-movflags",
             "+faststart",
             "-f",
