@@ -616,14 +616,15 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
                 db.session.close()
                 return returnMessage
 
-            pendingPath = path.replace(
-                "/tmp/", current_app.config["WEB_ROOT"] + "pending/"
-            )
+            pendingPath = f"{current_app.config['WEB_ROOT']}/videos/{requestedChannel.id}/pending/"
             pathlibPath = pathlib.Path(pendingPath)
-            while pathlibPath.is_file() == False:
-                time.sleep(2)
 
-            fileName = pathlibPath.name
+            loopCounter = 0 
+            while pathlibPath.is_file() == False:
+                if loopCounter > 50:
+                    raise Exception()
+                time.sleep(2)
+                loopCounter = loopCounter + 1
 
             workingVideoID = pendingVideo.id
             videoChannelName = pendingVideo.channelName
@@ -635,7 +636,7 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
 
             notificationFunctions.sendNotification(f"{videoChannelName} has started processing.", f"/play/{workingVideoID}", f"/images/{templateFilters.get_pictureLocation(requestedChannel.owningUser)}", requestedChannel.owningUser)
 
-            results = videoFunc.processStreamVideo(fileName, channelTuple[1])
+            results = videoFunc.processStreamVideo(pendingPath.name, channelTuple[1])
 
             # If File does not exist in expected destination, Raise Task Failure
             if results == False:
