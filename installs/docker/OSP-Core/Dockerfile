@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 MAINTAINER David Lockwood
 
 ARG OSP_VERSION=0.9.11
@@ -161,6 +161,11 @@ RUN cp /opt/osp/installs/nginx-core/osp-custom-*.conf /usr/local/nginx/conf/cust
 # Install Python, Gunicorn, and uWSGI
 RUN apt install -y python3 python3-pip uwsgi-plugin-python3 python3-dev python3-setuptools
 
+# Setup Python Virtual Environment
+RUN python3 -m venv /opt/venv
+# Enable venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 # Upgrade PIP
 RUN pip3 install cryptography==3.3.2
 RUN pip3 install --upgrade pip
@@ -184,6 +189,5 @@ RUN mkdir -p /var/log/supervisor
 EXPOSE 80
 
 VOLUME ["/var/www", "/usr/local/nginx/conf", "/opt/osp/conf"]
-
 RUN chmod +x /opt/osp/docker-files.d/entrypoint.sh
 ENTRYPOINT ["/bin/sh","-c", "/opt/osp/docker-files.d/entrypoint.sh"]
