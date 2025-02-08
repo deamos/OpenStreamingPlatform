@@ -82,7 +82,7 @@ RUN cd /tmp && \
 
 RUN cd /tmp && \
     wget -q "https://github.com/madler/zlib/archive/refs/tags/v${NGINX_ZLIB_VERSION}.tar.gz" && \
-    tar xfz v${NGINX_ZLIB_VERSION}.tar.gz
+    tar xfz zlib-${NGINX_ZLIB_VERSION}.tar.gz
 
 # Compile NGINX with the NGINX-RTMP Module
 RUN cd /tmp/nginx-${NGINX_VERSION} && \
@@ -94,7 +94,7 @@ RUN cd /tmp/nginx-${NGINX_VERSION} && \
   --with-cc-opt="-Wimplicit-fallthrough=0" \
   --add-module=../nginx-http-flv-module-${NGINX_RTMP_VERSION} \
   --add-module=../nginx-sticky-module-ng-master \
-  --with-zlib=../v${NGINX_ZLIB_VERSION} && \
+  --with-zlib=../zlib-${NGINX_ZLIB_VERSION} && \
   cd /tmp/nginx-${NGINX_VERSION} && make && make install
 
 RUN rm -rf /tmp/nginx-${NGINX_VERSION}
