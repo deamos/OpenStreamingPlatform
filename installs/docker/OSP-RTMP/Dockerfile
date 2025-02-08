@@ -113,7 +113,7 @@ RUN cp /opt/osp-rtmp/setup/nginx/services/* /usr/local/nginx/conf/services
 RUN chown -R www-data:www-data /opt/osp-rtmp/rtmpsocket
 
 # Install Python, Gunicorn, and uWSGI
-RUN apt install -y python3 python3-pip uwsgi-plugin-python3 python3-dev python3-setuptools
+RUN apt install -y python3 python3-pip uwsgi-plugin-python3 python3-dev python3-setuptools python3-venv
 
 # Setup Python Virtual Environment
 RUN python3 -m venv /opt/venv
