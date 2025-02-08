@@ -140,7 +140,7 @@ RUN cd /tmp/nginx-${NGINX_VERSION} && \
   --with-http_stub_status_module \
   --with-cc-opt="-Wimplicit-fallthrough=0" \
   --add-module=../nginx-http-flv-module-${NGINX_RTMP_VERSION} \
-  --add-module=../nginx-goodies-nginx-sticky-module-ng-08a395c66e42 \
+  --add-module=../nginx-goodies-nginx-sticky-module-ng-master \
   --with-zlib=../v${NGINX_ZLIB_VERSION} && \
   cd /tmp/nginx-${NGINX_VERSION} && make && make install
 
