@@ -4,8 +4,8 @@ MAINTAINER David Lockwood
 ARG OSP_VERSION=0.9.11
 ARG OSP_GIT_BRANCH=build/0.9.x
 
-ARG NGINX_VERSION=1.22.1
-ARG NGINX_RTMP_VERSION=1.2.11
+ARG NGINX_VERSION=1.27.1
+ARG NGINX_RTMP_VERSION=1.2.12
 ARG NGINX_ZLIB_VERSION=1.3.1
 
 ARG DEFAULT_API=http://127.0.0.1:5010
@@ -77,12 +77,12 @@ RUN cd /tmp && \
 #RUN cd /tmp/nginx-http-flv-module-${NGINX_RTMP_VERSION} && patch -s -p 1 < 1158.patch
 
 RUN cd /tmp && \
-  wget "https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/get/master.tar.gz" && \
+  wget "https://github.com/xuges/nginx-sticky-module-ng/archive/refs/heads/master.tar.gz" && \
   tar xxf master.tar.gz
 
 RUN cd /tmp && \
-    wget -q "http://www.zlib.net/zlib-${NGINX_ZLIB_VERSION}.tar.gz" && \
-    tar xfz zlib-${NGINX_ZLIB_VERSION}.tar.gz
+    wget -q "https://github.com/madler/zlib/archive/refs/tags/v${NGINX_ZLIB_VERSION}.tar.gz" && \
+    tar xfz v${NGINX_ZLIB_VERSION}.tar.gz
 
 # Compile NGINX with the NGINX-RTMP Module
 RUN cd /tmp/nginx-${NGINX_VERSION} && \
@@ -94,7 +94,7 @@ RUN cd /tmp/nginx-${NGINX_VERSION} && \
   --with-cc-opt="-Wimplicit-fallthrough=0" \
   --add-module=../nginx-http-flv-module-${NGINX_RTMP_VERSION} \
   --add-module=../nginx-goodies-nginx-sticky-module-ng-08a395c66e42 \
-  --with-zlib=../zlib-${NGINX_ZLIB_VERSION} && \
+  --with-zlib=../v${NGINX_ZLIB_VERSION} && \
   cd /tmp/nginx-${NGINX_VERSION} && make && make install
 
 RUN rm -rf /tmp/nginx-${NGINX_VERSION}

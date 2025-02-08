@@ -4,8 +4,8 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 OSPLOG="/var/log/osp/installer.log"
 VERSION=$(<version)
 
-NGINX_BUILD_VERSION="1.22.1"
-NGINX_RTMP_VERSION="1.2.11"
+NGINX_BUILD_VERSION="1.27.1"
+NGINX_RTMP_VERSION="1.2.12"
 NGINX_ZLIB_VERSION="1.3.1"
 EJABBERD_VERSION="23.04"
 
@@ -293,14 +293,14 @@ install_nginx_core() {
           #sudo wget -q "https://github.com/arut/nginx-rtmp-module/archive/v$NGINX_RTMP_VERSION.zip" >> $OSPLOG 2>&1
           sudo wget -q "https://github.com/winshining/nginx-http-flv-module/archive/refs/tags/v$NGINX_RTMP_VERSION.tar.gz" >> $OSPLOG 2>&1
           echo 20 | dialog --title "Installing Nginx-Core" --gauge "Downloading Required Modules" 10 70 0
-          sudo wget -q "http://www.zlib.net/zlib-$NGINX_ZLIB_VERSION.tar.gz" >> $OSPLOG 2>&1
+          sudo wget -q "https://github.com/madler/zlib/archive/refs/tags/v$NGINX_ZLIB_VERSION.tar.gz" >> $OSPLOG 2>&1
           echo 25 | dialog --title "Installing Nginx-Core" --gauge "Downloading Required Modules" 10 70 0
-          sudo wget -q "https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/get/master.tar.gz" >> $OSPLOG 2>&1
+          sudo wget -q "https://github.com/xuges/nginx-sticky-module-ng/archive/refs/heads/master.tar.gz" >> $OSPLOG 2>&1
           echo 30 | dialog --title "Installing Nginx-Core" --gauge "Decompressing Nginx Source and Modules" 10 70 0
           sudo tar xfz nginx-$NGINX_BUILD_VERSION.tar.gz >> $OSPLOG 2>&1
           #sudo unzip -qq -o v$NGINX_RTMP_VERSION.zip >> $OSPLOG 2>&1
           sudo tar xfz v$NGINX_RTMP_VERSION.tar.gz >> $OSPLOG 2>&1
-          sudo tar xfz zlib-$NGINX_ZLIB_VERSION.tar.gz >> $OSPLOG 2>&1
+          sudo tar xfz v$NGINX_ZLIB_VERSION.tar.gz >> $OSPLOG 2>&1
           sudo tar xfz master.tar.gz >> $OSPLOG 2>&1
 
           # Apply Any Precompile Nginx-RTMP Patches
@@ -318,7 +318,7 @@ install_nginx_core() {
           echo 35 | dialog --title "Installing Nginx-Core" --gauge "Building Nginx from Source" 10 70 0
           if cd nginx-$NGINX_BUILD_VERSION
           then
-                  ./configure --with-http_ssl_module --with-http_v2_module --with-http_auth_request_module --with-http_stub_status_module --add-module=../nginx-http-flv-module-$NGINX_RTMP_VERSION --add-module=../nginx-goodies-nginx-sticky-module-ng-08a395c66e42 --with-zlib=../zlib-$NGINX_ZLIB_VERSION --with-cc-opt="-Wimplicit-fallthrough=0" >> $OSPLOG 2>&1
+                  ./configure --with-http_ssl_module --with-http_v2_module --with-http_auth_request_module --with-http_stub_status_module --add-module=../nginx-http-flv-module-$NGINX_RTMP_VERSION --add-module=../nginx-goodies-nginx-sticky-module-ng-08a395c66e42 --with-zlib=../v$NGINX_ZLIB_VERSION --with-cc-opt="-Wimplicit-fallthrough=0" >> $OSPLOG 2>&1
                   echo 50 | dialog --title "Installing Nginx-Core" --gauge "Installing Nginx" 10 70 0
                   sudo make install >> $OSPLOG 2>&1
           else
