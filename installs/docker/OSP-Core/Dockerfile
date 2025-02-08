@@ -128,7 +128,7 @@ RUN cd /tmp && \
 
   RUN cd /tmp && \
     wget -q "https://github.com/madler/zlib/archive/refs/tags/v${NGINX_ZLIB_VERSION}.tar.gz" && \
-    tar xfz zlib-${NGINX_ZLIB_VERSION}.tar.gz
+    tar xfz v${NGINX_ZLIB_VERSION}.tar.gz
 
 
 # Compile NGINX with the NGINX-RTMP Module

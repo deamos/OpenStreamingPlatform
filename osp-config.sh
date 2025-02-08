@@ -300,7 +300,7 @@ install_nginx_core() {
           sudo tar xfz nginx-$NGINX_BUILD_VERSION.tar.gz >> $OSPLOG 2>&1
           #sudo unzip -qq -o v$NGINX_RTMP_VERSION.zip >> $OSPLOG 2>&1
           sudo tar xfz v$NGINX_RTMP_VERSION.tar.gz >> $OSPLOG 2>&1
-          sudo tar xfz zlib-$NGINX_ZLIB_VERSION.tar.gz >> $OSPLOG 2>&1
+          sudo tar xfz v$NGINX_ZLIB_VERSION.tar.gz >> $OSPLOG 2>&1
           sudo tar xfz master.tar.gz >> $OSPLOG 2>&1
 
           # Apply Any Precompile Nginx-RTMP Patches
