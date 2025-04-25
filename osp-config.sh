@@ -4,7 +4,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 OSPLOG="/var/log/osp/installer.log"
 VERSION=$(<version)
 
-NGINX_BUILD_VERSION="1.27.4"
+NGINX_BUILD_VERSION="1.25.5"
 NGINX_RTMP_VERSION="1.2.12"
 NGINX_ZLIB_VERSION="1.3.1"
 EJABBERD_VERSION="23.04"

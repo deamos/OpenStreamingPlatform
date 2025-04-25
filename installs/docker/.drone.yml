@@ -14,7 +14,8 @@ platform:
 
 steps:
 - name: build-nightly-core
-  image: thegeeklab/drone-docker-buildx
+  #image: thegeeklab/drone-docker-buildx
+  image: plugins/docker
   privileged: true
   settings:
     context: ./osp-core/
@@ -25,15 +26,16 @@ steps:
       from_secret: docker_password
     repo: deamos/osp-core
     tags: nightly
-    platforms:
-      - linux/amd64
-      - linux/arm64
+    #platforms:
+    #  - linux/amd64
+    #  - linux/arm64
   when:
     event:
       - push
       - custom
 - name: build-nightly-rtmp
-  image: thegeeklab/drone-docker-buildx
+  #image: thegeeklab/drone-docker-buildx
+  image: plugins/docker
   privileged: true
   settings:
     context: ./osp-rtmp/
@@ -44,15 +46,16 @@ steps:
       from_secret: docker_password
     repo: deamos/osp-rtmp
     tags: nightly
-    platforms:
-      - linux/amd64
-      - linux/arm64
+    #platforms:
+    #  - linux/amd64
+    #  - linux/arm64
   when:
     event:
       - push
       - custom
 - name: build-nightly-ejabberd
-  image: thegeeklab/drone-docker-buildx
+  #image: thegeeklab/drone-docker-buildx
+  image: plugins/docker
   privileged: true
   settings:
     context: ./osp-ejabberd/
@@ -63,9 +66,9 @@ steps:
       from_secret: docker_password
     repo: deamos/osp-ejabberd
     tags: nightly
-    platforms:
-      - linux/amd64
-      - linux/arm64
+    #platforms:
+    #  - linux/amd64
+    #  - linux/arm64
   when:
     event:
       - push

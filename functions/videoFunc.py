@@ -735,6 +735,7 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
     inputPath = globalvars.videoRoot + "pending/" + path
     destinationPath = f"{globalvars.videoRoot}videos/{channelLoc}/{path.replace('flv', 'mp4')}"
 
+
     processedStreamVideo = subprocess.call(
         [
             "/usr/bin/ffmpeg",
@@ -743,19 +744,14 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
             "-y",
             "-i",
             inputPath,
-            "-r",
-            "30",
-            "-c:v",
-            "libx264",
-            "-c:a",
+            "-codec",
             "copy",
             "-movflags",
             "+faststart",
-            "-f",
-            "mp4",
             destinationPath,
         ]
     )
+
 
     destinationFilePath = pathlib.Path(destinationPath)
     if destinationFilePath.is_file() == False:
