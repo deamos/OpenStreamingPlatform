@@ -635,8 +635,6 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
 
             notificationFunctions.sendNotification(f"{videoChannelName} has started processing.", f"/play/{workingVideoID}", f"/images/{templateFilters.get_pictureLocation(requestedChannel.owningUser)}", requestedChannel.owningUser)
 
-            results = videoFunc.processStreamVideo(fileName, channelTuple[1])
-
             # If File does not exist in expected destination, Raise Task Failure
             if results == False:
                 self.update_state(
@@ -661,12 +659,20 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
 
 
             if requestedChannel.autoPublish is True:
-                updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(thumbnailLocation=imagePath, videoLocation=videoPath, gifLocation=gifPath, pending=False, published=True))
+                updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(thumbnailLocation=imagePath, videoLocation=videoPath, gifLocation=gifPath))
+            else:
+                updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(thumbnailLocation=imagePath, videoLocation=videoPath, gifLocation=gifPath))
+
+            db.session.commit()
+
+            results = videoFunc.processStreamVideo(fileName, channelTuple[1])
+
+            if requestedChannel.autoPublish is True:
+                updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(pending=False, published=True))
                 notificationFunctions.sendNotification(f"{videoChannelName} has finished processing and has been published.", f"/play/{workingVideoID}", f"/images/{templateFilters.get_pictureLocation(requestedChannel.owningUser)}", requestedChannel.owningUser)
             else:
-                updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(thumbnailLocation=imagePath, videoLocation=videoPath, gifLocation=gifPath, pending=False, published=False))
+                updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(pending=False, published=False))
                 notificationFunctions.sendNotification(f"{videoChannelName} has finished processing and is available in the Channel Settings Page.", f"/play/{workingVideoID}", f"/images/{templateFilters.get_pictureLocation(requestedChannel.owningUser)}", requestedChannel.owningUser)
-
             db.session.commit()
 
             pendingVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).with_entities(
