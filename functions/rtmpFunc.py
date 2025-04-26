@@ -635,13 +635,6 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
 
             notificationFunctions.sendNotification(f"{videoChannelName} has started processing.", f"/play/{workingVideoID}", f"/images/{templateFilters.get_pictureLocation(requestedChannel.owningUser)}", requestedChannel.owningUser)
 
-            # If File does not exist in expected destination, Raise Task Failure
-            if results == False:
-                self.update_state(
-                    state=states.FAILURE, meta="FFMPEG Processing Failure"
-                )
-                raise Ignore()
-
             requestedChannel = cachedDbCalls.getChannelByLoc(
                 requestedChannel.channelLoc
             )
@@ -657,15 +650,17 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
             videos_root = current_app.config["WEB_ROOT"] + "videos/"
             fullVidPath = videos_root + videoPath
 
-
-            if requestedChannel.autoPublish is True:
-                updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(thumbnailLocation=imagePath, videoLocation=videoPath, gifLocation=gifPath))
-            else:
-                updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(thumbnailLocation=imagePath, videoLocation=videoPath, gifLocation=gifPath))
+            updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(thumbnailLocation=imagePath, videoLocation=videoPath, gifLocation=gifPath))
 
             db.session.commit()
 
             results = videoFunc.processStreamVideo(fileName, channelTuple[1])
+            # If File does not exist in expected destination, Raise Task Failure
+            if results == False:
+                self.update_state(
+                    state=states.FAILURE, meta="FFMPEG Processing Failure"
+                )
+                raise Ignore()
 
             if requestedChannel.autoPublish is True:
                 updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(pending=False, published=True))
