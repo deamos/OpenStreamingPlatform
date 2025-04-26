@@ -57,20 +57,20 @@ def deleteVideo(videoID: int) -> bool:
         thumbnailPath = videos_root + recordedVid.videoLocation[:-4] + ".png"
         gifPath = videos_root + recordedVid.videoLocation[:-4] + ".gif"
 
-        videoTags = RecordedVideo.video_tags.query.filter_by(
+        RecordedVideo.video_tags.query.filter_by(
             videoID=recordedVid.id
         ).delete()
 
         # Delete Upvotes Attached to Video
-        upvoteQuery = upvotes.videoUpvotes.query.filter_by(videoID=recordedVid.id).delete()
+        upvotes.videoUpvotes.query.filter_by(videoID=recordedVid.id).delete()
 
         # Delete Comments Attached to Video
-        commentQuery = comments.videoComments.query.filter_by(
+        comments.videoComments.query.filter_by(
             videoID=recordedVid.id
         ).delete()
 
         # Delete Views Attached to Video
-        viewQuery = views.views.query.filter_by(viewType=1, itemID=recordedVid.id).delete()
+        views.views.query.filter_by(viewType=1, itemID=recordedVid.id).delete()
 
         # Delete Video and Thumbnails
         if filePath != videos_root:
@@ -103,7 +103,7 @@ def changeVideoMetadata(
     sysSettings = cachedDbCalls.getSystemSettings()
 
     if recordedVidQuery is not None:
-        updateVideo = RecordedVideo.RecordedVideo.query.filter_by(
+        RecordedVideo.RecordedVideo.query.filter_by(
             id=recordedVidQuery.id
         ).update(
             dict(
@@ -215,7 +215,7 @@ def moveVideo(videoID: int, newChannel: int):
                 newThumbnailLocation = f"{newChannelQuery.channelLoc}/{newChannelQuery.channelLoc}_{coreThumbnail}"
                 newGifLocation = f"{newChannelQuery.channelLoc}/{newChannelQuery.channelLoc}_{coreThumbnailGif}"
 
-                recordedVid = RecordedVideo.RecordedVideo.query.filter_by(id=recordedVidQuery.id).update(dict(thumbnailLocation=newThumbnailLocation, gifLocation=newGifLocation))
+                RecordedVideo.RecordedVideo.query.filter_by(id=recordedVidQuery.id).update(dict(thumbnailLocation=newThumbnailLocation, gifLocation=newGifLocation))
             for clip in RecordedVideo.Clips.query.filter_by(parentVideo=recordedVidQuery.id).with_entities(RecordedVideo.Clips.id).all():
                 destClipFolderAbsPath = os.path.join(videos_root, newChannelQuery.channelLoc, "clips")
                 if not os.path.isdir(destClipFolderAbsPath):
@@ -225,11 +225,11 @@ def moveVideo(videoID: int, newChannel: int):
                         system.newLog(4,f"Error Moving Video ID #{str(recordedVidQuery.id)} to Channel ID {str(newChannelQuery.id)}/{newChannelQuery.channelLoc}",)
                         flash("Error Moving Video - Unable to Create Clips Directory","error",)
                         return False
-                clipQuery = RecordedVideo.Clips.query.filter_by(id=clip.id).update(channelID=newChannelQuery.id)
+                RecordedVideo.Clips.query.filter_by(id=clip.id).update(channelID=newChannelQuery.id)
                 moveClips(clip.id, videos_root, newChannelQuery.channelLoc)
 
             db.session.commit()
-            system.newLog(4,f"Video ID #{str(recordedVidQuery.id)} Moved to Channel ID {str(newChannelQuery.id)}/{newChannelQuery.channelLoc}",)
+            system.newLog(4, f"Video ID #{str(recordedVidQuery.id)} Moved to Channel ID {str(newChannelQuery.id)}/{newChannelQuery.channelLoc}",)
             return True
     return False
 
@@ -298,7 +298,7 @@ def createClip(videoID: int, clipStart: float, clipStop: float, clipName: int, c
 
             redirectID = newClipQuery.id
 
-            updateClipQuery = RecordedVideo.Clips.query.filter_by(id=newClipQuery.id).update(dict(published=True))
+            RecordedVideo.Clips.query.filter_by(id=newClipQuery.id).update(dict(published=True))
 
             system.newLog(6, "New Clip Created - ID #" + str(redirectID))
 
@@ -314,7 +314,8 @@ def createClip(videoID: int, clipStart: float, clipStop: float, clipName: int, c
             ).all()
             for sub in subscriptionQuery:
                 # Create Notification for Channel Subs
-                newNotification = notifications.userNotification(f"{templateFilters.get_userName(recordedVidQuery.owningUser)} has posted a new clip to {recordedVidQuery.channel.channelName} titled {clipName}",
+                newNotification = notifications.userNotification(
+                    f"{templateFilters.get_userName(recordedVidQuery.owningUser)} has posted a new clip to {recordedVidQuery.channel.channelName} titled {clipName}",
                     f"/clip/{str(newClipQuery.id)}",
                     f"/images/{str(recordedVidQuery.channel.owner.pictureLocation)}",
                     sub.userID,
@@ -479,7 +480,7 @@ def deleteClip(clipID: int) -> bool:
             ):
                 os.remove(videoPath)
 
-        upvoteQueryDelete = upvotes.clipUpvotes.query.filter_by(clipID=clipQuery.id).delete()
+        upvotes.clipUpvotes.query.filter_by(clipID=clipQuery.id).delete()
 
         owningChannelQuery = cachedDbCalls.getClipChannelID(clipQuery.id)
         if owningChannelQuery is not None:
@@ -488,7 +489,7 @@ def deleteClip(clipID: int) -> bool:
                 cache.delete_memoized(cachedDbCalls.getAllClipsForChannel_View, channelQuery.id)
                 cache.delete_memoized(cachedDbCalls.getAllClipsForUser, channelQuery.owningUser)
 
-        deleteClipQuery = RecordedVideo.Clips.query.filter_by(id=clipQuery.id).delete()
+        RecordedVideo.Clips.query.filter_by(id=clipQuery.id).delete()
 
         db.session.commit()
         system.newLog(6, f"Clip Deleted - ID #{str(clipID)}")
@@ -511,7 +512,7 @@ def setVideoThumbnail(videoID: int, timeStamp: datetime.datetime) -> bool:
         fullthumbnailLocation = videos_root + newThumbnailLocation
         newGifFullThumbnailLocation = videos_root + newGifThumbnailLocation
 
-        updateVideoQuery = RecordedVideo.RecordedVideo.query.filter_by(
+        RecordedVideo.RecordedVideo.query.filter_by(
             id=videoID
         ).update(
             dict(
@@ -533,7 +534,7 @@ def setVideoThumbnail(videoID: int, timeStamp: datetime.datetime) -> bool:
         result = subprocess.call(
             [
                 "/usr/bin/ffmpeg",
-                '-hwaccel', 
+                '-hwaccel',
                 'auto',
                 "-ss",
                 str(timeStamp),
@@ -603,7 +604,7 @@ def processVideoUpload(
             try:
                 os.mkdir(videos_root + ChannelQuery.channelLoc)
             except OSError:
-                system.newLog(4,f"File Upload Failed - OSError - Unable to Create Directory - Channel:{ChannelQuery.channelLoc}",)
+                system.newLog(4, f"File Upload Failed - OSError - Unable to Create Directory - Channel:{ChannelQuery.channelLoc}",)
                 db.session.close()
                 return ("Error", "Error uploading video - Unable to create directory")
         if sourcePath is None:
@@ -624,7 +625,7 @@ def processVideoUpload(
                 current_app.config["VIDEO_UPLOAD_TEMPFOLDER"] + "/" + thumbnailFilename,
                 thumbnailPath,
             )
-        except:
+        except Exception:
             pass
         newVideo.thumbnailLocation = thumbnailLoc
     else:
@@ -682,7 +683,7 @@ def processVideoUpload(
         duration = None
         try:
             duration = getVidLength(videoPath)
-        except:
+        except Exception:
             pass
         if duration is not None:
             newVideo.length = duration
@@ -725,7 +726,7 @@ def processFLVUpload(path: str) -> bool:
     )
 
     destinationFilePath = pathlib.Path(destinationPath)
-    if destinationFilePath.is_file() == False:
+    if destinationFilePath.is_file() is False:
         return False
 
     oldFilePath = pathlib.Path(path)
@@ -762,7 +763,7 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
 
 
     destinationFilePath = pathlib.Path(destinationPath)
-    if destinationFilePath.is_file() == False:
+    if destinationFilePath.is_file() is False:
         return False
 
     oldFilePath = pathlib.Path(inputPath)

@@ -7,6 +7,7 @@ from classes.shared import db
 
 log = logging.getLogger("app.functions.database")
 
+
 # Handles the Invite Cache to cut down on SQL Calls
 def checkInviteCache(channelID: int) -> bool:
     """Compares Current Users if Existing Within a given channels Invite Cache

@@ -78,7 +78,7 @@ def deleteChannelAdmin(message):
     channelQuery = Channel.Channel.query.filter_by(id=channelID).first()
     if channelQuery is not None:
         if current_user.has_role("Admin") or channelQuery.owningUser == current_user.id:
-            result = channelFunc.delete_channel(channelID)
+            channelFunc.delete_channel(channelID)
             # Invalidate Channel Cache
             cachedDbCalls.invalidateChannelCache(channelID)
     return "OK"
@@ -87,15 +87,24 @@ def deleteChannelAdmin(message):
 @socketio.on("deleteStream")
 def deleteActiveStream(message):
     if current_user.has_role("Admin"):
+        
         streamID = int(message["streamID"])
-        streamQuery = Stream.Stream.query.filter_by(active=True, id=streamID).first()
+
+        streamQuery = Stream.Stream.query.filter_by(
+            active=True,
+            id=streamID
+        ).with_entities(
+            Stream.Stream.id,
+            Stream.Stream.linkedChannel
+        ).first()
         if streamQuery is not None:
-            pendingVideo = RecordedVideo.RecordedVideo.query.filter_by(
+            
+            RecordedVideo.RecordedVideo.query.filter_by(
                 pending=True, channelID=streamQuery.linkedChannel
-            ).all()
-            for pending in pendingVideo:
-                db.session.delete(pending)
-            db.session.delete(streamQuery)
+            ).delete()
+
+            Stream.Stream.query.filter_by(id=streamQuery.id).delete()
+
             db.session.commit()
             db.session.close()
             return "OK"
@@ -312,7 +321,7 @@ def get_admin_component_status(msg):
                 )
         elif component == "osp_proxy":
             sysSettings = cachedDbCalls.getSystemSettings()
-            if sysSettings.proxyFQDN != None and sysSettings.proxyFQDN != "":
+            if sysSettings.proxyFQDN is not None and sysSettings.proxyFQDN != "":
                 r = requests.get(
                     sysSettings.siteProtocol + sysSettings.proxyFQDN + "/ping"
                 )
@@ -357,13 +366,13 @@ def get_admin_component_status(msg):
         elif component == "osp_database":
             try:
                 sysSettings = settings.settings.query.first()
-                if sysSettings != None:
+                if sysSettings is not None:
                     status = "OK"
                     message = "DB Connection Successful"
                 else:
                     status = "Problem"
                     message = "DB Connection Successful, but Settings Table Null"
-            except:
+            except Exception:
                 message = "DB Connection Failure"
         elif component == "osp_redis":
             from app import r
@@ -372,7 +381,7 @@ def get_admin_component_status(msg):
                 r.ping()
                 status = "OK"
                 message = "Redis Ping Successful"
-            except:
+            except Exception:
                 message = "Redis Ping Failed"
         elif component == "osp_celery":
             from classes.shared import celery
@@ -413,31 +422,26 @@ def delete_apiKey(message):
     if current_user.is_authenticated:
         if "keyId" in message:
             apiKeyID = int(message["keyId"])
-            apiKeyQuery = apikey.apikey.query.filter_by(
+            apikey.apikey.query.filter_by(
                 id=apiKeyID, userID=current_user.id
-            ).first()
-            if apiKeyQuery != None:
-                db.session.delete(apiKeyQuery)
-                db.session.commit()
-                return "OK"
-            else:
-                db.session.commit()
-                db.session.close()
+            ).delete()
+            db.session.commit()
+            return "OK"
     return "OK"
 
 
 @socketio.on("deletePanel")
-def delete_global_panel(message):
+def delete_local_panel(message):
     if current_user.is_authenticated:
         panelType = message["type"]
         if panelType == "channel":
             panelId = int(message["panelId"])
             panelQuery = panel.channelPanel.query.filter_by(id=panelId).first()
-            if panelQuery != None:
+            if panelQuery is not None:
                 channelQuery = Channel.Channel.query.filter_by(
                     id=panelQuery.channelId, owningUser=current_user.id
-                ).first()
-                if channelQuery != None:
+                ).with_entities(Channel.Channel.id).first()
+                if channelQuery is not None:
                     db.session.delete(panelQuery)
                     db.session.commit()
                 else:
@@ -500,8 +504,8 @@ def save_panel_page(message):
             channelId = int(message["channelId"])
             channelQuery = Channel.Channel.query.filter_by(
                 id=channelId, owningUser=current_user.id
-            ).first()
-            if channelQuery != None:
+            ).with_entities(Channel.Channel.id).first()
+            if channelQuery is not None:
                 PanelListArray = message["panelArray"]
                 existingPageArray = panel.panelMapping.query.filter_by(
                     pageName="liveview.view_page",
@@ -621,10 +625,8 @@ def add_server_to_hub(message):
             )
             if r.status_code == 200:
                 results = r.json()
-                hubQuery = hub.hub.query.all()
-                for hubentry in hubQuery:
-                    db.session.delete(hubentry)
-                    db.session.commit()
+                hub.hub.query.delete()
+                db.session.commit()
                 newHub = hub.hub(
                     results["results"]["serverUUID"], results["results"]["token"]
                 )
@@ -655,7 +657,7 @@ def remove_server_from_hub(message):
             sysSettings = settings.settings.query.first()
             sysSettings.hubEnabled = False
             hubQuery = hub.hub.query.first()
-            if hubQuery != None:
+            if hubQuery is not None:
                 r = requests.delete(
                     sysSettings.hubURL + "/api/server/",
                     data={"id": hubQuery.hubUUID, "token": hubQuery.hubToken},
@@ -710,9 +712,9 @@ def add_edit_static_page(message):
                             existingPageCheck = settings.static_page.query.filter_by(
                                 name=pageName
                             ).first()
-                            if existingPageCheck != None:
+                            if existingPageCheck is not None:
                                 existingPageName = True
-                        if existingPageName == False:
+                        if existingPageName is False:
                             updatingPageCheck.name = pageName
                             updatingPageCheck.iconClass = pageIcon
                             updatingPageCheck.content = pageContent
@@ -724,12 +726,13 @@ def add_edit_static_page(message):
                     cache.delete_memoized(cachedDbCalls.getStaticPage, oldname)
     return "OK"
 
+
 @socketio.on("admin_password_reset")
 def admin_password_reset(message):
     if current_user.is_authenticated:
         if current_user.has_role("Admin"):
             userId = message['userId']
-            result = securityFunc.admin_force_reset(int(userId))
+            securityFunc.admin_force_reset(int(userId))
     return "OK"
 
 
@@ -741,7 +744,7 @@ def delete_static_page(message):
                 pageQuery = settings.static_page.query.filter_by(
                     id=int(message["pageId"])
                 ).first()
-                if pageQuery != None:
+                if pageQuery is not None:
                     oldName = pageQuery.name
                     db.session.delete(pageQuery)
                     db.session.commit()

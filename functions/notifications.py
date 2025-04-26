@@ -2,7 +2,7 @@ from classes.shared import db
 from classes import notifications, Sec
 
 
-def sendMessage(subject: str, message:str, fromUser:int, toUser: int) -> str:
+def sendMessage(subject: str, message: str, fromUser: int, toUser: int) -> str:
     newMessage = notifications.userMessage(subject, message, fromUser, toUser)
     db.session.add(newMessage)
     db.session.commit()

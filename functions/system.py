@@ -135,10 +135,10 @@ def sendTestEmail(
         server.sendmail(smtpSender, smtpReceiver, msg)
     except Exception as e:
         current_app.logger.error(e)
-        newLog(1, "Test Email Failed for " + str(smtpServer) + "Reason:" + str(e))
+        newLog(1, f"Test Email Failed for {smtpServer} Reason: {e}")
         return False
     server.quit()
-    newLog(1, "Test Email Successful for " + str(smtpServer))
+    newLog(1, f"Test Email Successful for {smtpServer}")
     return True
 
 
@@ -298,7 +298,7 @@ def checkOSPEdgeConf() -> bool:
     if sysSettings.buildEdgeOnRestart is True:
         try:
             rebuildOSPEdgeConf()
-        except:
+        except Exception:
             log.error("Error Rebuilding Edge Config")
             return False
     else:

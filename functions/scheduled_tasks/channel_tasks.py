@@ -11,7 +11,7 @@ log = logging.getLogger("app.functions.scheduler.channel_tasks")
 
 
 def setup_channel_tasks(sender, **kwargs):
-    #sender.add_periodic_task(120, update_channel_counts.s(), name='Check Live Channel Counts')
+    # sender.add_periodic_task(120, update_channel_counts.s(), name='Check Live Channel Counts')
     pass
 
 
@@ -28,7 +28,7 @@ def update_channel_counts(self):
     liveStreamCount = 0
     for stream in streamQuery:
         liveStreamCount = liveStreamCount + 1
-        results = subtask(
+        subtask(
             "functions.scheduled_tasks.channel_tasks.update_channel_count",
             args=(stream.id, stream.linkedChannel),
         ).apply_async()
@@ -42,10 +42,10 @@ def update_channel_count(self, streamId, channelId):
     channelQuery = cachedDbCalls.getChannel(channelId)
     if channelQuery is not None:
         count = xmpp.getChannelCounts(channelQuery.channelLoc)
-        channelUpdate = Channel.Channel.query.filter_by(id=channelQuery.id).update(
+        Channel.Channel.query.filter_by(id=channelQuery.id).update(
             dict(currentViewers=count)
         )
-        streamUpdate = Stream.Stream.query.filter_by(id=streamId).update(
+        Stream.Stream.query.filter_by(id=streamId).update(
             dict(currentViewers=count)
         )
         log.info(
@@ -63,7 +63,7 @@ def check_channel_stream_time(self, streamId):
     if activeStreamQuery is not None:
         channelId = activeStreamQuery.linkedChannel
         channelQuery = cachedDbCalls.getChannel(channelId)
-        if channelQuery != None:
+        if channelQuery is not None:
             streamTime = (datetime.datetime.utcnow() - activeStreamQuery.startTimeStamp)
             streamTimeMins = streamTime.total_seconds() / 60.0
 

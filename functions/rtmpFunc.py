@@ -225,40 +225,27 @@ def rtmp_stage2_user_auth_check(channelLoc: str, ipaddress: str, authorizedRTMP:
             for sub in subscriptionQuery:
                 # Create Notification for Channel Subs
                 notificationFunctions.sendNotification(
-                    templateFilters.get_userName(requestedChannel.owningUser)
-                    + " has started a live stream in "
-                    + requestedChannel.channelName,
-                    "/view/" + str(requestedChannel.channelLoc),
-                    "/images/"
-                    + str(
-                        templateFilters.get_pictureLocation(requestedChannel.owningUser)
-                    ),
-                    sub.userID,
+                    f"{templateFilters.get_userName(requestedChannel.owningUser)} has started a live stream in {requestedChannel.channelName}",
+                    f"/view/{requestedChannel.channelLoc}",
+                    f"/images/{templateFilters.get_pictureLocation(requestedChannel.owningUser)}",
+                    sub.userID
                 )
             try:
                 subsFunc.processSubscriptions(
                     requestedChannel.id,
-                    sysSettings.siteName
-                    + " - "
-                    + requestedChannel.channelName
-                    + " has started a stream",
-                    "<html><body><img src='"
-                    + sysSettings.siteProtocol
-                    + sysSettings.siteAddress
-                    + sysSettings.systemLogo
-                    + "'><p>Channel "
-                    + requestedChannel.channelName
-                    + " has started a new video stream.</p><p>Click this link to watch<br><a href='"
-                    + sysSettings.siteProtocol
-                    + sysSettings.siteAddress
-                    + "/view/"
-                    + str(requestedChannel.channelLoc)
-                    + "'>"
-                    + requestedChannel.channelName
-                    + "</a></p>",
+                    f"{sysSettings.siteName} - {requestedChannel.channelName} has started a stream",
+                    (
+                        f"<html>\n"
+                        "<body>\n"
+                        f"<img src='{sysSettings.siteProtocol}{sysSettings.siteAddress}{sysSettings.systemLogo}'>\n"
+                        f"<p>Channel {requestedChannel.channelName} has started a new video stream.</p>\n"
+                        "<p>Click this link to watch<br>\n"
+                        f"<a href='{sysSettings.siteProtocol}{sysSettings.siteAddress}/view/{requestedChannel.channelLoc}'>{requestedChannel.channelName}</a>\n"
+                        "</p>"
+                    ),
                     "stream",
                 )
-            except:
+            except Exception:
                 system.newLog(
                     0, "Subscriptions Failed due to possible misconfiguration"
                 )
@@ -307,13 +294,11 @@ def rtmp_record_auth_check(channelLoc: str) -> dict:
     if channelRequest is not None:
         userQuery = Sec.User.query.filter_by(id=channelRequest.owningUser).first()
 
-        if (
-            channelRequest.record is True
-            and sysSettings.allowRecording is True
-            and userQuery.has_role("Recorder")
-        ):
-            existingRecordingQuery = RecordedVideo.RecordedVideo.query.filter_by(
-                channelID=channelRequest.id, pending=True, videoLocation=""
+        if (channelRequest.record is True and sysSettings.allowRecording is True and userQuery.has_role("Recorder")):
+            RecordedVideo.RecordedVideo.query.filter_by(
+                channelID=channelRequest.id,
+                pending=True,
+                videoLocation=""
             ).delete()
             db.session.commit()
 
@@ -344,15 +329,15 @@ def rtmp_record_auth_check(channelLoc: str) -> dict:
                 db.session.add(newRecording)
                 db.session.commit()
 
-                pendingVideo = (
-                    RecordedVideo.RecordedVideo.query.filter_by(
-                        channelID=channelRequest.id, videoLocation="", pending=True
-                    )
-                    .with_entities(RecordedVideo.RecordedVideo.id)
-                    .first()
-                )
+                pendingVideo = RecordedVideo.RecordedVideo.query.filter_by(
+                    channelID=channelRequest.id,
+                    videoLocation="",
+                    pending=True
+                ).with_entities(
+                    RecordedVideo.RecordedVideo.id
+                ).first()
 
-                StreamQueryUpdate = Stream.Stream.query.filter_by(
+                Stream.Stream.query.filter_by(
                     id=existingStream.id
                 ).update(dict(recordedVideoId=pendingVideo.id))
 
@@ -403,16 +388,22 @@ def rtmp_user_deauth_check(key: str, ipaddress: str) -> dict:
 
     currentTime = datetime.datetime.utcnow()
 
-    closingStreams = (
-        Stream.Stream.query.filter_by(active=True, complete=False, streamKey=key)
-        .with_entities(Stream.Stream.id, Stream.Stream.uuid)
-        .all()
-    )
+    closingStreams = Stream.Stream.query.filter_by(
+        active=True,
+        complete=False,
+        streamKey=key
+    ).with_entities(
+        Stream.Stream.id,
+        Stream.Stream.uuid
+    ).all()
     closingStreamIds = []
     for stream in closingStreams:
         closingStreamIds.append(stream.id)
+
     authedStream = Stream.Stream.query.filter_by(
-        active=True, complete=False, streamKey=key
+        active=True,
+        complete=False,
+        streamKey=key
     ).update(dict(endTimeStamp=currentTime, active=False, pending=False, complete=True))
 
     db.session.commit()
@@ -502,48 +493,23 @@ def rtmp_user_deauth_check(key: str, ipaddress: str) -> dict:
                 # db.session.commit()
 
                 if channelRequest.imageLocation is None:
-                    channelImage = (
-                        sysSettings.siteProtocol
-                        + sysSettings.siteAddress
-                        + "/static/img/video-placeholder.jpg"
-                    )
+                    channelImage = f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/static/img/video-placeholder.jpg"
                 else:
-                    channelImage = (
-                        sysSettings.siteProtocol
-                        + sysSettings.siteAddress
-                        + "/images/"
-                        + channelRequest.imageLocation
-                    )
+                    channelImage = f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/images/{channelRequest.imageLocation}"
 
                 message_tasks.send_webhook.delay(
                     channelRequest.id,
                     1,
                     channelname=channelRequest.channelName,
-                    channelurl=(
-                        sysSettings.siteProtocol
-                        + sysSettings.siteAddress
-                        + "/channel/"
-                        + str(channelRequest.id)
-                    ),
+                    channelurl=f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/channel/{channelRequest.id}",
                     channeltopic=channelRequest.topic,
                     channelimage=channelImage,
                     streamer=templateFilters.get_userName(channelRequest.owningUser),
                     channeldescription=str(channelRequest.description),
                     streamname=stream.streamName,
-                    streamurl=(
-                        sysSettings.siteProtocol
-                        + sysSettings.siteAddress
-                        + "/view/"
-                        + channelRequest.channelLoc
-                    ),
+                    streamurl=f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/view/{channelRequest.channelLoc}",
                     streamtopic=templateFilters.get_topicName(stream.topic),
-                    streamimage=(
-                        sysSettings.siteProtocol
-                        + sysSettings.siteAddress
-                        + "/stream-thumb/"
-                        + str(channelRequest.channelLoc)
-                        + ".png"
-                    ),
+                    streamimage=f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/stream-thumb/{channelRequest.channelLoc}.png"
                 )
             returnMessage = {
                 "time": str(currentTime),
@@ -581,7 +547,7 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
         requestedChannel = cachedDbCalls.getChannelByLoc(channelLoc)
 
         if requestedChannel is not None:
-            if pendingVideoID != None:
+            if pendingVideoID is not None:
                 pendingVideo = RecordedVideo.RecordedVideo.query.filter_by(
                     channelID=requestedChannel.id, id=pendingVideoID, pending=True
                 ).with_entities(
@@ -620,7 +586,7 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
                 "/tmp/", current_app.config["WEB_ROOT"] + "pending/"
             )
             pathlibPath = pathlib.Path(pendingPath)
-            while pathlibPath.is_file() == False:
+            while pathlibPath.is_file() is False:
                 time.sleep(2)
 
             fileName = pathlibPath.name
@@ -628,7 +594,7 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
             workingVideoID = pendingVideo.id
             videoChannelName = pendingVideo.channelName
 
-            updatePending = RecordedVideo.RecordedVideo.query.filter_by(id=pendingVideo.id).update(dict(videoLocation=pendingPath))
+            RecordedVideo.RecordedVideo.query.filter_by(id=pendingVideo.id).update(dict(videoLocation=pendingPath))
 
             channelTuple = (requestedChannel.id, requestedChannel.channelLoc)
             db.session.commit()
@@ -647,13 +613,13 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
             videos_root = current_app.config["WEB_ROOT"] + "videos/"
             fullVidPath = videos_root + videoPath
 
-            updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(thumbnailLocation=imagePath, videoLocation=videoPath, gifLocation=gifPath))
+            RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(thumbnailLocation=imagePath, videoLocation=videoPath, gifLocation=gifPath))
 
             db.session.commit()
 
             results = videoFunc.processStreamVideo(fileName, channelTuple[1])
             # If File does not exist in expected destination, Raise Task Failure
-            if results == False:
+            if results is False:
                 self.update_state(
                     state=states.FAILURE, meta="FFMPEG Processing Failure"
                 )
@@ -663,10 +629,10 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
             requestedChannel = cachedDbCalls.getChannelByLoc(channelLoc)
 
             if requestedChannel.autoPublish is True:
-                updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(pending=False, published=True))
+                RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(pending=False, published=True))
                 notificationFunctions.sendNotification(f"{videoChannelName} has finished processing and has been published.", f"/play/{workingVideoID}", f"/images/{templateFilters.get_pictureLocation(requestedChannel.owningUser)}", requestedChannel.owningUser)
             else:
-                updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(pending=False, published=False))
+                RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(pending=False, published=False))
                 notificationFunctions.sendNotification(f"{videoChannelName} has finished processing and is available in the Channel Settings Page.", f"/play/{workingVideoID}", f"/images/{templateFilters.get_pictureLocation(requestedChannel.owningUser)}", requestedChannel.owningUser)
             db.session.commit()
             
@@ -674,39 +640,25 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
             cache.delete_memoized(cachedDbCalls.getAllVideo_View, requestedChannel.id)
 
             pendingVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).with_entities(
-                    RecordedVideo.RecordedVideo.id,
-                    RecordedVideo.RecordedVideo.channelName,
-                    RecordedVideo.RecordedVideo.videoDate,
-                    RecordedVideo.RecordedVideo.description,
-                    RecordedVideo.RecordedVideo.topic,
-                    RecordedVideo.RecordedVideo.thumbnailLocation
-                ).first()
+                RecordedVideo.RecordedVideo.id,
+                RecordedVideo.RecordedVideo.channelName,
+                RecordedVideo.RecordedVideo.videoDate,
+                RecordedVideo.RecordedVideo.description,
+                RecordedVideo.RecordedVideo.topic,
+                RecordedVideo.RecordedVideo.thumbnailLocation
+            ).first()
 
             if requestedChannel.imageLocation is None:
-                channelImage = (
-                    sysSettings.siteProtocol
-                    + sysSettings.siteAddress
-                    + "/static/img/video-placeholder.jpg"
-                )
+                channelImage = f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/static/img/video-placeholder.jpg"
             else:
-                channelImage = (
-                    sysSettings.siteProtocol
-                    + sysSettings.siteAddress
-                    + "/images/"
-                    + requestedChannel.imageLocation
-                )
+                channelImage = f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/images/{requestedChannel.imageLocation}"
 
             if requestedChannel.autoPublish is True:
                 message_tasks.send_webhook.delay(
                     requestedChannel.id,
                     6,
                     channelname=requestedChannel.channelName,
-                    channelurl=(
-                        sysSettings.siteProtocol
-                        + sysSettings.siteAddress
-                        + "/channel/"
-                        + str(requestedChannel.id)
-                    ),
+                    channelurl=f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/channel/{requestedChannel.id}",
                     channeltopic=templateFilters.get_topicName(requestedChannel.topic),
                     channelimage=channelImage,
                     streamer=templateFilters.get_userName(requestedChannel.owningUser),
@@ -715,18 +667,8 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
                     videodate=pendingVideo.videoDate,
                     videodescription=pendingVideo.description,
                     videotopic=templateFilters.get_topicName(pendingVideo.topic),
-                    videourl=(
-                        sysSettings.siteProtocol
-                        + sysSettings.siteAddress
-                        + "/play/"
-                        + str(pendingVideo.id)
-                    ),
-                    videothumbnail=(
-                        sysSettings.siteProtocol
-                        + sysSettings.siteAddress
-                        + "/videos/"
-                        + str(pendingVideo.thumbnailLocation)
-                    ),
+                    videourl=f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/play/{pendingVideo.id}",
+                    videothumbnail=f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/videos/{pendingVideo.thumbnailLocation}"
                 )
 
                 subscriptionQuery = subscriptions.channelSubs.query.filter_by(

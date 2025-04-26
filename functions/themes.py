@@ -15,6 +15,7 @@ from classes import panel
 
 log = logging.getLogger("app.functions.database")
 
+
 # Checks Theme Override Data and if does not exist in override, use Defaultv3's HTML with theme's layout.html
 def checkOverride(themeHTMLFile: str) -> str:
     sysSettings = (

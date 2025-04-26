@@ -11,8 +11,14 @@ from globals import globalvars
 
 from classes.shared import db
 from classes import Channel
+from classes import RecordedVideo
 from classes import panel
 from classes import banList
+from classes import upvotes
+from classes import invites
+from classes import subscriptions
+from classes import webhook
+from classes import stickers
 
 from functions import videoFunc
 from functions import cachedDbCalls
@@ -20,63 +26,84 @@ from functions import system
 
 log = logging.getLogger("app.functions.channelFunctions")
 
-# TODO Optimize the call to Channel.Channel
+
 def delete_channel(channelID: int) -> bool:
 
-    channelQuery = Channel.Channel.query.filter_by(id=channelID).first()
+    channelQuery = Channel.Channel.query.filter_by(id=channelID).with_entities(
+        Channel.Channel.id,
+        Channel.Channel.channelLoc
+    ).first()
+
     if channelQuery is None:
         db.session.close()
         return False
 
     try:
-        panelMappingQuery = panel.panelMapping.query.filter_by(
+        panel.panelMapping.query.filter_by(
             panelType=2, panelLocationId=channelQuery.id
-        ).all()
-        for map in panelMappingQuery:
-            db.session.delete(map)
+        ).delete()
 
-        channelPanelQuery = panel.channelPanel.query.filter_by(
+        panel.channelPanel.query.filter_by(
             channelId=channelQuery.id
-        ).all()
-        for pan in channelPanelQuery:
-            db.session.delete(pan)
+        ).delete()
 
-        globalPanelQuery = panel.globalPanel.query.filter_by(
+        panel.globalPanel.query.filter_by(
             type=6, target=channelQuery.id
-        ).all()
-        for globalpan in globalPanelQuery:
-            db.session.delete(globalpan)
+        ).delete()
 
-        bannedChatMessagesQuery = banList.chatBannedMessages.query.filter_by(
+        banList.chatBannedMessages.query.filter_by(
             channelLoc=channelQuery.channelLoc
-        ).all()
-        for message in bannedChatMessagesQuery:
-            db.session.delete(message)
+        ).delete()
 
-        bannedUsersQuery = banList.channelBanList.query.filter_by(
+        banList.channelBanList.query.filter_by(
             channelLoc=channelQuery.channelLoc
-        ).all()
-        for user in bannedUsersQuery:
-            db.session.delete(user)
+        ).delete()
 
-        for clip in channelQuery.clips:
+        clipQuery = RecordedVideo.Clip.query.filter_by(
+            channelID=channelQuery.id
+        ).with_entities(
+            RecordedVideo.Clip.id
+        ).all()
+
+        for clip in clipQuery:
             videoFunc.deleteClip(clip.id)
 
-        for vid in channelQuery.recordedVideo:
+        recordedVideoQuery = RecordedVideo.RecordedVideo.query.filter_by(
+            channelID=channelQuery.id
+        ).with_entities(
+            RecordedVideo.RecordedVideo.id
+        ).all()
+
+        for vid in recordedVideoQuery:
             videoFunc.deleteVideo(vid.id)
 
-        for upvote in channelQuery.upvotes:
-            db.session.delete(upvote)
-        for inviteCode in channelQuery.inviteCodes:
-            db.session.delete(inviteCode)
-        for viewer in channelQuery.invitedViewers:
-            db.session.delete(viewer)
-        for sub in channelQuery.subscriptions:
-            db.session.delete(sub)
-        for hook in channelQuery.webhooks:
-            db.session.delete(hook)
-        for sticker in channelQuery.chatStickers:
-            db.session.delete(sticker)
+        upvotes.channelUpvotes.query.filter_by(
+            channelID=channelQuery.id
+        ).delete()
+
+        upvotes.streamUpvotes.query.filter_by(
+            linkedChannel=channelQuery.id
+        ).delete()
+
+        invites.channelInviteCodes.query.filter_by(
+            channelID=channelQuery.id
+        ).delete()
+
+        invites.invitedViewers.query.filter_by(
+            channelID=channelQuery.id
+        ).delete()
+
+        subscriptions.channelSubs.query.filter_by(
+            channelID=channelQuery.id
+        ).delete()
+
+        webhook.channelWebhooks.query.filter_by(
+            channelID=channelQuery.id
+        ).delete()
+
+        stickers.stickers.query.filter_by(
+            channelID=channelQuery.id
+        ).delete()
 
         stickerFolder = os.path.join(globalvars.videoRoot, "images/stickers", channelQuery.channelLoc)
         if os.path.exists(stickerFolder):
@@ -94,10 +121,7 @@ def delete_channel(channelID: int) -> bool:
 
         system.newLog(
             1,
-            "User "
-            + current_user.username
-            + " deleted Channel "
-            + str(channelQuery.id),
+            f"User {current_user.username} deleted Channel {channelQuery.id}",
         )
 
         cachedDbCalls.invalidateChannelCache(channelQuery.id)
@@ -112,5 +136,6 @@ def delete_channel(channelID: int) -> bool:
     db.session.close()
     return True
 
+
 def broadcastEventStream(channelLoc: str, message: str) -> None:
-    emit('eventStream', { 'message': message }, namespace="ES_" + channelLoc, broadcast=True)
+    emit('eventStream', {'message': message}, namespace="ES_" + channelLoc, broadcast=True)

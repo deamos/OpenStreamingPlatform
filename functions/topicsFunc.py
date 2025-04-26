@@ -15,22 +15,24 @@ def deleteTopic(topicID: int, toTopicID: int) -> bool:
     topicID = int(topicID)
     toTopicID = int(toTopicID)
 
-    topicQuery = topics.topics.query.filter_by(id=topicID).first()
-
-    channels = Channel.Channel.query.filter_by(topic=topicID).all()
-    videos = RecordedVideo.RecordedVideo.query.filter_by(topic=topicID).all()
+    topicQuery = topics.topics.query.filter_by(
+        id=topicID
+    ).with_entities(
+        topics.topics.id,
+        topics.topics.name
+    ).first()
 
     newTopic = topics.topics.query.filter_by(id=toTopicID).first()
 
-    for chan in channels:
-        chan.topic = newTopic.id
-    for vid in videos:
-        vid.topic = newTopic.id
+    Channel.Channel.query.filter_by(topic=topicQuery.id).update(dict(topic=newTopic.id))
+    RecordedVideo.RecordedVideo.query.filter_by(topic=topicQuery.id).update(dict(topic=newTopic.id))
+
+    topics.topics.query.filter_by(id=topicQuery.id).delete()
 
     system.newLog(
         1, "User " + current_user.username + " deleted Topic " + str(topicQuery.name)
     )
-    db.session.delete(topicQuery)
+
     db.session.commit()
     cache.delete_memoized(cachedDbCalls.getAllTopics)
 

@@ -15,6 +15,7 @@ from globals.globalvars import room_config, defaultChatDomain
 
 log = logging.getLogger("app.functions.xmpp")
 
+
 def have_admin_authority(channelQuery) -> bool:
     if cachedDbCalls.IsUserGCMByUUID(current_user.uuid):
         return True
@@ -33,13 +34,15 @@ def have_admin_authority(channelQuery) -> bool:
 
     return True
 
+
 def set_user_affiliation(userUuid, channelLocation, new_affil) -> None:
     ejabberd.set_room_affiliation(
         channelLocation,
-        "conference." + defaultChatDomain,
-        userUuid + "@" + defaultChatDomain,
+        f"conference.{defaultChatDomain}",
+        f"{userUuid}@{defaultChatDomain}",
         new_affil
     )
+
 
 def sanityCheck() -> bool:
     buildMissingRooms()
@@ -72,7 +75,7 @@ def buildMissingRooms() -> bool:
     return True
 
 
-def buildRoom(channel_loc, owner_uuid, channel_title = "", channel_desc = "") -> bool:
+def buildRoom(channel_loc, owner_uuid, channel_title="", channel_desc="") -> bool:
     ejabberd.create_room(
         channel_loc,
         f"conference.{defaultChatDomain}",
@@ -206,6 +209,7 @@ def cleanInvalidRooms() -> None:
         {"level": "info", "message": f"Completed Pruning Invalid Rooms - {str(count)}"}
     )
 
+
 def getChannelOccupants(channelLoc) -> Iterator[dict]:
     affiliations = getChannelAffiliations(channelLoc)
 
@@ -227,6 +231,7 @@ def getChannelOccupants(channelLoc) -> Iterator[dict]:
 
         yield occupant
 
+
 def getChannelCounts(channelLoc: str) -> int:
     sysSettings = cachedDbCalls.getSystemSettings()
     roomOccupantsJSON = ejabberd.get_room_occupants_number(
@@ -235,6 +240,7 @@ def getChannelCounts(channelLoc: str) -> int:
     currentViewers = roomOccupantsJSON["occupants"]
 
     return currentViewers
+
 
 def getChannelOptions(channelLoc: str) -> dict:
     optionsDict = {}
@@ -256,12 +262,14 @@ def getChannelOptions(channelLoc: str) -> dict:
 
     return optionsDict
 
+
 def getChannelAffiliation(channelLoc: str, user_uuid: str) -> str:
     return ejabberd.get_room_affiliation(
         channelLoc,
         f"conference.{defaultChatDomain}",
-        user_uuid + "@" + defaultChatDomain
+        f"{user_uuid}@{defaultChatDomain}"
     )['affiliation']
+
 
 def getChannelAffiliations(channelLoc: str) -> dict:
     sysSettings = cachedDbCalls.getSystemSettings()

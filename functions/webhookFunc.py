@@ -36,14 +36,14 @@ def runWebhook(channelID: Union[str, int], triggerType: str, **kwargs: dict) -> 
                 requestType = hook.requestType
                 try:
                     if requestType == 0:
-                        r = requests.post(url, headers=header, data=payload)
+                        requests.post(url, headers=header, data=payload, timeout=10)
                     elif requestType == 1:
-                        r = requests.get(url, headers=header, data=payload)
+                        requests.get(url, headers=header, data=payload, timeout=10)
                     elif requestType == 2:
-                        r = requests.put(url, headers=header, data=payload)
+                        requests.put(url, headers=header, data=payload, timeout=10)
                     elif requestType == 3:
-                        r = requests.delete(url, headers=header, data=payload)
-                except:
+                        requests.delete(url, headers=header, data=payload, timeout=10)
+                except Exception:
                     pass
                 system.newLog(8, f"Processing Webhook for ID #{str(hook.id)} - Destination: {str(url)}",)
     db.session.commit()
@@ -66,16 +66,16 @@ def testWebhook(webhookType: str, webhookID: int, **kwargs: dict) -> None:
         requestType = webhookQuery.requestType
         try:
             if requestType == 0:
-                r = requests.post(url, headers=header, data=payload)
+                requests.post(url, headers=header, data=payload, timeout=10)
             elif requestType == 1:
-                r = requests.get(url, headers=header, data=payload)
+                requests.get(url, headers=header, data=payload, timeout=10)
             elif requestType == 2:
-                r = requests.put(url, headers=header, data=payload)
+                requests.put(url, headers=header, data=payload, timeout=10)
             elif requestType == 3:
-                r = requests.delete(url, headers=header, data=payload)
+                requests.delete(url, headers=header, data=payload, timeout=10)
         except Exception as e:
             print(f"Webhook Error-{str(e)}")
-        system.newLog(8,f"Completed Webhook Test for ID #{str(webhookQuery.id)} - Destination: {str(url)}",)
+        system.newLog(8, f"Completed Webhook Test for ID #{str(webhookQuery.id)} - Destination: {str(url)}",)
 
 
 def processWebhookVariables(payload: dict, **kwargs: dict) -> dict:

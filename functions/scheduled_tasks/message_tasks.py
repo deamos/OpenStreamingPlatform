@@ -59,7 +59,7 @@ def send_email(self, subject, destination, message):
 @celery.task(bind=True)
 def send_message(self, subject, message, fromUser, toUser):
     sysSettings = cachedDbCalls.getSystemSettings()
-    result = notificationFunc.sendMessage(subject, message, fromUser, toUser)
+    notificationFunc.sendMessage(subject, message, fromUser, toUser)
     userNotificationQuery = (
         Sec.User.query.filter_by(id=toUser)
         .with_entities(Sec.User.email, Sec.User.emailMessage)
@@ -115,7 +115,7 @@ def send_message(self, subject, message, fromUser, toUser):
 @celery.task(bind=True)
 def send_mass_message(self, subject, message, fromUser):
     for user in Sec.User.query.all():
-        results = subtask(
+        subtask(
             "functions.scheduled_tasks.message_tasks.send_message",
             args=(subject, message, fromUser, user.id),
         ).apply_async()

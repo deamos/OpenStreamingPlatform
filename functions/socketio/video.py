@@ -26,7 +26,7 @@ def deleteVideoSocketIO(message):
         videoID = int(message["videoID"])
         videoQuery = cachedDbCalls.getVideo(videoID)
         if videoQuery.owningUser == current_user.id:
-            result = video_tasks.delete_video.delay(videoID)
+            video_tasks.delete_video.delay(videoID)
             db.session.commit()
             db.session.close()
             return "OK"
@@ -43,14 +43,11 @@ def editVideoSocketIO(message):
         videoTopic = int(message["videoTopic"])
         videoDescription = message["videoDescription"]
         videoAllowComments = False
-        if (
-            message["videoAllowComments"] == "True"
-            or message["videoAllowComments"] == True
-        ):
+        if str(message["videoAllowComments"]).upper() == "TRUE":
             videoAllowComments = True
 
         videoQuery = cachedDbCalls.getVideo(videoID)
-        if videoQuery != None:
+        if videoQuery is not None:
             if (
                 current_user.has_role("Admin")
                 or videoQuery.owningUser == current_user.id
@@ -110,7 +107,7 @@ def createclipSocketIO(message):
         stopTime = float(message["clipStop"])
         videoQuery = cachedDbCalls.getVideo(videoID)
         if videoQuery.owningUser == current_user.id:
-            result = video_tasks.create_video_clip.delay(
+            video_tasks.create_video_clip.delay(
                 videoID, startTime, stopTime, clipName, clipDescription
             )
             db.session.commit()
@@ -344,7 +341,7 @@ def deleteClipSocketIO(message):
         clipID = int(message["clipID"])
         clipQuery = RecordedVideo.Clips.query.filter_by(id=clipID).first()
         if clipQuery.owningUser == current_user.id:
-            result = video_tasks.delete_video_clip.delay(clipID)
+            video_tasks.delete_video_clip.delay(clipID)
             db.session.commit()
             db.session.close()
             return "OK"

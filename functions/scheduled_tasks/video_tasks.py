@@ -45,7 +45,7 @@ def delete_video(self, videoID):
     """
     Task to delete a video
     """
-    results = videoFunc.deleteVideo(videoID)
+    videoFunc.deleteVideo(videoID)
     log.info(
         {
             "level": "info",
@@ -61,7 +61,7 @@ def delete_clip(self, clipID):
     """
     Task to delete a video
     """
-    results = videoFunc.deleteClip(clipID)
+    videoFunc.deleteClip(clipID)
     log.info(
         {
             "level": "info",
@@ -95,7 +95,7 @@ def delete_video_clip(self, clipID):
     """
     Task to delete a video clip
     """
-    results = videoFunc.deleteClip(clipID)
+    videoFunc.deleteClip(clipID)
     log.info(
         {
             "level": "info",
@@ -111,7 +111,7 @@ def update_video_thumbnail(self, videoID, timeStamp):
     """
     Task to update a video thumbnail
     """
-    results = videoFunc.setVideoThumbnail(videoID, timeStamp)
+    videoFunc.setVideoThumbnail(videoID, timeStamp)
     log.info(
         {
             "level": "info",
@@ -162,7 +162,7 @@ def check_video_retention(self, checkVideos=True, checkClips=False):
     videoCount = 0
     clipCount = 0
 
-    if sysSettings == None:
+    if sysSettings is not None:
         return "Could not get system settings"
 
     globalMVR = sysSettings.maxVideoRetention
@@ -191,7 +191,7 @@ def check_video_retention(self, checkVideos=True, checkClips=False):
                     .all()
                 )
                 for clip in clipQuery:
-                    results = subtask(
+                    subtask(
                         "functions.scheduled_tasks.video_tasks.delete_clip",
                         args=(clip.id,)
                     ).apply_async()
@@ -215,7 +215,7 @@ def check_video_retention(self, checkVideos=True, checkClips=False):
                     .all()
                 )
                 for video in VideoQuery:
-                    results = subtask(
+                    subtask(
                         "functions.scheduled_tasks.video_tasks.delete_video",
                         args=(video.id,)
                     ).apply_async()
@@ -263,8 +263,7 @@ def check_video_published_exists(self):
                 {
                     "level": "warning",
                     "taskID": self.request.id.__str__(),
-                    "message": "Unhealthy Video Object Identified and Removed.  Removed: "
-                    + str(vidId),
+                    "message": f"Unhealthy Video Object Identified and Removed.  Removed: {vidId}",
                 }
             )
             count = count + 1
@@ -287,7 +286,7 @@ def reprocess_stuck_videos(self):
             ).first()
             if streamQuery is not None:
                 channelQuery = cachedDbCalls.getChannel(video.channelID)
-                results = subtask(
+                subtask(
                     "functions.scheduled_tasks.rtmpFunc.rtmp_rec_Complete_handler",
                     args=(channelQuery.channelLoc, video.videoLocation),
                     kwargs={"pendingVideoID": video.id},
@@ -314,14 +313,14 @@ def process_ingest_folder(self):
     if not os.path.isdir(vidRoot + "ingest"):
         try:
             os.mkdir(vidRoot + "ingest")
-        except:
+        except Exception:
             return "Fail: Ingest Folder Does Not Exist and Can Not Create"
     channelFolders = glob.glob(vidRoot + "ingest/*/")
     videosProcessed = []
     for channelFolder in channelFolders:
         channelLoc = channelFolder.replace(vidRoot + "ingest/", "")[:-1]
         channelQuery = cachedDbCalls.getChannelByLoc(channelLoc)
-        if channelQuery != None:
+        if channelQuery is not None:
             # Process MP4 Files
             pendingFiles = glob.glob(vidRoot + "ingest/" + channelLoc + "/*.mp4")
             for file in pendingFiles:
@@ -351,7 +350,7 @@ def process_ingest_folder(self):
                 ).replace(".flv", ".mp4")
 
                 videosProcessed.append(file)
-                results = subtask(
+                subtask(
                     "functions.scheduled_tasks.video_tasks.process_video_upload",
                     args=(
                         filename,
@@ -392,7 +391,7 @@ def process_video_upload(
 
     # ChannelQuery = Channel.Channel.query.filter_by(id=channelId).first()
     ChannelQuery = cachedDbCalls.getChannel(channelId)
-    if sourcePath != None:
+    if sourcePath is not None:
         results = videoFunc.processVideoUpload(
             videoFilename,
             thumbnailFilename,
@@ -428,7 +427,7 @@ def process_video_upload(
                     + "/images/"
                     + ChannelQuery.imageLocation
                 )
-            subtaskResults = subtask(
+            subtask(
                 "functions.scheduled_tasks.message_tasks.send_webhook",
                 args=(ChannelQuery.id, 6),
                 kwargs={
@@ -505,7 +504,7 @@ def process_video_upload(
                     + "</a></p>",
                     "video",
                 )
-            except:
+            except Exception:
                 system.newLog(
                     0, "Subscriptions Failed due to possible misconfiguration"
                 )
