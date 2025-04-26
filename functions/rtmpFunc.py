@@ -639,9 +639,6 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
                 requestedChannel.channelLoc
             )
 
-            cache.delete_memoized(cachedDbCalls.getChannelVideos, requestedChannel.id)
-            cache.delete_memoized(cachedDbCalls.getAllVideo_View, requestedChannel.id)
-
             videoPath = path.replace("/var/www/pending/", channelTuple[1] + "/")
             imagePath = videoPath.replace(".flv", ".png")
             gifPath = videoPath.replace(".flv", ".gif")
@@ -661,6 +658,9 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
                     state=states.FAILURE, meta="FFMPEG Processing Failure"
                 )
                 raise Ignore()
+            
+            sysSettings = cachedDbCalls.getSystemSettings()
+            requestedChannel = cachedDbCalls.getChannelByLoc(channelLoc)
 
             if requestedChannel.autoPublish is True:
                 updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(pending=False, published=True))
@@ -669,6 +669,9 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
                 updateVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(pending=False, published=False))
                 notificationFunctions.sendNotification(f"{videoChannelName} has finished processing and is available in the Channel Settings Page.", f"/play/{workingVideoID}", f"/images/{templateFilters.get_pictureLocation(requestedChannel.owningUser)}", requestedChannel.owningUser)
             db.session.commit()
+            
+            cache.delete_memoized(cachedDbCalls.getChannelVideos, requestedChannel.id)
+            cache.delete_memoized(cachedDbCalls.getAllVideo_View, requestedChannel.id)
 
             pendingVideo = RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).with_entities(
                     RecordedVideo.RecordedVideo.id,

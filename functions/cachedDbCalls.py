@@ -505,6 +505,7 @@ def getChannelVideos(channelID: int) -> list:
             RecordedVideo.RecordedVideo.description,
             RecordedVideo.RecordedVideo.allowComments,
             RecordedVideo.RecordedVideo.views,
+            RecordedVideo.RecordedVideo.pending,
             RecordedVideo.RecordedVideo.published,
             RecordedVideo.RecordedVideo.channelID,
             RecordedVideo.RecordedVideo.owningUser,
