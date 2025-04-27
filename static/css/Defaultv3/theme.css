@@ -1169,7 +1169,7 @@ video.vjs-tech {
 .comments-container .comment {
   width: 100%;
   min-height: 64px;
-  background-color: var(--box2-background);
+  background-color: var(--box1-background);
   border-radius: 4px;
   margin-bottom: 5px;
 }
