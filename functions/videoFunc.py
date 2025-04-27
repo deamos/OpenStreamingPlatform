@@ -340,7 +340,7 @@ def generateClipFiles(clip, videosRoot: str, sourceVideoLocation: str) -> None:
     gifprocessResult = subprocess.call(
         [
             "/usr/bin/ffmpeg",
-            '-hwaccel', 
+            '-hwaccel',
             'auto',
             '-ss',
             str(clip.startTime),
@@ -354,6 +354,7 @@ def generateClipFiles(clip, videosRoot: str, sourceVideoLocation: str) -> None:
             fullgifLocation,
         ]
     )
+
 
 def moveClips(clipId: int, videosRoot: str, destChannelLoc: str) -> bool:
 
@@ -380,6 +381,7 @@ def moveClips(clipId: int, videosRoot: str, destChannelLoc: str) -> bool:
     db.session.commit()
 
     return True
+
 
 def getClipCreationTimeFromFiles(clip: RecordedVideo.Clips) -> None:
     mp4AbsPath = os.path.join(globalvars.videoRoot, "videos", clip.videoLocation)
@@ -711,6 +713,8 @@ def processFLVUpload(path: str) -> bool:
             "-y",
             "-i",
             path,
+            '-hwaccel',
+            'auto',
             "-c:v",
             "libx264",
             "-preset",
@@ -747,6 +751,8 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
             "-y",
             "-i",
             inputPath,
+            '-hwaccel',
+            'auto',
             "-c:v",
             "libx264",
             "-preset",
