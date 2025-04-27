@@ -710,11 +710,11 @@ def processFLVUpload(path: str) -> bool:
     processedStreamVideo = subprocess.call(
         [
             "/usr/bin/ffmpeg",
+            "-hwaccel",
+            "auto",
             "-y",
             "-i",
             path,
-            '-hwaccel',
-            'auto',
             "-c:v",
             "libx264",
             "-preset",
@@ -748,11 +748,11 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
     processedStreamVideo = subprocess.call(
         [
             "/usr/bin/ffmpeg",
+            "-hwaccel",
+            "auto",
             "-y",
             "-i",
             inputPath,
-            '-hwaccel',
-            'auto',
             "-c:v",
             "libx264",
             "-preset",
