@@ -1145,7 +1145,7 @@ video.vjs-tech {
 }
 
 .comments-container {
-  background-color: var(--box1-background);
+  background-color: var(--box2-background);
   width: 100%;
   height: calc(100vh - var(--top-navbar-height));
   overflow: auto;
