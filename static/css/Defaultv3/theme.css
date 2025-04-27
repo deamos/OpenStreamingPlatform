@@ -507,7 +507,7 @@ table tbody tr {
 .announcement-container {
     width:100%;
     padding: 20px 20px;
-    background-color: var(--box1-background);
+    background-color: var(--box2-background);
 }
 
 .text-custom-container {
@@ -525,7 +525,7 @@ table tbody tr {
 .live-container {
     width: 100%;
     padding: 20px 20px;
-    background-color: var(--page-background);
+    background-color: var(--box2-background);
 }
 
 .topics-container {
@@ -549,13 +549,13 @@ table tbody tr {
 .videos-container {
     width: 100%;
     padding: 20px 20px;
-    background-color: var(--page-background);
+    background-color: var(--box2-background);
 }
 
 .clips-container {
     width: 100%;
     padding: 20px 20px;
-    background-color: var(--page-background);
+    background-color: var(--box2-background);
 }
 
 .streamer-info-container {
