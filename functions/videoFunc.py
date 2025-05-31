@@ -73,19 +73,28 @@ def deleteVideo(videoID: int) -> bool:
         views.views.query.filter_by(viewType=1, itemID=recordedVid.id).delete()
 
         # Delete Video and Thumbnails
+        # Delete Video and Thumbnails
         if filePath != videos_root:
-            if os.path.exists(filePath) and (
-                recordedVid.videoLocation is not None or recordedVid.videoLocation != ""
-            ):
+            if os.path.exists(filePath):
                 os.remove(filePath)
                 if os.path.exists(thumbnailPath):
                     os.remove(thumbnailPath)
                 if os.path.exists(gifPath):
                     os.remove(gifPath)
 
+
         cache.delete_memoized(cachedDbCalls.getChannelVideos, recordedVid.channelID)
         cache.delete_memoized(cachedDbCalls.getAllVideo_View, recordedVid.channelID)
         cache.delete_memoized(cachedDbCalls.getVideo, recordedVid.id)
+        cache.delete_memoized(cachedDbCalls.getAllVideoByOwnerId, recordedVid.owningUser)
+        cache.delete_memoized(cachedDbCalls.getAllVideo)
+        if recordedVid.topic is not None:
+             cache.delete_memoized(cachedDbCalls.getTopicsVideo_View, recordedVid.topic)
+        # Invalidate caches for related entities if they are cached individually
+        cache.delete_memoized(cachedDbCalls.getVideoUpvotes, recordedVid.id)
+        cache.delete_memoized(cachedDbCalls.getVideoTags, recordedVid.id)
+        cache.delete_memoized(cachedDbCalls.getVideoCommentCount, recordedVid.id)
+        cache.delete_memoized(cachedDbCalls.getVideoViewsByDate, recordedVid.id)
 
         recordedVid = RecordedVideo.RecordedVideo.query.filter_by(id=videoID).delete()
 
@@ -103,6 +112,7 @@ def changeVideoMetadata(
     sysSettings = cachedDbCalls.getSystemSettings()
 
     if recordedVidQuery is not None:
+        old_topic = recordedVidQuery.topic
         RecordedVideo.RecordedVideo.query.filter_by(
             id=recordedVidQuery.id
         ).update(
@@ -113,11 +123,19 @@ def changeVideoMetadata(
                 allowComments=allowComments,
             )
         )
+
+        # Invalidate caches for the specific video, owner's videos, and channel's videos
         cachedDbCalls.invalidateVideoCache(recordedVidQuery.id)
+
+        # Invalidate caches for all videos and videos by topic if metadata changes could affect these lists
+        cache.delete_memoized(cachedDbCalls.getAllVideo)
+        if old_topic is not None:
+            cache.delete_memoized(cachedDbCalls.getTopicsVideo_View, old_topic)
+        if newVideoTopic is not None:
+            cache.delete_memoized(cachedDbCalls.getTopicsVideo_View, newVideoTopic)
 
         recordedVidQuery = cachedDbCalls.getVideo(videoID)
         channelQuery = cachedDbCalls.getChannel(recordedVidQuery.channelID)
-
         if channelQuery.imageLocation is None:
             channelImage = (
                 sysSettings.siteProtocol
@@ -225,10 +243,36 @@ def moveVideo(videoID: int, newChannel: int):
                         system.newLog(4,f"Error Moving Video ID #{str(recordedVidQuery.id)} to Channel ID {str(newChannelQuery.id)}/{newChannelQuery.channelLoc}",)
                         flash("Error Moving Video - Unable to Create Clips Directory","error",)
                         return False
-                RecordedVideo.Clips.query.filter_by(id=clip.id).update(channelID=newChannelQuery.id)
+                # Update clip channel ID in bulk for efficiency
+                # RecordedVideo.Clips.query.filter_by(parentVideo=recordedVidQuery.id).update({RecordedVideo.Clips.channelID: newChannelQuery.id})
+                # moveClips(clip.id, videos_root, newChannelQuery.channelLoc)
+                # The above bulk update is commented out because moveClips also updates the clip location which is needed.
+                # We will update the channelID here before moving the files.
+                RecordedVideo.Clips.query.filter_by(id=clip.id).update(dict(channelID=newChannelQuery.id))
+                # After updating the channelID in the database, move the files
                 moveClips(clip.id, videos_root, newChannelQuery.channelLoc)
 
             db.session.commit()
+
+            # Invalidate caches for the moved video
+            cachedDbCalls.invalidateVideoCache(recordedVidQuery.id)
+            cache.delete_memoized(cachedDbCalls.getAllVideo)
+
+            # Invalidate caches for the old and new channels' video and clip lists
+            if old_channel_id is not None:
+                cache.delete_memoized(cachedDbCalls.getChannelVideos, old_channel_id)
+                cache.delete_memoized(cachedDbCalls.getAllVideo_View, old_channel_id)
+                cache.delete_memoized(cachedDbCalls.getAllClipsForChannel_View, old_channel_id)
+            cache.delete_memoized(cachedDbCalls.getChannelVideos, newChannelQuery.id)
+            cache.delete_memoized(cachedDbCalls.getAllClipsForChannel_View, newChannelQuery.id)
+
+            # Invalidate caches for the owner's video and clip lists
+            cache.delete_memoized(cachedDbCalls.getAllVideoByOwnerId, recordedVidQuery.owningUser)
+            cache.delete_memoized(cachedDbCalls.getAllClipsForUser, recordedVidQuery.owningUser)
+
+            # Invalidate caches for the video's clips
+            cache.delete_memoized(cachedDbCalls.getClipsForVideo, recordedVidQuery.id)
+
             system.newLog(4, f"Video ID #{str(recordedVidQuery.id)} Moved to Channel ID {str(newChannelQuery.id)}/{newChannelQuery.channelLoc}",)
             return True
     return False
@@ -302,6 +346,9 @@ def createClip(videoID: int, clipStart: float, clipStop: float, clipName: int, c
 
             system.newLog(6, "New Clip Created - ID #" + str(redirectID))
 
+            # Invalidate caches for the parent video's clips
+            cache.delete_memoized(cachedDbCalls.getClipsForVideo, videoID)
+
             cache.delete_memoized(
                 cachedDbCalls.getAllClipsForChannel_View, recordedVidQuery.channelID
             )
@@ -358,7 +405,7 @@ def generateClipFiles(clip, videosRoot: str, sourceVideoLocation: str) -> None:
 
 def moveClips(clipId: int, videosRoot: str, destChannelLoc: str) -> bool:
 
-    clipQuery = RecordedVideo.Clips.query.filter_by(id=clipId).with_entities(RecordedVideo.Clips.id, RecordedVideo.Clips.videoLocation, RecordedVideo.Clips.thumbnailLocation, RecordedVideo.Clips.gifLocation).all()
+    clipQuery = RecordedVideo.Clips.query.filter_by(id=clipId).with_entities(RecordedVideo.Clips.id, RecordedVideo.Clips.videoLocation, RecordedVideo.Clips.thumbnailLocation, RecordedVideo.Clips.gifLocation).first()
     clipFilesNewPath = os.path.join(
         destChannelLoc, "clips", os.path.basename(clipQuery.videoLocation).replace(".mp4", "")
     )
@@ -407,6 +454,10 @@ def getClipCreationTimeFromFiles(clip: RecordedVideo.Clips) -> None:
 
     db.session.commit()
 
+    # Invalidate cache for the specific clip and potentially lists if date affects ordering
+    cache.delete_memoized(cachedDbCalls.getClip, clip.id)
+    # Depending on how clip lists are cached (e.g., ordered by date), more invalidation might be needed here.
+
 
 def changeClipMetadata(clipID: int, name: str, topicID: int, description: str, clipTags: list) -> bool:
     # TODO Add Webhook for Clip Metadata Change
@@ -441,16 +492,41 @@ def changeClipMetadata(clipID: int, name: str, topicID: int, description: str, c
                     db.session.commit()
 
             db.session.commit()
+
+            # Invalidate caches for the specific clip and related lists
+            cache.delete_memoized(cachedDbCalls.getClip, clipQuery.id)
+            # Need to get parent video ID before committing the update that might change the clip object
+            parentVideoID = clipQuery.parentVideo # Assuming parentVideo is loaded
+
+            # Invalidate caches for the clip's parent video's clips
+            if parentVideoID is not None:
+                 cache.delete_memoized(cachedDbCalls.getClipsForVideo, parentVideoID)
+
+            # Need channelID and owningUser before invalidating channel/user lists
+            channelID = clipQuery.channelID # Assuming channelID is loaded
+            owningUser = clipQuery.owningUser # Assuming owningUser is loaded
+
+            # Invalidate caches for the channel's and user's clip lists
+            if channelID is not None:
+                 cache.delete_memoized(cachedDbCalls.getAllClipsForChannel_View, channelID)
+            if owningUser is not None:
+                 cache.delete_memoized(cachedDbCalls.getAllClipsForUser, owningUser)
+
             system.newLog(6, f"Clip Metadata Changed - ID #{str(clipID)}")
             return True
     return False
 
 
 def deleteClip(clipID: int) -> bool:
-    clipQuery = RecordedVideo.Clips.query.filter_by(id=int(clipID)).with_entities(RecordedVideo.Clips.id, RecordedVideo.Clips.videoLocation, RecordedVideo.Clips.thumbnailLocation, RecordedVideo.Clips.gifLocation).first()
+    clipQuery = RecordedVideo.Clips.query.filter_by(id=int(clipID)).with_entities(RecordedVideo.Clips.id, RecordedVideo.Clips.videoLocation, RecordedVideo.Clips.thumbnailLocation, RecordedVideo.Clips.gifLocation, RecordedVideo.Clips.parentVideo, RecordedVideo.Clips.channelID, RecordedVideo.Clips.owningUser).first()
     videos_root = globalvars.videoRoot + "videos/"
 
     if clipQuery is not None:
+
+        # Store info needed for cache invalidation before deletion
+        parentVideoID = clipQuery.parentVideo
+        channelID = clipQuery.channelID
+        owningUser = clipQuery.owningUser
 
         clipTagsDelete = RecordedVideo.clip_tags.query.filter_by(clipID=clipQuery.id).delete()
 
@@ -467,19 +543,13 @@ def deleteClip(clipID: int) -> bool:
             gifPath = None
 
         if thumbnailPath != videos_root and thumbnailPath is not None:
-            if os.path.exists(thumbnailPath) and (
-                thumbnailPath is not None or thumbnailPath != ""
-            ):
+            if os.path.exists(thumbnailPath):
                 os.remove(thumbnailPath)
         if gifPath != videos_root and gifPath is not None:
-            if os.path.exists(gifPath) and (
-                clipQuery.gifLocation is not None or gifPath != ""
-            ):
+            if os.path.exists(gifPath):
                 os.remove(gifPath)
         if videoPath != videos_root and videoPath is not None:
-            if os.path.exists(videoPath) and (
-                clipQuery.videoLocation is not None or videoPath != ""
-            ):
+            if os.path.exists(videoPath):
                 os.remove(videoPath)
 
         upvotes.clipUpvotes.query.filter_by(clipID=clipQuery.id).delete()
@@ -488,12 +558,19 @@ def deleteClip(clipID: int) -> bool:
         if owningChannelQuery is not None:
             channelQuery = cachedDbCalls.getChannel(owningChannelQuery)
             if channelQuery is not None:
-                cache.delete_memoized(cachedDbCalls.getAllClipsForChannel_View, channelQuery.id)
-                cache.delete_memoized(cachedDbCalls.getAllClipsForUser, channelQuery.owningUser)
+                # Invalidate caches for the channel's and user's clip lists
+                cache.delete_memoized(cachedDbCalls.getAllClipsForChannel_View, channelID)
+                cache.delete_memoized(cachedDbCalls.getAllClipsForUser, owningUser)
 
         RecordedVideo.Clips.query.filter_by(id=clipQuery.id).delete()
 
         db.session.commit()
+
+        # Invalidate cache for the specific clip and the parent video's clips
+        cache.delete_memoized(cachedDbCalls.getClip, clipID)
+        if parentVideoID is not None:
+             cache.delete_memoized(cachedDbCalls.getClipsForVideo, parentVideoID)
+
         system.newLog(6, f"Clip Deleted - ID #{str(clipID)}")
         log.info(f"Clip Deleted - ID: {str(clipID)}")
         return True
@@ -525,6 +602,16 @@ def setVideoThumbnail(videoID: int, timeStamp: datetime.datetime) -> bool:
 
         db.session.commit()
         db.session.close()
+
+        # Invalidate caches related to the video's thumbnail and GIF
+        # This assumes get_video_thumbnailLocation and get_video_gifLocation (or similar) are cached
+        # If not, invalidating the main video cache (getVideo) might be sufficient depending on access patterns.
+        # For now, let's invalidate the main video cache and channel/owner lists that include this video.
+        cachedDbCalls.invalidateVideoCache(videoID)
+        cache.delete_memoized(cachedDbCalls.getAllVideo)
+        if videoQuery.topic is not None:
+            cache.delete_memoized(cachedDbCalls.getTopicsVideo_View, videoQuery.topic)
+
         try:
             os.remove(fullthumbnailLocation)
         except OSError:
@@ -697,6 +784,15 @@ def processVideoUpload(
         else:
             newVideo.published = False
         db.session.commit()
+
+        # Invalidate caches for video lists that now include the new video
+        cache.delete_memoized(cachedDbCalls.getAllVideo)
+        cache.delete_memoized(cachedDbCalls.getAllVideo_View, ChannelQuery.id)
+        cache.delete_memoized(cachedDbCalls.getChannelVideos, ChannelQuery.id)
+        cache.delete_memoized(cachedDbCalls.getAllVideoByOwnerId, ChannelQuery.owningUser)
+        if newVideo.topic is not None:
+            cache.delete_memoized(cachedDbCalls.getTopicsVideo_View, newVideo.topic)
+
         system.newLog(4, f"File Upload Successful - Channel: {ChannelQuery.channelLoc}")
 
         return ("Success", newVideo)
@@ -707,7 +803,7 @@ def processVideoUpload(
 def processFLVUpload(path: str) -> bool:
     destinationPath = path.replace("flv", "mp4")
 
-    processedStreamVideo = subprocess.call(
+    subprocess.call(
         [
             "/usr/bin/ffmpeg",
             "-hwaccel",
@@ -744,8 +840,7 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
     inputPath = globalvars.videoRoot + "pending/" + path
     destinationPath = f"{globalvars.videoRoot}videos/{channelLoc}/{path.replace('flv', 'mp4')}"
 
-
-    processedStreamVideo = subprocess.call(
+    subprocess.call(
         [
             "/usr/bin/ffmpeg",
             "-hwaccel",
@@ -766,7 +861,6 @@ def processStreamVideo(path: str, channelLoc: str) -> bool:
             destinationPath,
         ]
     )
-
 
     destinationFilePath = pathlib.Path(destinationPath)
     if destinationFilePath.is_file() is False:

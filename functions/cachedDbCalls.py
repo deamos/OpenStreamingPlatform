@@ -1,4 +1,4 @@
-from sqlalchemy import and_
+from sqlalchemy import and_, exists
 from sqlalchemy.sql.expression import func
 import datetime
 from typing import Union
@@ -544,9 +544,14 @@ def getChannelIDFromLocation(channelLocation: str) -> Union[int, None]:
 @cache.memoize(timeout=120)
 def searchChannels(term: str) -> list:
     if term is not None:
-        ChannelNameQuery = (
-            Channel.Channel.query.filter(
-                Channel.Channel.channelName.like("%" + term + "%")
+        search_term = "%" + term + "%"
+        results = (
+            Channel.Channel.query
+            .join(Channel.channel_tags, isouter=True)
+            .filter(
+                (Channel.Channel.channelName.like(search_term)) |
+                (Channel.Channel.description.like(search_term)) |
+                (Channel.channel_tags.name.like(search_term))
             )
             .with_entities(
                 Channel.Channel.id,
@@ -574,92 +579,10 @@ def searchChannels(term: str) -> list:
                 Channel.Channel.autoPublish,
                 Channel.Channel.vanityURL,
             )
+            .distinct()
             .all()
         )
-        ChannelDescriptionQuery = (
-            Channel.Channel.query.filter(
-                Channel.Channel.description.like("%" + term + "%")
-            )
-            .with_entities(
-                Channel.Channel.id,
-                Channel.Channel.channelName,
-                Channel.Channel.channelLoc,
-                Channel.Channel.private,
-                Channel.Channel.imageLocation,
-                Channel.Channel.owningUser,
-                Channel.Channel.topic,
-                Channel.Channel.views,
-                Channel.Channel.currentViewers,
-                Channel.Channel.record,
-                Channel.Channel.chatEnabled,
-                Channel.Channel.chatBG,
-                Channel.Channel.chatTextColor,
-                Channel.Channel.chatAnimation,
-                Channel.Channel.offlineImageLocation,
-                Channel.Channel.channelBannerLocation,
-                Channel.Channel.description,
-                Channel.Channel.allowComments,
-                Channel.Channel.protected,
-                Channel.Channel.channelMuted,
-                Channel.Channel.showChatJoinLeaveNotification,
-                Channel.Channel.defaultStreamName,
-                Channel.Channel.autoPublish,
-                Channel.Channel.vanityURL,
-            )
-            .all()
-        )
-        ChannelTagQuery = (
-            Channel.channel_tags.query.filter(
-                Channel.channel_tags.name.like("%" + term + "%")
-            )
-            .with_entities(
-                Channel.channel_tags.id,
-                Channel.channel_tags.name,
-                Channel.channel_tags.channelID,
-            )
-            .all()
-        )
-
-        ChannelTagEntryQuery = []
-        for channel in ChannelTagQuery:
-            ChannelTagEntryQuery = (
-                Channel.Channel.query.filter_by(id=channel.channelID)
-                .with_entities(
-                    Channel.Channel.id,
-                    Channel.Channel.channelName,
-                    Channel.Channel.channelLoc,
-                    Channel.Channel.private,
-                    Channel.Channel.imageLocation,
-                    Channel.Channel.owningUser,
-                    Channel.Channel.topic,
-                    Channel.Channel.views,
-                    Channel.Channel.currentViewers,
-                    Channel.Channel.record,
-                    Channel.Channel.chatEnabled,
-                    Channel.Channel.chatBG,
-                    Channel.Channel.chatTextColor,
-                    Channel.Channel.chatAnimation,
-                    Channel.Channel.offlineImageLocation,
-                    Channel.Channel.channelBannerLocation,
-                    Channel.Channel.description,
-                    Channel.Channel.allowComments,
-                    Channel.Channel.protected,
-                    Channel.Channel.channelMuted,
-                    Channel.Channel.showChatJoinLeaveNotification,
-                    Channel.Channel.defaultStreamName,
-                    Channel.Channel.autoPublish,
-                    Channel.Channel.vanityURL,
-                )
-                .all()
-            )
-
-        resultsArray = ChannelNameQuery + ChannelDescriptionQuery
-        resultsArray = list(set(resultsArray))
-        for entry in ChannelTagEntryQuery:
-            if entry not in resultsArray:
-                resultsArray.append(entry)
-
-        return resultsArray
+        return results
     else:
         return []
 
@@ -930,11 +853,15 @@ def getVideoCommentCount(videoID: int) -> int:
 @cache.memoize(timeout=120)
 def searchVideos(term: str) -> list:
     if term is not None:
-
-        VideoNameQuery = (
-            RecordedVideo.RecordedVideo.query.filter(
-                RecordedVideo.RecordedVideo.channelName.like("%" + term + "%"),
+        search_term = "%" + term + "%"
+        results = (
+            RecordedVideo.RecordedVideo.query
+            .join(RecordedVideo.video_tags, isouter=True)
+            .filter(
                 RecordedVideo.RecordedVideo.published == True,
+                (RecordedVideo.RecordedVideo.channelName.like(search_term)) |
+                (RecordedVideo.RecordedVideo.description.like(search_term)) |
+                (RecordedVideo.video_tags.name.like(search_term))
             )
             .with_entities(
                 RecordedVideo.RecordedVideo.id,
@@ -943,7 +870,6 @@ def searchVideos(term: str) -> list:
                 RecordedVideo.RecordedVideo.thumbnailLocation,
                 RecordedVideo.RecordedVideo.owningUser,
                 RecordedVideo.RecordedVideo.channelID,
-                RecordedVideo.RecordedVideo.description,
                 RecordedVideo.RecordedVideo.description,
                 RecordedVideo.RecordedVideo.topic,
                 RecordedVideo.RecordedVideo.views,
@@ -956,81 +882,10 @@ def searchVideos(term: str) -> list:
                 RecordedVideo.RecordedVideo.published,
                 RecordedVideo.RecordedVideo.originalStreamID,
             )
+            .distinct()
             .all()
         )
-
-        VideoDescriptionQuery = (
-            RecordedVideo.RecordedVideo.query.filter(
-                RecordedVideo.RecordedVideo.channelName.like("%" + term + "%"),
-                RecordedVideo.RecordedVideo.published == True,
-            )
-            .with_entities(
-                RecordedVideo.RecordedVideo.id,
-                RecordedVideo.RecordedVideo.channelName,
-                RecordedVideo.RecordedVideo.uuid,
-                RecordedVideo.RecordedVideo.thumbnailLocation,
-                RecordedVideo.RecordedVideo.owningUser,
-                RecordedVideo.RecordedVideo.channelID,
-                RecordedVideo.RecordedVideo.description,
-                RecordedVideo.RecordedVideo.description,
-                RecordedVideo.RecordedVideo.topic,
-                RecordedVideo.RecordedVideo.views,
-                RecordedVideo.RecordedVideo.length,
-                RecordedVideo.RecordedVideo.videoLocation,
-                RecordedVideo.RecordedVideo.gifLocation,
-                RecordedVideo.RecordedVideo.pending,
-                RecordedVideo.RecordedVideo.videoDate,
-                RecordedVideo.RecordedVideo.allowComments,
-                RecordedVideo.RecordedVideo.published,
-                RecordedVideo.RecordedVideo.originalStreamID,
-            )
-            .all()
-        )
-
-        VideoTagQuery = RecordedVideo.video_tags.query.filter(
-            RecordedVideo.video_tags.name.like("%" + term + "%")
-        ).with_entities(
-            RecordedVideo.video_tags.id,
-            RecordedVideo.video_tags.name,
-            RecordedVideo.video_tags.videoID,
-        )
-
-        VideoTagEntryQuery = []
-        for vid in VideoTagQuery:
-            VideoTagEntryQuery = (
-                RecordedVideo.RecordedVideo.query.filter_by(
-                    id=vid.videoID, published=True
-                )
-                .with_entities(
-                    RecordedVideo.RecordedVideo.id,
-                    RecordedVideo.RecordedVideo.channelName,
-                    RecordedVideo.RecordedVideo.uuid,
-                    RecordedVideo.RecordedVideo.thumbnailLocation,
-                    RecordedVideo.RecordedVideo.owningUser,
-                    RecordedVideo.RecordedVideo.channelID,
-                    RecordedVideo.RecordedVideo.description,
-                    RecordedVideo.RecordedVideo.description,
-                    RecordedVideo.RecordedVideo.topic,
-                    RecordedVideo.RecordedVideo.views,
-                    RecordedVideo.RecordedVideo.length,
-                    RecordedVideo.RecordedVideo.videoLocation,
-                    RecordedVideo.RecordedVideo.gifLocation,
-                    RecordedVideo.RecordedVideo.pending,
-                    RecordedVideo.RecordedVideo.videoDate,
-                    RecordedVideo.RecordedVideo.allowComments,
-                    RecordedVideo.RecordedVideo.published,
-                    RecordedVideo.RecordedVideo.originalStreamID,
-                )
-                .all()
-            )
-
-        resultsArray = VideoNameQuery + VideoDescriptionQuery
-        resultsArray = list(set(resultsArray))
-        for entry in VideoTagEntryQuery:
-            if entry not in resultsArray:
-                resultsArray.append(entry)
-
-        return resultsArray
+        return results
     else:
         return []
 
@@ -1264,6 +1119,17 @@ def searchUsers(term: str) -> list:
     else:
         return []
 
+@cache.memoize(timeout=600)
+def checkUserHasRoleByName(user_id: int, role_name: str) -> bool:
+    """Checks if a user has a specific role by name using an efficient cached query."""
+
+    has_role_query = db.session.query(exists().where(
+        (Sec.roles_users.c.user_id == user_id) &
+        (Sec.roles_users.c.role_id == Sec.Role.id) &
+        (Sec.Role.name == role_name)
+    ))
+
+    return has_role_query.scalar()
 
 @cache.memoize(timeout=30)
 def getGlobalPanel(panelId: int):

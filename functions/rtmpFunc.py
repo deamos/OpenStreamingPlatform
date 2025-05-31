@@ -537,7 +537,7 @@ def rtmp_user_deauth_check(key: str, ipaddress: str) -> dict:
     return {}
 
 
-@celery.task(bind=True, max_retries=100)
+@celery.task(bind=True, max_retries=100, time_limit=10800)
 def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: Union[int, None] = None) -> dict:
     try:
         sysSettings = cachedDbCalls.getSystemSettings()
