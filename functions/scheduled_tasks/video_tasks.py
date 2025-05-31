@@ -296,7 +296,7 @@ def reprocess_stuck_videos(self):
                         "level": "warning",
                         "taskID": self.request.id.__str__(),
                         "message": "Reprocessing Stuck Video ID: "
-                        + video.id
+                        + str(video.id)
                         + ", Path: "
                         + video.videoLocation,
                     }
