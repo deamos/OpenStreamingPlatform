@@ -49,7 +49,7 @@ def getVidLength(input_video: str) -> float:
 
 
 def deleteVideo(videoID: int) -> bool:
-    recordedVid = RecordedVideo.RecordedVideo.query.filter_by(id=videoID).with_entities(RecordedVideo.RecordedVideo.id, RecordedVideo.RecordedVideo.videoLocation, RecordedVideo.RecordedVideo.channelID).first()
+    recordedVid = RecordedVideo.RecordedVideo.query.filter_by(id=videoID).with_entities(RecordedVideo.RecordedVideo.id, RecordedVideo.RecordedVideo.videoLocation, RecordedVideo.RecordedVideo.channelID, RecordedVideo.RecordedVideo.owningUser, RecordedVideo.RecordedVideo.topic).first()
 
     if recordedVid.videoLocation is not None:
         videos_root = globalvars.videoRoot + "videos/"
