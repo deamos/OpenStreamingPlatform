@@ -63,12 +63,12 @@ def addMod(message):
     if not current_user.is_authenticated:
         return "Must be logged in."
 
-    sysSettings = cachedDbCalls.getSystemSettings()
+    #sysSettings = cachedDbCalls.getSystemSettings()
     JID = None
     username = str(message["JID"])
     userQuery = Sec.User.query.filter(
         func.lower(Sec.User.username) == func.lower(username)
-    ).first()
+    ).with_entities(Sec.User.id, Sec.User.username, Sec.User.uuid).first()
     if userQuery is None:
         db.session.close()
         return f"'{username}' does not exist."
@@ -82,7 +82,7 @@ def addMod(message):
     channelLoc = str(message["channelLoc"])
     channelQuery = Channel.Channel.query.filter_by(
         channelLoc=channelLoc, owningUser=current_user.id
-    ).first()
+    ).with_entities(Channel.Channel.id, Channel.Channel.channelLoc, Channel.Channel.owningUser).first()
 
     if channelQuery is None:
         db.session.close()
@@ -94,7 +94,7 @@ def addMod(message):
     
     xmpp.set_user_affiliation(
         userQuery.uuid,
-        channelLoc,
+        channelQuery.channelLoc,
         "admin"
     )
 
@@ -118,19 +118,17 @@ def deleteMod(message):
     if not current_user.is_authenticated:
         return "Must be logged in."
 
-    sysSettings = cachedDbCalls.getSystemSettings()
+    #sysSettings = cachedDbCalls.getSystemSettings()
     JID = str(message["JID"])
     user_uuid = JID.split("@",1)[0]
 
     if cachedDbCalls.IsUserGCMByUUID(user_uuid):
         db.session.close()
-        return "Cannot de-mod a Global Chat Mod"
-
-    channelLoc = str(message["channelLoc"])
+        return "Cannot de-mod a Global Chat Mod" 
 
     channelQuery = Channel.Channel.query.filter_by(
-        channelLoc=channelLoc, owningUser=current_user.id
-    ).first()
+        channelLoc=str(message["channelLoc"]), owningUser=current_user.id
+    ).with_entities(Channel.Channel.id, Channel.Channel.channelLoc).first()
 
     if channelQuery is None:
         db.session.close()
@@ -138,13 +136,13 @@ def deleteMod(message):
 
     xmpp.set_user_affiliation(
         user_uuid,
-        channelLoc,
+        channelQuery.channelLoc,
         "member"
     )
 
     emit(
         "deleteMod",
-        {"mod": str(JID), "channelLoc": str(channelLoc)},
+        {"mod": str(JID), "channelLoc": str(channelQuery.channelLoc)},
         broadcast=False,
     )
 
@@ -262,12 +260,11 @@ def socketio_xmpp_unbanUser(message):
 def socketio_xmpp_getBanList(message):
     bannedUserList = []
     if "channelLoc" in message:
-        channelLoc = str(message["channelLoc"])
-        channelQuery = Channel.Channel.query.filter_by(channelLoc=channelLoc).first()
+        channelQuery = Channel.Channel.query.filter_by(channelLoc=str(message["channelLoc"])).with_entities(Channel.Channel.id, Channel.Channel.channelLoc).first()
         if channelQuery is not None:
             channelBanListQuery = banList.channelBanList.query.filter_by(
-                channelLoc=channelLoc
-            ).all()
+                channelLoc=channelQuery.channelLoc
+            ).with_entities(banList.channelBanList.id, banList.channelBanList.username, banList.channelBanList.userUUID).all()
             bannedUserList = []
             for entry in channelBanListQuery:
                 newEntry = {"username": entry.username, "useruuid": entry.userUUID}
