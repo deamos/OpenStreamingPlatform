@@ -52,7 +52,7 @@ sys.path.append("./classes")
 try:
     from conf import config
 
-except:
+except Exception:
     from dotenv import load_dotenv
 
     class configObj:
@@ -192,9 +192,10 @@ app.config["SQLALCHEMY_POOL_TIMEOUT"] = 600
 app.config["MYSQL_DATABASE_CHARSET"] = "utf8"
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "encoding": "utf8",
-    "pool_use_lifo": "False",
-    "pool_size": 10,
+    "pool_use_lifo": True,
+    "pool_size": 20,
     "pool_pre_ping": True,
+    "max_overflow": 30,
 }
 app.config["SESSION_TYPE"] = "redis"
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
@@ -253,6 +254,7 @@ app.config["broker_url"] = RedisURL
 app.config["result_backend"] = RedisURL
 app.config["MAX_CONTENT_LENGTH"] = 4000000000
 
+
 # ----------------------------------------------------------------------------#
 # Monkey Fix Flask-Restx issue (https://github.com/pallets/flask/issues/4552#issuecomment-1109785314)
 # ----------------------------------------------------------------------------#
@@ -296,7 +298,7 @@ if hasattr(config, "RECAPTCHA_ENABLED"):
         try:
             app.config["RECAPTCHA_PUBLIC_KEY"] = config.RECAPTCHA_SITE_KEY
             app.config["RECAPTCHA_PRIVATE_KEY"] = config.RECAPTCHA_SECRET_KEY
-        except:
+        except Exception:
             app.logger.warning(
                 {
                     "level": "warning",
@@ -450,7 +452,7 @@ app.logger.info({"level": "info", "message": "Initializing Flask-Security"})
 try:
     sysSettings = cachedDbCalls.getSystemSettings()
     app.config["SECURITY_TOTP_ISSUER"] = sysSettings.siteName
-except:
+except Exception:
     app.config["SECURITY_TOTP_ISSUER"] = "OSP"
     app.config["SECURITY_USER_IDENTITY_ATTRIBUTES"] = [
         {"email": {"mapper": uia_email_mapper, "case_insensitive": True}}
@@ -497,15 +499,6 @@ except Exception as e:
         {"level": "error", "message": "ejabberdctl failed to load: " + str(e)}
     )
 
-# Loop Check if OSP DB Init is Currently Being Handled by and Process
-#OSP_DB_INIT_HANDLER = None
-#while OSP_DB_INIT_HANDLER != globalvars.processUUID:
-#    OSP_DB_INIT_HANDLER = r.get("OSP_DB_INIT_HANDLER")
-#    if OSP_DB_INIT_HANDLER != None:
-#        OSP_DB_INIT_HANDLER = OSP_DB_INIT_HANDLER.decode("utf-8")
-#    else:
-#        r.set("OSP_DB_INIT_HANDLER", globalvars.processUUID)
-#        time.sleep(random.random())
 
 # Once Attempt Database Load and Validation
 app.logger.info(
@@ -530,7 +523,7 @@ if r.get("OSP_SYSTEM_FIXES_HANDLER") is None:
     app.logger.info({"level": "info", "message": "Performing OSP System Fixes"})
     try:
         system.systemFixes(app)
-    except:
+    except Exception:
         app.logger.warning(
             {
                 "level": "warning",
@@ -575,7 +568,7 @@ else:
 app.logger.info({"level": "info", "message": "Initializing OSP-Edge Redirection File"})
 try:
     system.checkOSPEdgeConf()
-except:
+except Exception:
     app.logger.warning(
         {
             "level": "warning",
@@ -602,15 +595,13 @@ try:
                 access_token_url=provider.access_token_url,
                 access_token_params=provider.access_token_params
                 if (
-                    provider.access_token_params != ""
-                    and provider.access_token_params is not None
+                    provider.access_token_params != "" and provider.access_token_params is not None
                 )
                 else None,
                 authorize_url=provider.authorize_url,
                 authorize_params=provider.authorize_params
                 if (
-                    provider.authorize_params != ""
-                    and provider.authorize_params is not None
+                    provider.authorize_params != "" and provider.authorize_params is not None
                 )
                 else None,
                 api_base_url=provider.api_base_url,
@@ -629,7 +620,7 @@ try:
                     + str(e),
                 }
             )
-except:
+except Exception:
     app.logger.error({"level": "error", "message": "Failed Loading oAuth Providers"})
 
 app.logger.info({"level": "info", "message": "Initializing Flask-Mail"})
@@ -640,7 +631,7 @@ email.init_app(app)
 email.app = app
 try:
     sysSettings = cachedDbCalls.getSystemSettings()
-except:
+except Exception:
     app.logger.error({"level": "error", "message": "cachedDbCalls.getSystemSettings() encountered an error, likely due to first time db generation."})
 
 app.config["SERVER_NAME"] = None
@@ -666,7 +657,7 @@ try:
     app.config["SECURITY_EMAIL_SUBJECT_CONFIRM"] = (
         sysSettings.siteName + " - Email Confirmation Request"
     )
-except:
+except Exception:
     pass
 
 app.logger.info({"level": "info", "message": "Importing Topic Data into Global Cache"})
@@ -687,7 +678,7 @@ except Exception as e:
 app.logger.info({"level": "info", "message": "Initializing OSP Themes"})
 try:
     system.initializeThemes()
-except:
+except Exception:
     app.logger.error({"level": "error", "message": "Unable to Set Override Themes"})
 
 # Initialize Celery
@@ -978,10 +969,24 @@ try:
             "message": "OSP Core Node Started Successfully-" + str(globalvars.version),
         }
     )
-except:
+except Exception:
     pass
 
 if __name__ == "__main__":
     app.jinja_env.auto_reload = False
     app.config["TEMPLATES_AUTO_RELOAD"] = False
     socketio.run(app, Debug=config.debugMode)
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def db_session():
+    try:
+        yield db.session
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+    finally:
+        db.session.close()
