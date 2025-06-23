@@ -16,9 +16,10 @@ from functions import cachedDbCalls
 
 from globals import globalvars
 
+
 @socketio.on("getChannelOccups")
-def getChannelOccups(message):
-    channelLoc = str(message["channelLoc"])
+def getChannelOccups(message: dict) -> str:
+    channelLoc = str(message.get("channelLoc"))
     if cachedDbCalls.getChannelIDFromLocation(channelLoc) is None:
         return "Channel does not exist."
 
@@ -34,15 +35,15 @@ def getChannelOccups(message):
 
     return "OK"
 
-@socketio.on("statusTrueAffil")
-def statusTrueAffil(message):
-    if "channelLoc" not in message:
-        return "No channel provided"
-    if "uuid" not in message:
-        return "No uuid provided"
 
-    channelLoc = str(message["channelLoc"])
-    user_uuid = str(message["uuid"])
+@socketio.on("statusTrueAffil")
+def statusTrueAffil(message: dict) -> str:
+
+    channelLoc = str(message.get("channelLoc"))
+    user_uuid = str(message.get("uuid"))
+
+    if channelLoc is None or user_uuid is None:
+        return "No channel or user provided"
 
     true_affil = 'none'
     if cachedDbCalls.IsUserGCMByUUID(user_uuid):
@@ -58,28 +59,36 @@ def statusTrueAffil(message):
 
     return "OK"
 
+
 @socketio.on("addMod")
-def addMod(message):
+def addMod(message: dict) -> str:
     if not current_user.is_authenticated:
         return "Must be logged in."
 
-    #sysSettings = cachedDbCalls.getSystemSettings()
     JID = None
-    username = str(message["JID"])
+    username = str(message.get("JID"))
+
+    if username is None:
+        return "No username provided"
+
     userQuery = Sec.User.query.filter(
         func.lower(Sec.User.username) == func.lower(username)
     ).with_entities(Sec.User.id, Sec.User.username, Sec.User.uuid).first()
     if userQuery is None:
         db.session.close()
         return f"'{username}' does not exist."
-    
+
     if cachedDbCalls.IsUserGCMByUUID(userQuery.uuid):
         db.session.close()
         return "Cannot add a Global Chat Mod"
-    
+
     JID = userQuery.uuid + "@" + globalvars.defaultChatDomain
 
-    channelLoc = str(message["channelLoc"])
+    channelLoc = str(message.get("channelLoc"))
+
+    if channelLoc is None:
+        return "No channel location provided"
+
     channelQuery = Channel.Channel.query.filter_by(
         channelLoc=channelLoc, owningUser=current_user.id
     ).with_entities(Channel.Channel.id, Channel.Channel.channelLoc, Channel.Channel.owningUser).first()
@@ -87,11 +96,11 @@ def addMod(message):
     if channelQuery is None:
         db.session.close()
         return "Channel does not exist."
-    
+
     if channelQuery.owningUser == userQuery.id:
         db.session.close()
         return "You're already the channel's owner."
-    
+
     xmpp.set_user_affiliation(
         userQuery.uuid,
         channelQuery.channelLoc,
@@ -114,13 +123,15 @@ def addMod(message):
 
 
 @socketio.on("deleteMod")
-def deleteMod(message):
+def deleteMod(message: dict) -> str:
     if not current_user.is_authenticated:
         return "Must be logged in."
 
-    #sysSettings = cachedDbCalls.getSystemSettings()
-    JID = str(message["JID"])
-    user_uuid = JID.split("@",1)[0]
+    JID = str(message.get("JID"))
+    user_uuid = JID.split("@", 1)[0]
+
+    if JID is None or user_uuid is None:
+        return "No JID or user UUID provided"
 
     if cachedDbCalls.IsUserGCMByUUID(user_uuid):
         db.session.close()
@@ -152,7 +163,7 @@ def deleteMod(message):
 
 
 @socketio.on("banUser")
-def socketio_xmpp_banUser(message):
+def socketio_xmpp_banUser(message: dict) -> str:
     if not current_user.is_authenticated:
         return "Must be logged in."
 
@@ -216,7 +227,7 @@ def socketio_xmpp_banUser(message):
 
 
 @socketio.on("unbanUser")
-def socketio_xmpp_unbanUser(message):
+def socketio_xmpp_unbanUser(message: dict) -> str:
     if not current_user.is_authenticated:
         return "Must be logged in."
 
@@ -242,13 +253,13 @@ def socketio_xmpp_unbanUser(message):
     if existingBanQuery is None:
         db.session.close()
         return "That user is already un-banned."
-    
+
     new_affil = "none"
     if Sec.User.query.filter_by(
         uuid=unbanUserUUID
     ).with_entities(Sec.User.id).first() is not None:
         new_affil = "member"
-        
+
     xmpp.set_user_affiliation(unbanUserUUID, channelLoc, new_affil)
     db.session.delete(existingBanQuery)
     db.session.commit()
@@ -257,7 +268,7 @@ def socketio_xmpp_unbanUser(message):
 
 
 @socketio.on("getBanList")
-def socketio_xmpp_getBanList(message):
+def socketio_xmpp_getBanList(message: dict) -> str:
     bannedUserList = []
     if "channelLoc" in message:
         channelQuery = Channel.Channel.query.filter_by(channelLoc=str(message["channelLoc"])).with_entities(Channel.Channel.id, Channel.Channel.channelLoc).first()
@@ -275,7 +286,7 @@ def socketio_xmpp_getBanList(message):
 
 
 @socketio.on("deleteMessageRequest")
-def deleteMessageRequest(message):
+def deleteMessageRequest(message: dict) -> str:
     if not current_user.is_authenticated:
         return "Must be logged in."
 
@@ -341,7 +352,7 @@ def deleteMessageRequest(message):
             .order_by(banList.chatBannedMessages.timestamp.asc())
             .first()
         )
-        if banListOverflowMessageQuery != None:
+        if banListOverflowMessageQuery is not None:
             db.session.delete(banListOverflowMessageQuery)
             db.session.commit()
     emit("deleteMessage", messageId, broadcast=True)

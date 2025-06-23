@@ -17,7 +17,7 @@ from functions.scheduled_tasks import message_tasks
 
 @socketio.on("toggleChannelSubscription")
 @limiter.limit("10/minute")
-def toggle_chanSub(payload):
+def toggle_chanSub(payload: dict):
     if current_user.is_authenticated:
         sysSettings = cachedDbCalls.getSystemSettings()
         if "channelID" in payload:
@@ -97,7 +97,7 @@ def toggle_chanSub(payload):
 
 
 @socketio.on("markNotificationAsRead")
-def markUserNotificationRead(message):
+def markUserNotificationRead(message: dict):
     notificationID = message["data"]
     notificationQuery = notifications.userNotification.query.filter_by(
         notificationID=notificationID, userID=current_user.id
