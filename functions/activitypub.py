@@ -181,6 +181,11 @@ class ActivityPubService:
                 "url": [
                     {
                         "type": "Link",
+                        "href": f"https://{self.domain}/play/{video.id}",
+                        "mediaType": "text/html"
+                    },
+                    {
+                        "type": "Link",
                         "href": f"https://{self.domain}/videos/{video.videoLocation}",
                         "mediaType": "video/mp4"
                     }

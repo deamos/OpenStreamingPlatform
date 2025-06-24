@@ -266,6 +266,8 @@ def rtmp_stage2_user_auth_check(channelLoc: str, ipaddress: str, authorizedRTMP:
                             linkedChannel=requestedChannel.id, active=True
                         ).order_by(Stream.Stream.startTimestamp.desc()).first()
                         if actor and stream:
+                            channel = cachedDbCalls.getChannelByID(stream.linkedChannel)
+                            stream.channel = channel
                             ap_stream_obj = service.create_stream_object(stream, actor)
                             if ap_stream_obj:
                                 service.send_activity("Create", actor, object_data=ap_stream_obj.object_data)
@@ -653,11 +655,24 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
             if requestedChannel.autoPublish is True:
                 RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(pending=False, published=True))
                 notificationFunctions.sendNotification(f"{videoChannelName} has finished processing and has been published.", f"/play/{workingVideoID}", f"/images/{templateFilters.get_pictureLocation(requestedChannel.owningUser)}", requestedChannel.owningUser)
-            else:
-                RecordedVideo.RecordedVideo.query.filter_by(id=workingVideoID).update(dict(pending=False, published=False))
-                notificationFunctions.sendNotification(f"{videoChannelName} has finished processing and is available in the Channel Settings Page.", f"/play/{workingVideoID}", f"/images/{templateFilters.get_pictureLocation(requestedChannel.owningUser)}", requestedChannel.owningUser)
-            db.session.commit()
-            
+                # ActivityPub: Create and send video activity
+                try:
+                    from functions.activitypub import get_activitypub_service
+                    service = get_activitypub_service()
+                    if service:
+                        user = Sec.User.query.options(noload('*')).filter_by(id=requestedChannel.owningUser).first()
+                        if user:
+                            actor = service.create_user_actor(user)
+                            video = RecordedVideo.RecordedVideo.query.options(noload('*')).filter_by(id=workingVideoID).first()
+                            if actor and video:
+                                channel = cachedDbCalls.getChannelByID(video.channelID)
+                                video.channel = channel
+                                ap_video_obj = service.create_video_object(video, actor)
+                                if ap_video_obj:
+                                    service.send_activity("Create", actor, object_data=ap_video_obj.object_data)
+                except Exception as e:
+                    log.warning(f"ActivityPub: Failed to create video activity: {e}")
+
             cache.delete_memoized(cachedDbCalls.getChannelVideos, requestedChannel.id)
             cache.delete_memoized(cachedDbCalls.getAllVideo_View, requestedChannel.id)
 
@@ -738,24 +753,6 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
                     + "</a></p>",
                     "video",
                 )
-
-            # ActivityPub: Create and send video activity
-            try:
-                from functions.activitypub import get_activitypub_service
-                service = get_activitypub_service()
-                if service:
-                    # Get the channel owner (user)
-                    user = Sec.User.query.options(noload('*')).filter_by(id=requestedChannel.owningUser).first()
-                    if user:
-                        actor = service.create_user_actor(user)
-                        # Get the video object (just processed video)
-                        video = RecordedVideo.RecordedVideo.query.options(noload('*')).filter_by(id=workingVideoID).first()
-                        if actor and video:
-                            ap_video_obj = service.create_video_object(video, actor)
-                            if ap_video_obj:
-                                service.send_activity("Create", actor, object_data=ap_video_obj.object_data)
-            except Exception as e:
-                log.warning(f"ActivityPub: Failed to create video activity: {e}")
 
             while not os.path.exists(fullVidPath):
                 time.sleep(1)
