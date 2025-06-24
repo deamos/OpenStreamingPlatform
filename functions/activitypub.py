@@ -391,7 +391,7 @@ class ActivityPubService:
                 f'(request-target): post {urlparse(inbox_url).path}',
                 f'host: {urlparse(inbox_url).netloc}',
                 f'date: {date}',
-                f'content-type: application/activity+json'
+                'content-type: application/activity+json'
             ]
             signature_string = '\n'.join(signature_string_parts)
             
@@ -687,4 +687,16 @@ def init_activitypub_service(domain):
 
 def get_activitypub_service():
     """Get global ActivityPub service instance"""
-    return activitypub_service 
+    return activitypub_service
+
+
+def create_activitypub_actor_for_user(user):
+    """Helper function to create ActivityPub actor for a user"""
+    try:
+        service = get_activitypub_service()
+        if service:
+            return service.create_user_actor(user)
+        return None
+    except Exception as e:
+        log.error(f"Error creating ActivityPub actor for user {user.username}: {e}")
+        return None 

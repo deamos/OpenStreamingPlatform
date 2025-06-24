@@ -5,6 +5,7 @@ import datetime
 import uuid
 import os
 import re
+import logging
 
 from globals import globalvars
 
@@ -14,6 +15,8 @@ from classes.shared import db
 from app import user_datastore
 
 from functions import apiFunc, cachedDbCalls, securityFunc
+
+log = logging.getLogger("app.blueprints.apis.user")
 
 api = Namespace("user", description="User Related Queries and Functions")
 
@@ -123,6 +126,20 @@ class api_1_AdminUser(Resource):
                     newUserQuery.xmppToken = str(os.urandom(32).hex())
                     newUserQuery.uuid = str(uuid.uuid4())
                     db.session.commit()
+                    
+                    # Create ActivityPub actor for new user
+                    try:
+                        from conf import config
+                        if getattr(config, 'activitypubEnabled', False):
+                            from functions.activitypub import create_activitypub_actor_for_user
+                            actor = create_activitypub_actor_for_user(newUserQuery)
+                            if actor:
+                                log.info(f"ActivityPub actor created for API user: {newUserQuery.username}")
+                            else:
+                                log.warning(f"Failed to create ActivityPub actor for API user: {newUserQuery.username}")
+                    except Exception as e:
+                        log.warning(f"ActivityPub actor creation failed for API user {newUserQuery.username}: {e}")
+                    
                     return {"results": newUserQuery.serialize()}
 
         return {"results": {"message": "Request Error"}}, 400

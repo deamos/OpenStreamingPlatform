@@ -821,6 +821,20 @@ def admin_page():
             user.uuid = str(uuid.uuid4())
             user.confirmed_at = datetime.datetime.utcnow()
             db.session.commit()
+            
+            # Create ActivityPub actor for new user
+            try:
+                from conf import config
+                if getattr(config, 'activitypubEnabled', False):
+                    from functions.activitypub import create_activitypub_actor_for_user
+                    actor = create_activitypub_actor_for_user(user)
+                    if actor:
+                        system.newLog(1, f"ActivityPub actor created for admin-created user: {user.username}")
+                    else:
+                        system.newLog(1, f"Failed to create ActivityPub actor for admin-created user: {user.username}")
+            except Exception as e:
+                system.newLog(1, f"ActivityPub actor creation failed for admin-created user {user.username}: {e}")
+            
             return redirect(url_for(".admin_page", page="users"))
 
         elif settingType == "panel":

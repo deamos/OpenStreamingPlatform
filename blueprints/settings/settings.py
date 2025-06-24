@@ -170,7 +170,21 @@ def initialSetup():
             user_datastore.add_role_to_user(user, "Recorder")
             user_datastore.add_role_to_user(user, "Uploader")
             user_datastore.add_role_to_user(user, "User")
-
+            db.session.commit()
+            
+            # Create ActivityPub actor for initial admin user
+            try:
+                from conf import config
+                if getattr(config, 'activitypubEnabled', False):
+                    from functions.activitypub import create_activitypub_actor_for_user
+                    actor = create_activitypub_actor_for_user(user)
+                    if actor:
+                        system.newLog(1, f"ActivityPub actor created for initial admin user: {user.username}")
+                    else:
+                        system.newLog(1, f"Failed to create ActivityPub actor for initial admin user: {user.username}")
+            except Exception as e:
+                system.newLog(1, f"ActivityPub actor creation failed for initial admin user {user.username}: {e}")
+            
             serverSettings = settings.settings(
                 serverName,
                 serverProtocol,

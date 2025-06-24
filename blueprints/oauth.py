@@ -235,6 +235,35 @@ def oAuthAuthorize(provider):
 
                 message_tasks.send_webhook.delay("ZZZ", 20, user=user.username)
                 newLog(1, "A New User has Registered - Username:" + str(user.username))
+                
+                # Create ActivityPub actor for new user
+                try:
+                    from conf import config
+                    if getattr(config, 'activitypubEnabled', False):
+                        from functions.activitypub import create_activitypub_actor_for_user
+                        actor = create_activitypub_actor_for_user(user)
+                        if actor:
+                            log.info(
+                                {
+                                    "level": "info",
+                                    "message": f"ActivityPub actor created for OAuth user: {user.username}"
+                                }
+                            )
+                        else:
+                            log.warning(
+                                {
+                                    "level": "warning",
+                                    "message": f"Failed to create ActivityPub actor for OAuth user: {user.username}"
+                                }
+                            )
+                except Exception as e:
+                    log.warning(
+                        {
+                            "level": "warning",
+                            "message": f"ActivityPub actor creation failed for OAuth user {user.username}: {e}"
+                        }
+                    )
+                
                 if hasEmail is True:
                     return redirect(url_for("root.main_page"))
                 else:

@@ -105,6 +105,62 @@ def create_test_actor():
         return None
 
 
+def create_actors_for_existing_users():
+    """Create ActivityPub actors for all existing users"""
+    print("\n👥 Creating ActivityPub actors for existing users...")
+    
+    try:
+        from app import app
+        
+        with app.app_context():
+            from functions.activitypub import get_activitypub_service
+            from classes import Sec
+            
+            service = get_activitypub_service()
+            if not service:
+                print("❌ ActivityPub service not available")
+                return False
+            
+            # Get all users
+            users = Sec.User.query.all()
+            if not users:
+                print("❌ No users found in database")
+                return False
+            
+            created_count = 0
+            existing_count = 0
+            failed_count = 0
+            
+            for user in users:
+                try:
+                    actor = service.create_user_actor(user)
+                    if actor:
+                        if actor.created_at == actor.updated_at:
+                            created_count += 1
+                            print(f"  ✅ Created actor for: {user.username}")
+                        else:
+                            existing_count += 1
+                            print(f"  ℹ️  Actor already exists for: {user.username}")
+                    else:
+                        failed_count += 1
+                        print(f"  ❌ Failed to create actor for: {user.username}")
+                except Exception as e:
+                    failed_count += 1
+                    print(f"  ❌ Error creating actor for {user.username}: {e}")
+            
+            print("\n📊 Summary:")
+            print(f"  Created: {created_count}")
+            print(f"  Already existed: {existing_count}")
+            print(f"  Failed: {failed_count}")
+            print(f"  Total users: {len(users)}")
+            
+            return True
+            
+    except Exception as e:
+        print(f"❌ Error creating actors for existing users: {e}")
+        return False
+
+
 def main():
     """Main setup function"""
     print("🚀 ActivityPub Setup for Open Streaming Platform")
@@ -131,6 +187,9 @@ def main():
     
     # Create test actor and get username
     username = create_test_actor()
+    
+    # Create actors for existing users
+    create_actors_for_existing_users()
     
     print("\n🎉 ActivityPub setup complete!")
     print("\n📚 Next steps:")

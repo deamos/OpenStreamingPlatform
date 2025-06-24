@@ -33,6 +33,8 @@ from functions import notifications as notificationFunctions
 from functions import cachedDbCalls
 from functions.scheduled_tasks import message_tasks
 
+from sqlalchemy.orm import noload
+
 log = logging.getLogger("app.functions.rtmpFunctions")
 
 
@@ -249,6 +251,26 @@ def rtmp_stage2_user_auth_check(channelLoc: str, ipaddress: str, authorizedRTMP:
                 system.newLog(
                     0, "Subscriptions Failed due to possible misconfiguration"
                 )
+
+            # ActivityPub: Create and send stream activity
+            try:
+                from functions.activitypub import get_activitypub_service
+                service = get_activitypub_service()
+                if service:
+                    # Get the channel owner (user)
+                    user = Sec.User.query.options(noload('*')).filter_by(id=requestedChannel.owningUser).first()
+                    if user:
+                        actor = service.create_user_actor(user)
+                        # Get the stream object (active stream for this channel)
+                        stream = Stream.Stream.query.options(noload('*')).filter_by(
+                            linkedChannel=requestedChannel.id, active=True
+                        ).order_by(Stream.Stream.startTimestamp.desc()).first()
+                        if actor and stream:
+                            ap_stream_obj = service.create_stream_object(stream, actor)
+                            if ap_stream_obj:
+                                service.send_activity("Create", actor, object_data=ap_stream_obj.object_data)
+            except Exception as e:
+                log.warning(f"ActivityPub: Failed to create stream activity: {e}")
 
             returnMessage = {
                 "time": str(currentTime),
@@ -716,6 +738,24 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
                     + "</a></p>",
                     "video",
                 )
+
+            # ActivityPub: Create and send video activity
+            try:
+                from functions.activitypub import get_activitypub_service
+                service = get_activitypub_service()
+                if service:
+                    # Get the channel owner (user)
+                    user = Sec.User.query.options(noload('*')).filter_by(id=requestedChannel.owningUser).first()
+                    if user:
+                        actor = service.create_user_actor(user)
+                        # Get the video object (just processed video)
+                        video = RecordedVideo.RecordedVideo.query.options(noload('*')).filter_by(id=workingVideoID).first()
+                        if actor and video:
+                            ap_video_obj = service.create_video_object(video, actor)
+                            if ap_video_obj:
+                                service.send_activity("Create", actor, object_data=ap_video_obj.object_data)
+            except Exception as e:
+                log.warning(f"ActivityPub: Failed to create video activity: {e}")
 
             while not os.path.exists(fullVidPath):
                 time.sleep(1)

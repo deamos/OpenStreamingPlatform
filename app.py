@@ -890,6 +890,36 @@ def user_registered_sighandler(
         }
     )
     system.newLog(1, "A New User has Registered - Username:" + str(user.username))
+    
+    # Create ActivityPub actor for new user
+    try:
+        if getattr(config, 'activitypubEnabled', False):
+            from functions.activitypub import get_activitypub_service
+            service = get_activitypub_service()
+            if service:
+                actor = service.create_user_actor(user)
+                if actor:
+                    app.logger.info(
+                        {
+                            "level": "info",
+                            "message": f"ActivityPub actor created for user: {user.username}"
+                        }
+                    )
+                else:
+                    app.logger.warning(
+                        {
+                            "level": "warning",
+                            "message": f"Failed to create ActivityPub actor for user: {user.username}"
+                        }
+                    )
+    except Exception as e:
+        app.logger.warning(
+            {
+                "level": "warning",
+                "message": f"ActivityPub actor creation failed for user {user.username}: {e}"
+            }
+        )
+    
     if config.requireEmailRegistration:
         flash(
             "An email has been sent to the email provided. Please check your email and verify your account to activate."
