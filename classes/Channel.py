@@ -127,7 +127,6 @@ class Channel(db.Model):
         self.hubEnabled = False
         self.hubNSFW = False
 
-
     def __repr__(self):
         return "<id %r>" % self.id
 
@@ -201,6 +200,55 @@ class Channel(db.Model):
             "subscriptions": len(self.subscriptions),
             "tags": [obj.id for obj in self.get_tags()],
         }
+
+    def get_activitypub_actor(self):
+        """Get or create ActivityPub actor for this channel"""
+        from functions.activitypub import get_activitypub_service
+        service = get_activitypub_service()
+        if service:
+            return service.create_channel_actor(self)
+        return None
+
+    def to_activitypub(self):
+        """Convert channel to ActivityPub Group object"""
+        actor = self.get_activitypub_actor()
+        if actor:
+            return actor.to_activitypub()
+        return None
+
+    def publish_video_to_activitypub(self, video):
+        """Publish video to ActivityPub"""
+        from functions.activitypub import get_activitypub_service
+        service = get_activitypub_service()
+        if service:
+            actor = self.get_activitypub_actor()
+            if actor:
+                ap_object = service.create_video_object(video, actor)
+                if ap_object:
+                    service.send_activity(
+                        activity_type="Create",
+                        actor=actor,
+                        object_data=ap_object.to_activitypub(),
+                        to=["https://www.w3.org/ns/activitystreams#Public"],
+                        cc=[f"https://{actor.domain}/activitypub/actors/{actor.username}/followers"]
+                    )
+
+    def publish_stream_to_activitypub(self, stream):
+        """Publish stream to ActivityPub"""
+        from functions.activitypub import get_activitypub_service
+        service = get_activitypub_service()
+        if service:
+            actor = self.get_activitypub_actor()
+            if actor:
+                ap_object = service.create_stream_object(stream, actor)
+                if ap_object:
+                    service.send_activity(
+                        activity_type="Create",
+                        actor=actor,
+                        object_data=ap_object.to_activitypub(),
+                        to=["https://www.w3.org/ns/activitystreams#Public"],
+                        cc=[f"https://{actor.domain}/activitypub/actors/{actor.username}/followers"]
+                    )
 
 
 class channel_tags(db.Model):

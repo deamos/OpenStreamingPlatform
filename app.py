@@ -741,6 +741,7 @@ from blueprints.upload import upload_bp
 from blueprints.settings.settings import settings_bp
 from blueprints.oauth import oauth_bp
 from blueprints.m3u8 import m3u8_bp
+from blueprints.activitypub import activitypub_bp, discovery_bp
 
 # Register all Blueprints
 app.register_blueprint(errorhandler_bp)
@@ -757,6 +758,8 @@ app.register_blueprint(settings_bp)
 app.register_blueprint(liveview_bp)
 app.register_blueprint(oauth_bp)
 app.register_blueprint(m3u8_bp)
+app.register_blueprint(activitypub_bp)
+app.register_blueprint(discovery_bp)
 
 app.logger.info({"level": "info", "message": "Initializing Template Filters"})
 # ----------------------------------------------------------------------------#
@@ -959,6 +962,24 @@ app.logger.info({"level": "info", "message": "Finalizing App Initialization"})
 # ----------------------------------------------------------------------------#
 # Finalize App Init
 # ----------------------------------------------------------------------------#
+
+# Initialize ActivityPub service
+try:
+    from functions.activitypub import init_activitypub_service
+    # Use ActivityPub domain from config, fallback to siteAddress or localhost
+    domain = getattr(config, 'activitypubDomain', None)
+    if not domain:
+        domain = getattr(config, 'siteAddress', 'localhost')
+    
+    # Only initialize if ActivityPub is enabled
+    if getattr(config, 'activitypubEnabled', False):
+        init_activitypub_service(domain)
+        app.logger.info({"level": "info", "message": "ActivityPub service initialized"})
+    else:
+        app.logger.info({"level": "info", "message": "ActivityPub service disabled in configuration"})
+except Exception as e:
+    app.logger.warning({"level": "warning", "message": f"ActivityPub service initialization failed: {e}"})
+
 try:
     system.newLog(
         "0", "OSP Started Up Successfully - version: " + str(globalvars.version)

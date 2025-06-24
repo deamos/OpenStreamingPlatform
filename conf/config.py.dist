@@ -42,6 +42,24 @@ ejabberdHost = "localhost"
 # Sets the Ejabberd XMPP Chat Domain
 #ospXMPPDomain = "osp.internal"
 
+# ActivityPub Configuration
+# Enable ActivityPub federation
+activitypubEnabled = False
+
+# Your domain for ActivityPub URLs (e.g., "yourdomain.com")
+activitypubDomain = "localhost"
+
+# Site information for ActivityPub
+activitypubSiteName = "Open Streaming Platform"
+activitypubSiteDescription = "Federated Video Streaming Platform"
+
+# ActivityPub service configuration
+activitypubMaxRetries = 3
+activitypubTimeout = 30
+activitypubUserAgent = "OSP-ActivityPub/1.0"
+activitypubSignatureAlgorithm = "rsa-sha256"
+activitypubDefaultVisibility = "public"
+
 # ReCaptcha Configuration
 # RECAPTCHA_ENABLED = False
 # RECAPTCHA_SITE_KEY = "SomeKey"

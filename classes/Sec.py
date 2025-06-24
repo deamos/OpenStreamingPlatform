@@ -1,11 +1,10 @@
-from flask import flash, current_app
+from flask import flash
 from flask_wtf import RecaptchaField
 from flask_security.forms import (
     RegisterForm,
     StringField,
     Required,
     ConfirmRegisterForm,
-    ForgotPasswordForm,
     LoginForm,
     validators,
 )
@@ -171,6 +170,21 @@ class User(db.Model, UserMixin):
             "channels": [obj.channelLoc for obj in self.channels],
             "page": "/profile/" + str(self.username) + "/",
         }
+
+    def get_activitypub_actor(self):
+        """Get or create ActivityPub actor for this user"""
+        from functions.activitypub import get_activitypub_service
+        service = get_activitypub_service()
+        if service:
+            return service.create_user_actor(self)
+        return None
+
+    def to_activitypub(self):
+        """Convert user to ActivityPub Person object"""
+        actor = self.get_activitypub_actor()
+        if actor:
+            return actor.to_activitypub()
+        return None
 
 
 class UserSocial(db.Model):
