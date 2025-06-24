@@ -11,6 +11,9 @@ import requests
 import json
 from urllib.parse import urlparse
 
+# Add the current directory to Python path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 def check_config():
     """Check if ActivityPub is properly configured"""
     print("🔍 Checking ActivityPub configuration...")
@@ -45,17 +48,21 @@ def check_database():
     print("\n🗄️  Checking database tables...")
     
     try:
-        from classes.shared import db
-        from classes import activitypub
+        # Import and initialize Flask app
+        from app import app
         
-        # Try to query ActivityPub tables
-        actor_count = activitypub.ActivityPubActor.query.count()
-        activity_count = activitypub.ActivityPubActivity.query.count()
-        
-        print(f"  ActivityPub actors: {actor_count}")
-        print(f"  ActivityPub activities: {activity_count}")
-        print("✅ Database tables exist!")
-        return True
+        with app.app_context():
+            from classes.shared import db
+            from classes import activitypub
+            
+            # Try to query ActivityPub tables
+            actor_count = activitypub.ActivityPubActor.query.count()
+            activity_count = activitypub.ActivityPubActivity.query.count()
+            
+            print(f"  ActivityPub actors: {actor_count}")
+            print(f"  ActivityPub activities: {activity_count}")
+            print("✅ Database tables exist!")
+            return True
         
     except Exception as e:
         print(f"❌ Database error: {e}")
@@ -94,29 +101,32 @@ def create_test_actor():
     print("\n👤 Creating test ActivityPub actor...")
     
     try:
-        from functions.activitypub import get_activitypub_service
-        from classes import Sec
+        from app import app
         
-        service = get_activitypub_service()
-        if not service:
-            print("❌ ActivityPub service not available")
-            return False
-        
-        # Find first user
-        user = Sec.User.query.first()
-        if not user:
-            print("❌ No users found in database")
-            return False
-        
-        # Create actor
-        actor = service.create_user_actor(user)
-        if actor:
-            print(f"✅ Created ActivityPub actor for user: {user.username}")
-            print(f"   Actor URL: https://{actor.domain}/activitypub/actors/{actor.username}")
-            return True
-        else:
-            print("❌ Failed to create ActivityPub actor")
-            return False
+        with app.app_context():
+            from functions.activitypub import get_activitypub_service
+            from classes import Sec
+            
+            service = get_activitypub_service()
+            if not service:
+                print("❌ ActivityPub service not available")
+                return False
+            
+            # Find first user
+            user = Sec.User.query.first()
+            if not user:
+                print("❌ No users found in database")
+                return False
+            
+            # Create actor
+            actor = service.create_user_actor(user)
+            if actor:
+                print(f"✅ Created ActivityPub actor for user: {user.username}")
+                print(f"   Actor URL: https://{actor.domain}/activitypub/actors/{actor.username}")
+                return True
+            else:
+                print("❌ Failed to create ActivityPub actor")
+                return False
             
     except Exception as e:
         print(f"❌ Error creating test actor: {e}")
@@ -176,10 +186,12 @@ def main():
     # Create test actor
     if create_test_actor():
         # Test WebFinger with the created actor
-        from classes import Sec
-        user = Sec.User.query.first()
-        if user:
-            test_webfinger(domain, user.username)
+        from app import app
+        with app.app_context():
+            from classes import Sec
+            user = Sec.User.query.first()
+            if user:
+                test_webfinger(domain, user.username)
     
     print("\n🎉 ActivityPub setup complete!")
     print("\n📚 Next steps:")

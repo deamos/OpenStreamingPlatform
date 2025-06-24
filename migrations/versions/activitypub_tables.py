@@ -1,7 +1,7 @@
 """ActivityPub tables migration
 
 Revision ID: activitypub_001
-Revises: 
+Revises: 4d460df32dd8
 Create Date: 2024-01-01 00:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'activitypub_001'
-down_revision = None
+down_revision = '4d460df32dd8'
 branch_labels = None
 depends_on = None
 
