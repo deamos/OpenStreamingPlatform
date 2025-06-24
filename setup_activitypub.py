@@ -14,6 +14,9 @@ from urllib.parse import urlparse
 # Add the current directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Disable gevent monkey patching for this script
+os.environ['GEVENT_SUPPORT'] = 'False'
+
 def check_config():
     """Check if ActivityPub is properly configured"""
     print("🔍 Checking ActivityPub configuration...")
@@ -69,32 +72,34 @@ def check_database():
         print("   Run 'flask db upgrade' to create ActivityPub tables")
         return False
 
-def test_endpoints(domain):
-    """Test ActivityPub endpoints"""
+def test_endpoints_simple(domain):
+    """Test ActivityPub endpoints using simple HTTP requests"""
     print(f"\n🌐 Testing ActivityPub endpoints on {domain}...")
     
     base_url = f"https://{domain}"
     
-    # Test NodeInfo
+    # Test NodeInfo discovery
     try:
-        response = requests.get(f"{base_url}/.well-known/nodeinfo", timeout=10)
+        print(f"  Testing: {base_url}/.well-known/nodeinfo")
+        response = requests.get(f"{base_url}/.well-known/nodeinfo", timeout=10, verify=False)
         if response.status_code == 200:
             print("✅ NodeInfo discovery endpoint working")
         else:
             print(f"❌ NodeInfo discovery endpoint failed: {response.status_code}")
     except Exception as e:
-        print(f"❌ NodeInfo discovery endpoint error: {e}")
+        print(f"❌ NodeInfo discovery endpoint error: {str(e)[:100]}...")
     
     # Test NodeInfo 2.0
     try:
-        response = requests.get(f"{base_url}/nodeinfo/2.0", timeout=10)
+        print(f"  Testing: {base_url}/nodeinfo/2.0")
+        response = requests.get(f"{base_url}/nodeinfo/2.0", timeout=10, verify=False)
         if response.status_code == 200:
             data = response.json()
             print(f"✅ NodeInfo 2.0 endpoint working (users: {data.get('usage', {}).get('users', {}).get('total', 0)})")
         else:
             print(f"❌ NodeInfo 2.0 endpoint failed: {response.status_code}")
     except Exception as e:
-        print(f"❌ NodeInfo 2.0 endpoint error: {e}")
+        print(f"❌ NodeInfo 2.0 endpoint error: {str(e)[:100]}...")
 
 def create_test_actor():
     """Create a test ActivityPub actor"""
@@ -132,15 +137,17 @@ def create_test_actor():
         print(f"❌ Error creating test actor: {e}")
         return False
 
-def test_webfinger(domain, username):
-    """Test WebFinger discovery"""
+def test_webfinger_simple(domain, username):
+    """Test WebFinger discovery using simple HTTP request"""
     print(f"\n🔍 Testing WebFinger for {username}@{domain}...")
     
     try:
+        print(f"  Testing: https://{domain}/.well-known/webfinger?resource=acct:{username}@{domain}")
         response = requests.get(
             f"https://{domain}/.well-known/webfinger",
             params={"resource": f"acct:{username}@{domain}"},
-            timeout=10
+            timeout=10,
+            verify=False
         )
         
         if response.status_code == 200:
@@ -153,7 +160,7 @@ def test_webfinger(domain, username):
             return False
             
     except Exception as e:
-        print(f"❌ WebFinger error: {e}")
+        print(f"❌ WebFinger error: {str(e)[:100]}...")
         return False
 
 def main():
@@ -181,7 +188,7 @@ def main():
         return
     
     # Test endpoints
-    test_endpoints(domain)
+    test_endpoints_simple(domain)
     
     # Create test actor
     if create_test_actor():
@@ -191,7 +198,7 @@ def main():
             from classes import Sec
             user = Sec.User.query.first()
             if user:
-                test_webfinger(domain, user.username)
+                test_webfinger_simple(domain, user.username)
     
     print("\n🎉 ActivityPub setup complete!")
     print("\n📚 Next steps:")
@@ -199,6 +206,10 @@ def main():
     print("2. Configure your domain's DNS and SSL certificates")
     print("3. Monitor ActivityPub logs for any issues")
     print("4. Check the admin interface at /admin/activitypub")
+    print("\n🔧 Manual testing:")
+    print(f"  - Visit: https://{domain}/.well-known/nodeinfo")
+    print(f"  - Visit: https://{domain}/nodeinfo/2.0")
+    print(f"  - Visit: https://{domain}/.well-known/webfinger?resource=acct:Deamos@{domain}")
 
 if __name__ == "__main__":
     main() 
