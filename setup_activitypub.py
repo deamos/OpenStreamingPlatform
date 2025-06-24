@@ -7,15 +7,10 @@ This script helps you set up and test ActivityPub functionality.
 
 import os
 import sys
-import requests
-import json
-from urllib.parse import urlparse
 
 # Add the current directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Disable gevent monkey patching for this script
-os.environ['GEVENT_SUPPORT'] = 'False'
 
 def check_config():
     """Check if ActivityPub is properly configured"""
@@ -46,6 +41,7 @@ def check_config():
         print("❌ Could not import config. Make sure you're running this from the OSP root directory.")
         return False
 
+
 def check_database():
     """Check if ActivityPub database tables exist"""
     print("\n🗄️  Checking database tables...")
@@ -55,7 +51,6 @@ def check_database():
         from app import app
         
         with app.app_context():
-            from classes.shared import db
             from classes import activitypub
             
             # Try to query ActivityPub tables
@@ -72,34 +67,6 @@ def check_database():
         print("   Run 'flask db upgrade' to create ActivityPub tables")
         return False
 
-def test_endpoints_simple(domain):
-    """Test ActivityPub endpoints using simple HTTP requests"""
-    print(f"\n🌐 Testing ActivityPub endpoints on {domain}...")
-    
-    base_url = f"https://{domain}"
-    
-    # Test NodeInfo discovery
-    try:
-        print(f"  Testing: {base_url}/.well-known/nodeinfo")
-        response = requests.get(f"{base_url}/.well-known/nodeinfo", timeout=10, verify=False)
-        if response.status_code == 200:
-            print("✅ NodeInfo discovery endpoint working")
-        else:
-            print(f"❌ NodeInfo discovery endpoint failed: {response.status_code}")
-    except Exception as e:
-        print(f"❌ NodeInfo discovery endpoint error: {str(e)[:100]}...")
-    
-    # Test NodeInfo 2.0
-    try:
-        print(f"  Testing: {base_url}/nodeinfo/2.0")
-        response = requests.get(f"{base_url}/nodeinfo/2.0", timeout=10, verify=False)
-        if response.status_code == 200:
-            data = response.json()
-            print(f"✅ NodeInfo 2.0 endpoint working (users: {data.get('usage', {}).get('users', {}).get('total', 0)})")
-        else:
-            print(f"❌ NodeInfo 2.0 endpoint failed: {response.status_code}")
-    except Exception as e:
-        print(f"❌ NodeInfo 2.0 endpoint error: {str(e)[:100]}...")
 
 def create_test_actor():
     """Create a test ActivityPub actor"""
@@ -115,53 +82,28 @@ def create_test_actor():
             service = get_activitypub_service()
             if not service:
                 print("❌ ActivityPub service not available")
-                return False
+                return None
             
             # Find first user
             user = Sec.User.query.first()
             if not user:
                 print("❌ No users found in database")
-                return False
+                return None
             
             # Create actor
             actor = service.create_user_actor(user)
             if actor:
                 print(f"✅ Created ActivityPub actor for user: {user.username}")
                 print(f"   Actor URL: https://{actor.domain}/activitypub/actors/{actor.username}")
-                return True
+                return user.username
             else:
                 print("❌ Failed to create ActivityPub actor")
-                return False
+                return None
             
     except Exception as e:
         print(f"❌ Error creating test actor: {e}")
-        return False
+        return None
 
-def test_webfinger_simple(domain, username):
-    """Test WebFinger discovery using simple HTTP request"""
-    print(f"\n🔍 Testing WebFinger for {username}@{domain}...")
-    
-    try:
-        print(f"  Testing: https://{domain}/.well-known/webfinger?resource=acct:{username}@{domain}")
-        response = requests.get(
-            f"https://{domain}/.well-known/webfinger",
-            params={"resource": f"acct:{username}@{domain}"},
-            timeout=10,
-            verify=False
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            print("✅ WebFinger working")
-            print(f"   Subject: {data.get('subject')}")
-            return True
-        else:
-            print(f"❌ WebFinger failed: {response.status_code}")
-            return False
-            
-    except Exception as e:
-        print(f"❌ WebFinger error: {str(e)[:100]}...")
-        return False
 
 def main():
     """Main setup function"""
@@ -187,18 +129,8 @@ def main():
         print("2. Run this script again")
         return
     
-    # Test endpoints
-    test_endpoints_simple(domain)
-    
-    # Create test actor
-    if create_test_actor():
-        # Test WebFinger with the created actor
-        from app import app
-        with app.app_context():
-            from classes import Sec
-            user = Sec.User.query.first()
-            if user:
-                test_webfinger_simple(domain, user.username)
+    # Create test actor and get username
+    username = create_test_actor()
     
     print("\n🎉 ActivityPub setup complete!")
     print("\n📚 Next steps:")
@@ -206,10 +138,22 @@ def main():
     print("2. Configure your domain's DNS and SSL certificates")
     print("3. Monitor ActivityPub logs for any issues")
     print("4. Check the admin interface at /admin/activitypub")
-    print("\n🔧 Manual testing:")
-    print(f"  - Visit: https://{domain}/.well-known/nodeinfo")
-    print(f"  - Visit: https://{domain}/nodeinfo/2.0")
-    print(f"  - Visit: https://{domain}/.well-known/webfinger?resource=acct:Deamos@{domain}")
+    
+    if username:
+        print(f"\n🔧 Manual testing (replace 'USERNAME' with '{username}'):")
+        print(f"  - Visit: https://{domain}/.well-known/nodeinfo")
+        print(f"  - Visit: https://{domain}/nodeinfo/2.0")
+        print(f"  - Visit: https://{domain}/.well-known/webfinger?resource=acct:{username}@{domain}")
+        print(f"  - Visit: https://{domain}/activitypub/actors/{username}")
+        print("\n🌐 Federation testing:")
+        print(f"  - Try following @{username}@{domain} from Mastodon")
+        print("  - Try following a Mastodon user from your OSP instance")
+    else:
+        print("\n🔧 Manual testing:")
+        print(f"  - Visit: https://{domain}/.well-known/nodeinfo")
+        print(f"  - Visit: https://{domain}/nodeinfo/2.0")
+        print("  - Create a user first, then run this script again")
+
 
 if __name__ == "__main__":
     main() 
