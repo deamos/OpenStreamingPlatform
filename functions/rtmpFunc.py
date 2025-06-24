@@ -266,7 +266,7 @@ def rtmp_stage2_user_auth_check(channelLoc: str, ipaddress: str, authorizedRTMP:
                             linkedChannel=requestedChannel.id, active=True
                         ).order_by(Stream.Stream.startTimestamp.desc()).first()
                         if actor and stream:
-                            channel = cachedDbCalls.getChannelByID(stream.linkedChannel)
+                            channel = cachedDbCalls.getChannel(stream.linkedChannel)
                             stream.channel = channel
                             ap_stream_obj = service.create_stream_object(stream, actor)
                             if ap_stream_obj:
@@ -665,7 +665,7 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
                             actor = service.create_user_actor(user)
                             video = RecordedVideo.RecordedVideo.query.options(noload('*')).filter_by(id=workingVideoID).first()
                             if actor and video:
-                                channel = cachedDbCalls.getChannelByID(video.channelID)
+                                channel = cachedDbCalls.getChannel(video.channelID)
                                 video.channel = channel
                                 ap_video_obj = service.create_video_object(video, actor)
                                 if ap_video_obj:
