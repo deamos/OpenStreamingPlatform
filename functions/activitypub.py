@@ -7,6 +7,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from urllib.parse import urlparse
 import logging
+import uuid
 
 from classes.shared import db
 from functions import cachedDbCalls
@@ -480,6 +481,8 @@ class ActivityPubService:
                 self._handle_accept(activity_data)
             elif activity_type == 'Reject':
                 self._handle_reject(activity_data)
+            elif activity_type == 'Undo':
+                self._handle_undo(activity_data)
             elif activity_type == 'Create':
                 self._handle_create(activity_data)
             elif activity_type == 'Like':
@@ -512,6 +515,7 @@ class ActivityPubService:
             
             # Create follow relationship with status 'accepted'
             follow = activitypub.ActivityPubFollow(
+                uuid=str(uuid.uuid4()),
                 follower_id=None,  # Will be set when we fetch remote actor
                 following_id=local_actor.id,
                 status='accepted'
@@ -562,6 +566,39 @@ class ActivityPubService:
                     
         except Exception as e:
             log.error(f"Error handling reject: {e}")
+            db.session.rollback()
+    
+    def _handle_undo(self, activity_data):
+        """Handle Undo activity (unfollow)"""
+        try:
+            object_data = activity_data.get('object')
+            if object_data and object_data.get('type') == 'Follow':
+                # Find the follow relationship and delete it
+                actor_url = object_data.get('actor')
+                object_url = object_data.get('object')
+                # Extract usernames from URLs as in _handle_follow
+                following_username = object_url.split('/')[-1]
+                follower_username = actor_url.split('/')[-1]
+                # Find local actor being followed
+                local_actor = activitypub.ActivityPubActor.query.filter_by(
+                    username=following_username,
+                    is_local=True
+                ).first()
+                # Find remote actor (follower)
+                remote_actor = activitypub.ActivityPubActor.query.filter_by(
+                    username=follower_username,
+                    is_local=False
+                ).first()
+                if local_actor and remote_actor:
+                    follow = activitypub.ActivityPubFollow.query.filter_by(
+                        follower_id=remote_actor.id,
+                        following_id=local_actor.id
+                    ).first()
+                    if follow:
+                        db.session.delete(follow)
+                        db.session.commit()
+        except Exception as e:
+            log.error(f"Error handling undo: {e}")
             db.session.rollback()
     
     def _handle_create(self, activity_data):
