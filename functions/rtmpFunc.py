@@ -663,11 +663,11 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
                             actor = service.create_user_actor(user)
                             video = RecordedVideo.RecordedVideo.query.options(noload('*')).filter_by(id=workingVideoID).first()
                             if actor and video:
-                                channel = cachedDbCalls.getChannel(video.channelID)
-                                video.channel = channel
                                 ap_video_obj = service.create_video_object(video, actor)
                                 if ap_video_obj:
                                     service.send_activity("Create", actor, object_data=ap_video_obj.object_data)
+                            else:
+                                log.warning(f"ActivityPub: Failed to create video object: {video}")
                 except Exception as e:
                     log.warning(f"ActivityPub: Failed to create video activity: {e}")
 
