@@ -300,7 +300,15 @@ class ActivityPubService:
             # Check if ActivityPub is enabled
             if not getattr(self.config, 'activitypubEnabled', True):
                 return None
-                
+
+            # Ensure object_data is a dict, not a JSON string
+            if isinstance(object_data, str):
+                try:
+                    object_data = json.loads(object_data)
+                except Exception:
+                    log.error("object_data passed to send_activity is a string but not valid JSON")
+                    return None
+
             # Create activity
             activity = activitypub.ActivityPubActivity(
                 activity_type=activity_type,
@@ -310,18 +318,17 @@ class ActivityPubService:
                 to=to or ["https://www.w3.org/ns/activitystreams#Public"],
                 cc=cc
             )
-            
             db.session.add(activity)
             db.session.commit()
-            
+
             # Sign the activity
             signed_activity = self._sign_activity(activity)
-            
+
             # Send to remote servers
             self._deliver_activity(signed_activity, activity.to)
-            
+
             return activity
-            
+
         except Exception as e:
             log.error(f"Error sending activity: {e}")
             db.session.rollback()
