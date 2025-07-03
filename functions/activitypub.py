@@ -375,7 +375,8 @@ class ActivityPubService:
                     # Extract actor URL from followers URL
                     actor_url = recipient.replace('/followers', '')
                     # Get actor's inbox
-                    response = requests.get(actor_url, timeout=timeout)
+                    # Use Accept: application/activity+json to ensure we get ActivityPub JSON, not HTML
+                    response = requests.get(actor_url, timeout=timeout, headers={"Accept": "application/activity+json"})
                     if response.status_code == 200:
                         actor_data = response.json()
                         inbox_url = actor_data.get('inbox')
@@ -648,7 +649,8 @@ class ActivityPubService:
                 return False
             
             # Get actor's public key
-            actor_response = requests.get(actor_url, timeout=10)
+            # Use Accept: application/activity+json to ensure we get ActivityPub JSON, not HTML
+            actor_response = requests.get(actor_url, timeout=10, headers={"Accept": "application/activity+json"})
             if actor_response.status_code != 200:
                 log.warning(f"Failed to fetch actor: {actor_url} (status {actor_response.status_code}) Content: {actor_response.text}")
                 return False
