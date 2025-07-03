@@ -251,8 +251,10 @@ class ActivityPubService:
             # Create Note object for Mastodon
             note_object = {
                 "@context": "https://www.w3.org/ns/activitystreams",
+                "id": f"https://{self.domain}/activitypub/notes/{video.uuid}",
                 "type": "Note",
                 "content": f"{video.description or video.channelName} <a href='https://{self.domain}/play/{video.id}'>Watch here</a>",
+                "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
                 "attachment": [
                     {
                         "type": "Video",
@@ -320,8 +322,10 @@ class ActivityPubService:
             # Create Note object for Mastodon
             note_object = {
                 "@context": "https://www.w3.org/ns/activitystreams",
+                "id": f"https://{self.domain}/activitypub/notes/{stream.uuid}",
                 "type": "Note",
                 "content": f"Live stream by {actor.display_name} <a href='https://{self.domain}/view/{channelQuery.channelLoc}'>Watch here</a>",
+                "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
                 "attachment": [
                     {
                         "type": "Video",
@@ -734,13 +738,30 @@ class ActivityPubService:
         """Handle Create activity"""
         try:
             object_data = activity_data.get('object')
-            if object_data and object_data.get('type') == 'Video':
+            if not object_data:
+                return
+                
+            # Handle Video objects
+            if object_data.get('type') == 'Video':
                 # Store remote video object
                 ap_object = activitypub.ActivityPubObject(
                     object_type="Video",
                     actor_id=None,  # Remote actor
                     local_object_id=None,  # Remote object
                     local_object_type='remote_video',
+                    object_data=object_data
+                )
+                db.session.add(ap_object)
+                db.session.commit()
+            
+            # Handle Note objects (for Mastodon compatibility)
+            elif object_data.get('type') == 'Note':
+                # Store remote note object
+                ap_object = activitypub.ActivityPubObject(
+                    object_type="Note",
+                    actor_id=None,  # Remote actor
+                    local_object_id=None,  # Remote object
+                    local_object_type='remote_note',
                     object_data=object_data
                 )
                 db.session.add(ap_object)
