@@ -650,10 +650,13 @@ class ActivityPubService:
             # Get actor's public key
             actor_response = requests.get(actor_url, timeout=10)
             if actor_response.status_code != 200:
-                log.warning(f"Failed to fetch actor: {actor_url}")
+                log.warning(f"Failed to fetch actor: {actor_url} (status {actor_response.status_code}) Content: {actor_response.text}")
                 return False
-            
-            actor_data = actor_response.json()
+            try:
+                actor_data = actor_response.json()
+            except Exception as e:
+                log.warning(f"Failed to parse actor JSON from {actor_url}: {e} -- Content: {actor_response.text}")
+                return False
             public_key_pem = actor_data.get('publicKey', {}).get('publicKeyPem')
             if not public_key_pem:
                 log.warning("No public key found in actor data")
