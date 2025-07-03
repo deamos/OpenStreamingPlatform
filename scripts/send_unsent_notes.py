@@ -1,3 +1,6 @@
+from gevent import monkey
+monkey.patch_all(thread=True)
+
 import json
 import requests
 from app import app
@@ -20,11 +23,24 @@ def get_follower_inboxes(actor):
                 print(f"[DEBUG] Follower __dict__: {follower.__dict__}")
                 print(f"[DEBUG] Follower username: {getattr(follower, 'username', None)}")
                 print(f"[DEBUG] Follower domain: {getattr(follower, 'domain', None)}")
-                resp = requests.get(f"https://{follower.domain}/activitypub/actors/{follower.username}", headers={"Accept": "application/activity+json"}, timeout=10)
+                url = f"https://{follower.domain}/activitypub/actors/{follower.username}"
+                print(f"[DEBUG] Fetching actor profile: {url}")
+                resp = requests.get(url, headers={"Accept": "application/activity+json"}, timeout=10)
+                print(f"[DEBUG] GET status: {resp.status_code}")
                 if resp.status_code == 200:
-                    inbox_url = resp.json().get('inbox')
-                    if inbox_url:
-                        inboxes.append((follower.username, follower.domain, inbox_url))
+                    try:
+                        data = resp.json()
+                        print(f"[DEBUG] Actor profile JSON: {data}")
+                        inbox_url = data.get('inbox')
+                        if inbox_url:
+                            inboxes.append((follower.username, follower.domain, inbox_url))
+                        else:
+                            print(f"[WARN] No 'inbox' field in actor profile for {follower.username}@{follower.domain}")
+                    except Exception as e:
+                        print(f"[ERROR] Failed to parse JSON for {follower.username}@{follower.domain}: {e}")
+                        print(f"[ERROR] Response text: {resp.text}")
+                else:
+                    print(f"[ERROR] Failed to fetch actor profile for {follower.username}@{follower.domain}: {resp.status_code} {resp.text}")
             except Exception as e:
                 print(f"[ERROR] Could not fetch inbox for follower id={follower.id}: {e}")
     return inboxes
