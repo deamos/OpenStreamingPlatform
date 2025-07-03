@@ -435,6 +435,8 @@ def settings_channels_page():
 
             channel_tasks.new_channel_assign_global_chat_mods.delay(current_user.id, newChannel.channelLoc)
 
+            flash(f"Channel '{channelName}' created successfully!", "success")
+            
         elif requestType == "change":
             channelId = request.form["channelId"]
 
