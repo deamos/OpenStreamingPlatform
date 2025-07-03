@@ -251,6 +251,11 @@ class ActivityPubService:
                 "url": [
                     {
                         "type": "Link",
+                        "href": f"https://{self.domain}/view/{channelQuery.channelLoc}",
+                        "mediaType": "text/html"
+                    },
+                    {
+                        "type": "Link",
                         "href": f"https://{self.domain}/live/{channelQuery.channelLoc}/index.m3u8",
                         "mediaType": "application/x-mpegURL"
                     }
@@ -487,7 +492,7 @@ class ActivityPubService:
             log.error(f"Error handling incoming activity: {e}")
     
     def _handle_follow(self, activity_data):
-        """Handle Follow activity"""
+        """Handle Follow activity (auto-accept)"""
         try:
             actor_url = activity_data.get('actor')
             object_url = activity_data.get('object')
@@ -504,11 +509,11 @@ class ActivityPubService:
             if not local_actor:
                 return
             
-            # Create follow relationship
+            # Create follow relationship with status 'accepted'
             follow = activitypub.ActivityPubFollow(
                 follower_id=None,  # Will be set when we fetch remote actor
                 following_id=local_actor.id,
-                status='pending'
+                status='accepted'
             )
             
             db.session.add(follow)
