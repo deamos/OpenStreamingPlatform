@@ -8,10 +8,10 @@ from urllib.parse import urlparse
 import hashlib
 import base64
 from email.utils import formatdate
+from classes.activitypub import ActivityPubFollow, ActivityPubActor
 
 def get_follower_inboxes(actor):
     """Return a list of inbox URLs for all accepted followers of the given actor."""
-    from classes.activitypub import ActivityPubFollow, ActivityPubActor
     inboxes = []
     follows = ActivityPubFollow.query.filter_by(following_id=actor.id, status='accepted').all()
     for follow in follows:
