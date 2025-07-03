@@ -197,9 +197,14 @@ def outbox(username):
         per_page = min(request.args.get('per_page', 20, type=int), 100)
         base_url = f"https://{actor.domain}/activitypub/actors/{username}/outbox"
         
+        # Only count and return Create activities with object type Note, Video, or Article
+        post_types = ["Note", "Video", "Article"]
+        post_activities_query = activitypub.ActivityPubActivity.query.filter_by(actor_id=actor.id, activity_type="Create")
+        post_activities = [a for a in post_activities_query if a.object_data and (isinstance(a.object_data, dict) and a.object_data.get("type") in post_types or isinstance(a.object_data, str) and any(pt in a.object_data for pt in post_types))]
+        
         if page is None:
             # Return OrderedCollection with 'first' field
-            total = activitypub.ActivityPubActivity.query.filter_by(actor_id=actor.id).count()
+            total = len(post_activities)
             response = {
                 "@context": "https://www.w3.org/ns/activitystreams",
                 "id": base_url,
@@ -213,16 +218,9 @@ def outbox(username):
             )
         else:
             # Return OrderedCollectionPage
-            activities = activitypub.ActivityPubActivity.query.filter_by(
-                actor_id=actor.id
-            ).order_by(
-                activitypub.ActivityPubActivity.created_at.desc()
-            ).paginate(
-                page=page,
-                per_page=per_page,
-                error_out=False
-            )
-            items = [activity.to_activitypub() for activity in activities.items]
+            start = (page - 1) * per_page
+            end = start + per_page
+            items = [activity.to_activitypub() for activity in post_activities[start:end]]
             response = {
                 "@context": "https://www.w3.org/ns/activitystreams",
                 "id": f"{base_url}?page={page}",
@@ -230,10 +228,10 @@ def outbox(username):
                 "partOf": base_url,
                 "orderedItems": items
             }
-            if activities.has_next:
-                response["next"] = f"{base_url}?page={activities.next_num}"
-            if activities.has_prev:
-                response["prev"] = f"{base_url}?page={activities.prev_num}"
+            if end < len(post_activities):
+                response["next"] = f"{base_url}?page={page+1}"
+            if start > 0:
+                response["prev"] = f"{base_url}?page={page-1}"
             return Response(
                 json.dumps(response),
                 mimetype='application/activity+json'

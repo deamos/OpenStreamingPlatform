@@ -589,6 +589,15 @@ class ActivityPubService:
                 db.session.add(remote_actor)
                 db.session.commit()
 
+            # Prevent duplicate follows
+            existing_follow = activitypub.ActivityPubFollow.query.filter_by(
+                follower_id=remote_actor.id,
+                following_id=local_actor.id
+            ).first()
+            if existing_follow and existing_follow.status != 'rejected':
+                log.info(f"Duplicate follow from {remote_actor.username} to {local_actor.username} ignored.")
+                return
+
             # Create follow relationship with status 'accepted'
             follow = activitypub.ActivityPubFollow(
                 uuid=str(uuid.uuid4()),

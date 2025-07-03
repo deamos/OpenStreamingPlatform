@@ -1,6 +1,7 @@
 from app import app
 from classes import activitypub
 import json
+from classes.shared import db
 
 
 def fix_content_fields():
@@ -32,9 +33,20 @@ def fix_content_fields():
                         fixed_activities += 1
                 except Exception as e:
                     print(f"Error fixing activity {act.uuid}: {e}")
-        from classes.shared import db
+        # Remove duplicate followers
+        follows = activitypub.ActivityPubFollow.query.order_by(activitypub.ActivityPubFollow.created_at.desc()).all()
+        seen = set()
+        removed = 0
+        for follow in follows:
+            key = (follow.follower_id, follow.following_id)
+            if key in seen:
+                db.session.delete(follow)
+                removed += 1
+            else:
+                seen.add(key)
         db.session.commit()
         print(f"Fixed {fixed_objects} ActivityPub objects and {fixed_activities} ActivityPub activities.")
+        print(f"Removed {removed} duplicate ActivityPub followers.")
 
 
 if __name__ == "__main__":
