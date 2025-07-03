@@ -18,13 +18,19 @@ def get_follower_inboxes(actor):
         follower = ActivityPubActor.query.filter_by(id=follow.follower_id).first()
         if follower and not follower.is_local:
             try:
+                print(f"[DEBUG] Follower object: {follower}")
+                print(f"[DEBUG] Follower id: {follower.id}")
+                print(f"[DEBUG] Follower __dict__: {follower.__dict__}")
+                # The next two lines may trigger recursion if there is a model bug
+                print(f"[DEBUG] Follower username: {getattr(follower, 'username', None)}")
+                print(f"[DEBUG] Follower domain: {getattr(follower, 'domain', None)}")
                 resp = requests.get(f"https://{follower.domain}/activitypub/actors/{follower.username}", headers={"Accept": "application/activity+json"}, timeout=10)
                 if resp.status_code == 200:
                     inbox_url = resp.json().get('inbox')
                     if inbox_url:
                         inboxes.append((follower.username, follower.domain, inbox_url))
             except Exception as e:
-                print(f"[ERROR] Could not fetch inbox for follower {follower.username}@{follower.domain}: {e}")
+                print(f"[ERROR] Could not fetch inbox for follower id={follower.id}: {e}")
     return inboxes
 
 def send_activity_to_inbox(activity_data, inbox_url, actor):
