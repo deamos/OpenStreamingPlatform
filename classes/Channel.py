@@ -2,6 +2,7 @@ from .shared import db
 import uuid
 import os
 from functions import cachedDbCalls
+import json
 
 
 class Channel(db.Model):
@@ -224,11 +225,11 @@ class Channel(db.Model):
             actor = self.get_activitypub_actor()
             if actor:
                 ap_object = service.create_video_object(video, actor)
-                if ap_object:
+                if ap_object and ap_object.object_data:
                     service.send_activity(
                         activity_type="Create",
                         actor=actor,
-                        object_data=ap_object.to_activitypub(),
+                        object_data=json.loads(ap_object.object_data),
                         to=["https://www.w3.org/ns/activitystreams#Public"],
                         cc=[f"https://{actor.domain}/activitypub/actors/{actor.username}/followers"]
                     )
@@ -241,11 +242,11 @@ class Channel(db.Model):
             actor = self.get_activitypub_actor()
             if actor:
                 ap_object = service.create_stream_object(stream, actor)
-                if ap_object:
+                if ap_object and ap_object.object_data:
                     service.send_activity(
                         activity_type="Create",
                         actor=actor,
-                        object_data=ap_object.to_activitypub(),
+                        object_data=json.loads(ap_object.object_data),
                         to=["https://www.w3.org/ns/activitystreams#Public"],
                         cc=[f"https://{actor.domain}/activitypub/actors/{actor.username}/followers"]
                     )
