@@ -427,7 +427,13 @@ class ActivityPubService:
                 'content-type: application/activity+json'
             ]
             signature_string = '\n'.join(signature_string_parts)
-            
+
+            # Add detailed logging for debugging 401 errors
+            log.info(f"[ActivityPub] Outgoing delivery:")
+            log.info(f"  actor_url: {actor_url}")
+            log.info(f"  inbox_url: {inbox_url}")
+            log.info(f"  signature string: {signature_string}")
+
             # Sign the string
             private_key = serialization.load_pem_private_key(
                 actor.private_key_pem.encode('utf-8'),
@@ -456,7 +462,10 @@ class ActivityPubService:
                 'Date': date,
                 'Signature': signature_header
             }
-            
+
+            log.info(f"  headers: {headers}")
+            log.info(f"  activity_data: {json.dumps(activity_data, indent=2)}")
+
             response = requests.post(
                 inbox_url,
                 json=activity_data,
@@ -509,10 +518,26 @@ class ActivityPubService:
                 log.info(f"Unhandled activity type: {activity_type}")
                 
             # Store the incoming activity for deduplication
-            # (Assume actor_id can be resolved as in your outgoing logic, or set to None for remote)
+            actor_url = activity_data.get('actor')
+            actor_id = None
+            if actor_url:
+                username = actor_url.split('/')[-1]
+                domain = actor_url.split('/')[2]
+                actor = activitypub.ActivityPubActor.query.filter_by(username=username, domain=domain).first()
+                if not actor:
+                    actor = activitypub.ActivityPubActor(
+                        actor_type="Person",
+                        username=username,
+                        domain=domain
+                    )
+                    actor.is_local = False
+                    db.session.add(actor)
+                    db.session.commit()
+                actor_id = actor.id
+
             new_activity = activitypub.ActivityPubActivity(
                 activity_type=activity_type,
-                actor_id=None,
+                actor_id=actor_id,
                 object_data=activity_data.get('object'),
                 target_id=activity_id
             )
