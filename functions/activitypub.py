@@ -503,24 +503,37 @@ class ActivityPubService:
             
             # Extract usernames from URLs
             following_username = object_url.split('/')[-1]
-            
+            follower_username = actor_url.split('/')[-1]
+
             # Find local actor being followed
             local_actor = activitypub.ActivityPubActor.query.filter_by(
                 username=following_username,
                 is_local=True
             ).first()
-            
-            if not local_actor:
-                return
-            
+
+            # Find or create remote actor (the follower)
+            remote_actor = activitypub.ActivityPubActor.query.filter_by(
+                username=follower_username,
+                is_local=False
+            ).first()
+            if not remote_actor:
+                # Create a minimal remote actor record
+                remote_actor = activitypub.ActivityPubActor(
+                    actor_type="Person",
+                    username=follower_username,
+                    domain=actor_url.split('/')[2],  # crude domain extraction
+                    is_local=False
+                )
+                db.session.add(remote_actor)
+                db.session.commit()
+
             # Create follow relationship with status 'accepted'
             follow = activitypub.ActivityPubFollow(
                 uuid=str(uuid.uuid4()),
-                follower_id=None,  # Will be set when we fetch remote actor
+                follower_id=remote_actor.id,
                 following_id=local_actor.id,
                 status='accepted'
             )
-            
             db.session.add(follow)
             db.session.commit()
             
