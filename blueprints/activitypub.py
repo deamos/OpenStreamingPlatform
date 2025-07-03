@@ -396,4 +396,21 @@ def admin_activities():
         
     except Exception as e:
         log.error(f"Admin activities error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@activitypub_bp.route("/activities/<activity_uuid>")
+def activity(activity_uuid):
+    """Get ActivityPub activity object"""
+    try:
+        ap_activity = activitypub.ActivityPubActivity.query.filter_by(uuid=activity_uuid).first()
+        if not ap_activity:
+            return jsonify({"error": "Activity not found"}), 404
+        # Ensure full ActivityPub context is present
+        activity_obj = ap_activity.to_activitypub()
+        if "@context" not in activity_obj:
+            activity_obj["@context"] = "https://www.w3.org/ns/activitystreams"
+        return jsonify(activity_obj)
+    except Exception as e:
+        log.error(f"Activity endpoint error: {e}")
         return jsonify({"error": "Internal server error"}), 500 
