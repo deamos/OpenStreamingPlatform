@@ -12,6 +12,55 @@ import hashlib
 import base64
 from email.utils import formatdate
 
+def get_actor_url(follower):
+    """Get the canonical actor URL using WebFinger discovery."""
+    try:
+        # Try WebFinger first
+        webfinger_url = f"https://{follower.domain}/.well-known/webfinger?resource=acct:{follower.username}@{follower.domain}"
+        print(f"[DEBUG] Trying WebFinger: {webfinger_url}")
+        resp = requests.get(webfinger_url, headers={"Accept": "application/jrd+json"}, timeout=10)
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            # Look for the ActivityPub actor URL in the links
+            for link in data.get('links', []):
+                if link.get('type') == 'application/activity+json':
+                    actor_url = link.get('href')
+                    if actor_url:
+                        print(f"[DEBUG] Found actor URL via WebFinger: {actor_url}")
+                        return actor_url
+        
+        # Fallback to common patterns
+        return try_common_actor_urls(follower)
+        
+    except Exception as e:
+        print(f"[ERROR] WebFinger failed for {follower.username}@{follower.domain}: {e}")
+        return try_common_actor_urls(follower)
+
+
+def try_common_actor_urls(follower):
+    """Try common ActivityPub actor URL patterns."""
+    patterns = [
+        f"https://{follower.domain}/users/{follower.username}",  # Mastodon
+        f"https://{follower.domain}/@/{follower.username}",      # Some Mastodon instances
+        f"https://{follower.domain}/activitypub/actors/{follower.username}",  # Your format
+        f"https://{follower.domain}/actor/{follower.username}",  # Some other platforms
+    ]
+    
+    for url in patterns:
+        try:
+            print(f"[DEBUG] Trying actor URL: {url}")
+            resp = requests.get(url, headers={"Accept": "application/activity+json"}, timeout=10)
+            if resp.status_code == 200:
+                print(f"[DEBUG] Found working actor URL: {url}")
+                return url
+        except Exception as e:
+            print(f"[DEBUG] Failed to try {url}: {e}")
+            continue
+    
+    return None
+
+
 def get_follower_inboxes(actor):
     """Return a list of inbox URLs for all accepted followers of the given actor."""
     inboxes = []
@@ -23,10 +72,17 @@ def get_follower_inboxes(actor):
                 print(f"[DEBUG] Follower __dict__: {follower.__dict__}")
                 print(f"[DEBUG] Follower username: {getattr(follower, 'username', None)}")
                 print(f"[DEBUG] Follower domain: {getattr(follower, 'domain', None)}")
-                url = f"https://{follower.domain}/activitypub/actors/{follower.username}"
-                print(f"[DEBUG] Fetching actor profile: {url}")
-                resp = requests.get(url, headers={"Accept": "application/activity+json"}, timeout=10)
+                
+                # Try to get the canonical actor URL
+                actor_url = get_actor_url(follower)
+                if not actor_url:
+                    print(f"[ERROR] Could not determine actor URL for {follower.username}@{follower.domain}")
+                    continue
+                
+                print(f"[DEBUG] Fetching actor profile: {actor_url}")
+                resp = requests.get(actor_url, headers={"Accept": "application/activity+json"}, timeout=10)
                 print(f"[DEBUG] GET status: {resp.status_code}")
+                
                 if resp.status_code == 200:
                     try:
                         data = resp.json()

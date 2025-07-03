@@ -14,8 +14,58 @@ from datetime import datetime
 from classes.shared import db
 from functions import cachedDbCalls
 from classes import activitypub
+from conf import config
 
-log = logging.getLogger("app.functions.activitypub")
+log = logging.getLogger(__name__)
+
+
+def get_actor_url(follower):
+    """Get the canonical actor URL using WebFinger discovery."""
+    try:
+        # Try WebFinger first
+        webfinger_url = f"https://{follower.domain}/.well-known/webfinger?resource=acct:{follower.username}@{follower.domain}"
+        log.debug(f"Trying WebFinger: {webfinger_url}")
+        resp = requests.get(webfinger_url, headers={"Accept": "application/jrd+json"}, timeout=10)
+        
+        if resp.status_code == 200:
+            data = resp.json()
+            # Look for the ActivityPub actor URL in the links
+            for link in data.get('links', []):
+                if link.get('type') == 'application/activity+json':
+                    actor_url = link.get('href')
+                    if actor_url:
+                        log.debug(f"Found actor URL via WebFinger: {actor_url}")
+                        return actor_url
+        
+        # Fallback to common patterns
+        return try_common_actor_urls(follower)
+        
+    except Exception as e:
+        log.warning(f"WebFinger failed for {follower.username}@{follower.domain}: {e}")
+        return try_common_actor_urls(follower)
+
+
+def try_common_actor_urls(follower):
+    """Try common ActivityPub actor URL patterns."""
+    patterns = [
+        f"https://{follower.domain}/users/{follower.username}",  # Mastodon
+        f"https://{follower.domain}/@/{follower.username}",      # Some Mastodon instances
+        f"https://{follower.domain}/activitypub/actors/{follower.username}",  # Your format
+        f"https://{follower.domain}/actor/{follower.username}",  # Some other platforms
+    ]
+    
+    for url in patterns:
+        try:
+            log.debug(f"Trying actor URL: {url}")
+            resp = requests.get(url, headers={"Accept": "application/activity+json"}, timeout=10)
+            if resp.status_code == 200:
+                log.debug(f"Found working actor URL: {url}")
+                return url
+        except Exception as e:
+            log.debug(f"Failed to try {url}: {e}")
+            continue
+    
+    return None
 
 
 class ActivityPubService:
@@ -376,15 +426,20 @@ class ActivityPubService:
         self._deliver_activity(activity_data, recipients)
         # Deliver to all followers' inboxes (for local actors only)
         if getattr(actor, 'is_local', True):
-            from classes.activitypub import ActivityPubFollow, ActivityPubActor
             # Find all accepted followers
-            follows = ActivityPubFollow.query.filter_by(following_id=actor.id, status='accepted').all()
+            follows = activitypub.ActivityPubFollow.query.filter_by(following_id=actor.id, status='accepted').all()
             for follow in follows:
-                follower = ActivityPubActor.query.filter_by(id=follow.follower_id).first()
+                follower = activitypub.ActivityPubActor.query.filter_by(id=follow.follower_id).first()
                 if follower and not follower.is_local:
+                    # Get the canonical actor URL using WebFinger discovery
+                    actor_url = get_actor_url(follower)
+                    if not actor_url:
+                        log.warning(f"Could not determine actor URL for {follower.username}@{follower.domain}")
+                        continue
+                    
                     # Fetch remote actor's inbox URL
                     try:
-                        resp = requests.get(f"https://{follower.domain}/activitypub/actors/{follower.username}", headers={"Accept": "application/activity+json"}, timeout=10)
+                        resp = requests.get(actor_url, headers={"Accept": "application/activity+json"}, timeout=10)
                         if resp.status_code == 200:
                             inbox_url = resp.json().get('inbox')
                             if inbox_url:
