@@ -827,6 +827,48 @@ class ActivityPubService:
             log.error(f"Error verifying signature: {e}")
             return False
 
+    def _deliver_activity(self, activity_data, recipients):
+        """Deliver activity to remote servers"""
+        max_retries = getattr(self.config, 'activitypubMaxRetries', 3)
+        timeout = getattr(self.config, 'activitypubTimeout', 30)
+        user_agent = getattr(self.config, 'activitypubUserAgent', 'OSP-ActivityPub/1.0')
+
+        # Ensure recipients is a list, not a string
+        if isinstance(recipients, str):
+            try:
+                recipients = json.loads(recipients)
+            except Exception:
+                recipients = [recipients]
+
+        for recipient in recipients:
+            if recipient == "https://www.w3.org/ns/activitystreams#Public":
+                continue  # Skip public recipient
+            try:
+                parsed_url = urlparse(recipient)
+                if parsed_url.path.endswith('/followers'):
+                    # Extract actor URL from followers URL
+                    actor_url = recipient.replace('/followers', '')
+                    # Get actor's inbox
+                    response = requests.get(actor_url, timeout=timeout, headers={"Accept": "application/activity+json"})
+                    if response.status_code == 200:
+                        actor_data = response.json()
+                        inbox_url = actor_data.get('inbox')
+                        if inbox_url:
+                            self._send_to_inbox(activity_data, inbox_url, max_retries, timeout, user_agent)
+                elif not parsed_url.path.endswith('/inbox'):
+                    # If it's an actor profile, fetch their inbox
+                    response = requests.get(recipient, timeout=timeout, headers={"Accept": "application/activity+json"})
+                    if response.status_code == 200:
+                        actor_data = response.json()
+                        inbox_url = actor_data.get('inbox')
+                        if inbox_url:
+                            self._send_to_inbox(activity_data, inbox_url, max_retries, timeout, user_agent)
+                else:
+                    # It's already an inbox URL
+                    self._send_to_inbox(activity_data, recipient, max_retries, timeout, user_agent)
+            except Exception as e:
+                log.error(f"Error delivering to {recipient}: {e}")
+
 
 # Global ActivityPub service instance
 activitypub_service = None
