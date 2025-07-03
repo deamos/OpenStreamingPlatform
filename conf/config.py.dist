@@ -60,6 +60,9 @@ activitypubUserAgent = "OSP-ActivityPub/1.0"
 activitypubSignatureAlgorithm = "rsa-sha256"
 activitypubDefaultVisibility = "public"
 
+# Enable ActivityPub Note creation (for Mastodon compatibility)
+activitypubCreateNotes = False
+
 # ReCaptcha Configuration
 # RECAPTCHA_ENABLED = False
 # RECAPTCHA_SITE_KEY = "SomeKey"

@@ -266,7 +266,7 @@ def rtmp_stage2_user_auth_check(channelLoc: str, ipaddress: str, authorizedRTMP:
                                 ap_stream_obj, note_obj = service.create_stream_object(stream, actor)
                                 if ap_stream_obj:
                                     service.send_activity("Create", actor, object_data=ap_stream_obj.object_data)
-                                if note_obj:
+                                if note_obj and getattr(config, 'activitypubCreateNotes', False):
                                     service.send_activity("Create", actor, object_data=note_obj)
             except Exception as e:
                 log.warning(f"ActivityPub: Failed to create stream activity: {e}")

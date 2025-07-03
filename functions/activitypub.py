@@ -85,7 +85,8 @@ class ActivityPubService:
                 'activitypubTimeout': 30,
                 'activitypubUserAgent': 'OSP-ActivityPub/1.0',
                 'activitypubSignatureAlgorithm': 'rsa-sha256',
-                'activitypubDefaultVisibility': 'public'
+                'activitypubDefaultVisibility': 'public',
+                'activitypubCreateNotes': False
             })()
     
     def create_user_actor(self, user):
@@ -248,29 +249,33 @@ class ActivityPubService:
             ap_object.uuid = video.uuid
             db.session.add(ap_object)
             db.session.commit()
-            # Create Note object for Mastodon
-            note_object = {
-                "@context": "https://www.w3.org/ns/activitystreams",
-                "id": f"https://{self.domain}/activitypub/notes/{video.uuid}",
-                "type": "Note",
-                "content": f"{video.description or video.channelName} <a href='https://{self.domain}/play/{video.id}'>Watch here</a>",
-                "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
-                "attachment": [
-                    {
-                        "type": "Video",
-                        "mediaType": "video/mp4",
-                        "url": f"https://{self.domain}/videos/{video.videoLocation}",
-                        "icon": {"type": "Image", "url": f"https://{self.domain}/videos/{video.thumbnailLocation}"} if video.thumbnailLocation else None,
-                        "name": video.channelName,
-                        "summary": video.description or "",
-                        "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
-                        "published": video.videoDate.isoformat()
-                    }
-                ],
-                "published": video.videoDate.isoformat(),
-                "to": ["https://www.w3.org/ns/activitystreams#Public"],
-                "cc": [f"https://{self.domain}/activitypub/actors/{actor.username}/followers"]
-            }
+            
+            # Create Note object for Mastodon only if enabled
+            note_object = None
+            if getattr(self.config, 'activitypubCreateNotes', False):
+                note_object = {
+                    "@context": "https://www.w3.org/ns/activitystreams",
+                    "id": f"https://{self.domain}/activitypub/notes/{video.uuid}",
+                    "type": "Note",
+                    "content": f"{video.description or video.channelName} <a href='https://{self.domain}/play/{video.id}'>Watch here</a>",
+                    "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
+                    "attachment": [
+                        {
+                            "type": "Video",
+                            "mediaType": "video/mp4",
+                            "url": f"https://{self.domain}/videos/{video.videoLocation}",
+                            "icon": {"type": "Image", "url": f"https://{self.domain}/videos/{video.thumbnailLocation}"} if video.thumbnailLocation else None,
+                            "name": video.channelName,
+                            "summary": video.description or "",
+                            "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
+                            "published": video.videoDate.isoformat()
+                        }
+                    ],
+                    "published": video.videoDate.isoformat(),
+                    "to": ["https://www.w3.org/ns/activitystreams#Public"],
+                    "cc": [f"https://{self.domain}/activitypub/actors/{actor.username}/followers"]
+                }
+            
             return ap_object, note_object
         except Exception as e:
             log.error(f"Error creating video object: {e}")
@@ -319,29 +324,33 @@ class ActivityPubService:
             ap_object.uuid = stream.uuid
             db.session.add(ap_object)
             db.session.commit()
-            # Create Note object for Mastodon
-            note_object = {
-                "@context": "https://www.w3.org/ns/activitystreams",
-                "id": f"https://{self.domain}/activitypub/notes/{stream.uuid}",
-                "type": "Note",
-                "content": f"Live stream by {actor.display_name} <a href='https://{self.domain}/view/{channelQuery.channelLoc}'>Watch here</a>",
-                "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
-                "attachment": [
-                    {
-                        "type": "Video",
-                        "mediaType": "application/x-mpegURL",
-                        "url": f"https://{self.domain}/live/{channelQuery.channelLoc}/index.m3u8",
-                        "icon": {"type": "Image", "url": f"https://{self.domain}/stream-thumb/{channelQuery.channelLoc}.png"},
-                        "name": stream.streamName,
-                        "summary": f"Live stream by {actor.display_name}",
-                        "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
-                        "published": stream.startTimestamp.isoformat()
-                    }
-                ],
-                "published": stream.startTimestamp.isoformat(),
-                "to": ["https://www.w3.org/ns/activitystreams#Public"],
-                "cc": [f"https://{self.domain}/activitypub/actors/{actor.username}/followers"]
-            }
+            
+            # Create Note object for Mastodon only if enabled
+            note_object = None
+            if getattr(self.config, 'activitypubCreateNotes', False):
+                note_object = {
+                    "@context": "https://www.w3.org/ns/activitystreams",
+                    "id": f"https://{self.domain}/activitypub/notes/{stream.uuid}",
+                    "type": "Note",
+                    "content": f"Live stream by {actor.display_name} <a href='https://{self.domain}/view/{channelQuery.channelLoc}'>Watch here</a>",
+                    "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
+                    "attachment": [
+                        {
+                            "type": "Video",
+                            "mediaType": "application/x-mpegURL",
+                            "url": f"https://{self.domain}/live/{channelQuery.channelLoc}/index.m3u8",
+                            "icon": {"type": "Image", "url": f"https://{self.domain}/stream-thumb/{channelQuery.channelLoc}.png"},
+                            "name": stream.streamName,
+                            "summary": f"Live stream by {actor.display_name}",
+                            "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
+                            "published": stream.startTimestamp.isoformat()
+                        }
+                    ],
+                    "published": stream.startTimestamp.isoformat(),
+                    "to": ["https://www.w3.org/ns/activitystreams#Public"],
+                    "cc": [f"https://{self.domain}/activitypub/actors/{actor.username}/followers"]
+                }
+            
             return ap_object, note_object
         except Exception as e:
             log.error(f"Error creating stream object: {e}")

@@ -43,6 +43,9 @@ activitypubTimeout = 30
 activitypubUserAgent = "OSP-ActivityPub/1.0"
 activitypubSignatureAlgorithm = "rsa-sha256"
 activitypubDefaultVisibility = "public"
+
+# Enable ActivityPub Note creation (for Mastodon compatibility)
+activitypubCreateNotes = False
 ```
 
 ### 3. Database Migration
@@ -358,4 +361,37 @@ When contributing to the ActivityPub integration:
 - [WebFinger RFC 7033](https://tools.ietf.org/html/rfc7033)
 - [NodeInfo Specification](https://nodeinfo.diaspora.software/)
 - [Mastodon ActivityPub Documentation](https://docs.joinmastodon.org/spec/activitypub/)
-- [PeerTube ActivityPub Implementation](https://docs.joinpeertube.org/developers/activitypub) 
+- [PeerTube ActivityPub Implementation](https://docs.joinpeertube.org/developers/activitypub)
+
+### Configuration Options
+
+- **`activitypubEnabled`**: Enable/disable ActivityPub federation (default: `False`)
+- **`activitypubDomain`**: Your domain for ActivityPub URLs (default: `"localhost"`)
+- **`activitypubSiteName`**: Site name for ActivityPub metadata
+- **`activitypubSiteDescription`**: Site description for ActivityPub metadata
+- **`activitypubMaxRetries`**: Maximum retries for delivery attempts (default: `3`)
+- **`activitypubTimeout`**: Timeout for HTTP requests in seconds (default: `30`)
+- **`activitypubUserAgent`**: User agent string for HTTP requests
+- **`activitypubSignatureAlgorithm`**: Algorithm for HTTP signatures (default: `"rsa-sha256"`)
+- **`activitypubDefaultVisibility`**: Default visibility for activities (default: `"public"`)
+- **`activitypubCreateNotes`**: Enable creation of Note objects for Mastodon compatibility (default: `False`)
+
+### Note Creation for Mastodon Compatibility
+
+The `activitypubCreateNotes` option controls whether OSP creates additional ActivityPub Note objects alongside Video objects. This feature is specifically designed for better compatibility with Mastodon and other microblogging platforms.
+
+**When enabled (`activitypubCreateNotes = True`):**
+- Videos and streams are published as both Video objects AND Note objects
+- Note objects contain the video/stream as an attachment
+- This allows Mastodon to display the content as posts with media attachments
+- Better visibility in Mastodon timelines and feeds
+
+**When disabled (`activitypubCreateNotes = False`):**
+- Only Video objects are created and published
+- More efficient and reduces ActivityPub traffic
+- Suitable for platforms that primarily handle video content
+- Default behavior for most ActivityPub video platforms
+
+**Recommendation:**
+- Set to `True` if you want maximum compatibility with Mastodon
+- Set to `False` if you prefer a more focused video platform approach 
