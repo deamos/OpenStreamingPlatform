@@ -5,6 +5,9 @@ from classes import activitypub
 from classes.shared import db
 from conf import config
 from urllib.parse import urlparse
+import hashlib
+import base64
+from email.utils import formatdate
 
 def get_follower_inboxes(actor):
     """Return a list of inbox URLs for all accepted followers of the given actor."""
@@ -29,9 +32,9 @@ def send_activity_to_inbox(activity_data, inbox_url, actor):
     try:
         # Prepare headers and body
         body = json.dumps(activity_data, separators=(',', ':')).encode('utf-8')
-        digest = requests.utils.to_native_string(requests.utils.base64.b64encode(requests.utils.hashlib.sha256(body).digest()))
+        digest = base64.b64encode(hashlib.sha256(body).digest()).decode('utf-8')
         digest_header = f"SHA-256={digest}"
-        date = requests.utils.formatdate(usegmt=True)
+        date = formatdate(timeval=None, localtime=False, usegmt=True)
         signature_string_parts = [
             f'(request-target): post {urlparse(inbox_url).path}',
             f'host: {urlparse(inbox_url).netloc}',
@@ -51,7 +54,6 @@ def send_activity_to_inbox(activity_data, inbox_url, actor):
             padding.PKCS1v15(),
             hashes.SHA256()
         )
-        import base64
         signature_b64 = base64.b64encode(signature).decode('utf-8')
         signature_header = (
             f'keyId="{activity_data["actor"]}#main-key",'
