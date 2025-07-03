@@ -183,7 +183,7 @@ def inbox(username):
 
 @activitypub_bp.route("/actors/<username>/outbox")
 def outbox(username):
-    """Get ActivityPub actor's outbox"""
+    """Get ActivityPub actor's outbox with proper ActivityPub paging support"""
     try:
         actor = activitypub.ActivityPubActor.query.filter_by(
             username=username,
@@ -193,34 +193,51 @@ def outbox(username):
         if not actor:
             return jsonify({"error": "Actor not found"}), 404
         
-        # Get activities
-        page = request.args.get('page', 1, type=int)
+        page = request.args.get('page', type=int)
         per_page = min(request.args.get('per_page', 20, type=int), 100)
+        base_url = f"https://{actor.domain}/activitypub/actors/{username}/outbox"
         
-        activities = activitypub.ActivityPubActivity.query.filter_by(
-            actor_id=actor.id
-        ).order_by(
-            activitypub.ActivityPubActivity.created_at.desc()
-        ).paginate(
-            page=page,
-            per_page=per_page,
-            error_out=False
-        )
-        
-        # Build response
-        response = {
-            "@context": "https://www.w3.org/ns/activitystreams",
-            "id": f"https://{actor.domain}/activitypub/actors/{username}/outbox",
-            "type": "OrderedCollection",
-            "totalItems": activities.total,
-            "orderedItems": [activity.to_activitypub() for activity in activities.items]
-        }
-        
-        return Response(
-            json.dumps(response),
-            mimetype='application/activity+json'
-        )
-        
+        if page is None:
+            # Return OrderedCollection with 'first' field
+            total = activitypub.ActivityPubActivity.query.filter_by(actor_id=actor.id).count()
+            response = {
+                "@context": "https://www.w3.org/ns/activitystreams",
+                "id": base_url,
+                "type": "OrderedCollection",
+                "totalItems": total,
+                "first": f"{base_url}?page=1"
+            }
+            return Response(
+                json.dumps(response),
+                mimetype='application/activity+json'
+            )
+        else:
+            # Return OrderedCollectionPage
+            activities = activitypub.ActivityPubActivity.query.filter_by(
+                actor_id=actor.id
+            ).order_by(
+                activitypub.ActivityPubActivity.created_at.desc()
+            ).paginate(
+                page=page,
+                per_page=per_page,
+                error_out=False
+            )
+            items = [activity.to_activitypub() for activity in activities.items]
+            response = {
+                "@context": "https://www.w3.org/ns/activitystreams",
+                "id": f"{base_url}?page={page}",
+                "type": "OrderedCollectionPage",
+                "partOf": base_url,
+                "orderedItems": items
+            }
+            if activities.has_next:
+                response["next"] = f"{base_url}?page={activities.next_num}"
+            if activities.has_prev:
+                response["prev"] = f"{base_url}?page={activities.prev_num}"
+            return Response(
+                json.dumps(response),
+                mimetype='application/activity+json'
+            )
     except Exception as e:
         log.error(f"Outbox error: {e}")
         return jsonify(default_error_response), 500
@@ -228,7 +245,7 @@ def outbox(username):
 
 @activitypub_bp.route("/actors/<username>/followers")
 def followers(username):
-    """Get ActivityPub actor's followers"""
+    """Get ActivityPub actor's followers with paging support"""
     try:
         actor = activitypub.ActivityPubActor.query.filter_by(
             username=username,
@@ -238,29 +255,54 @@ def followers(username):
         if not actor:
             return jsonify({"error": "Actor not found"}), 404
         
-        # Get followers
-        follows = activitypub.ActivityPubFollow.query.filter_by(
-            following_id=actor.id,
-            status='accepted'
-        ).all()
+        page = request.args.get('page', type=int)
+        per_page = min(request.args.get('per_page', 20, type=int), 100)
+        base_url = f"https://{actor.domain}/activitypub/actors/{username}/followers"
         
-        # Build response
-        response = {
-            "@context": "https://www.w3.org/ns/activitystreams",
-            "id": f"https://{actor.domain}/activitypub/actors/{username}/followers",
-            "type": "OrderedCollection",
-            "totalItems": len(follows),
-            "orderedItems": [
+        if page is None:
+            total = activitypub.ActivityPubFollow.query.filter_by(
+                following_id=actor.id,
+                status='accepted'
+            ).count()
+            response = {
+                "@context": "https://www.w3.org/ns/activitystreams",
+                "id": base_url,
+                "type": "OrderedCollection",
+                "totalItems": total,
+                "first": f"{base_url}?page=1"
+            }
+            return Response(
+                json.dumps(response),
+                mimetype='application/activity+json'
+            )
+        else:
+            follows = activitypub.ActivityPubFollow.query.filter_by(
+                following_id=actor.id,
+                status='accepted'
+            ).order_by(activitypub.ActivityPubFollow.created_at.desc()).paginate(
+                page=page,
+                per_page=per_page,
+                error_out=False
+            )
+            items = [
                 f"https://{follow.follower.domain}/activitypub/actors/{follow.follower.username}"
-                for follow in follows
+                for follow in follows.items
             ]
-        }
-        
-        return Response(
-            json.dumps(response),
-            mimetype='application/activity+json'
-        )
-        
+            response = {
+                "@context": "https://www.w3.org/ns/activitystreams",
+                "id": f"{base_url}?page={page}",
+                "type": "OrderedCollectionPage",
+                "partOf": base_url,
+                "orderedItems": items
+            }
+            if follows.has_next:
+                response["next"] = f"{base_url}?page={follows.next_num}"
+            if follows.has_prev:
+                response["prev"] = f"{base_url}?page={follows.prev_num}"
+            return Response(
+                json.dumps(response),
+                mimetype='application/activity+json'
+            )
     except Exception as e:
         log.error(f"Followers error: {e}")
         return jsonify(default_error_response), 500
@@ -268,7 +310,7 @@ def followers(username):
 
 @activitypub_bp.route("/actors/<username>/following")
 def following(username):
-    """Get ActivityPub actor's following"""
+    """Get ActivityPub actor's following with paging support"""
     try:
         actor = activitypub.ActivityPubActor.query.filter_by(
             username=username,
@@ -278,29 +320,54 @@ def following(username):
         if not actor:
             return jsonify({"error": "Actor not found"}), 404
         
-        # Get following
-        follows = activitypub.ActivityPubFollow.query.filter_by(
-            follower_id=actor.id,
-            status='accepted'
-        ).all()
+        page = request.args.get('page', type=int)
+        per_page = min(request.args.get('per_page', 20, type=int), 100)
+        base_url = f"https://{actor.domain}/activitypub/actors/{username}/following"
         
-        # Build response
-        response = {
-            "@context": "https://www.w3.org/ns/activitystreams",
-            "id": f"https://{actor.domain}/activitypub/actors/{username}/following",
-            "type": "OrderedCollection",
-            "totalItems": len(follows),
-            "orderedItems": [
+        if page is None:
+            total = activitypub.ActivityPubFollow.query.filter_by(
+                follower_id=actor.id,
+                status='accepted'
+            ).count()
+            response = {
+                "@context": "https://www.w3.org/ns/activitystreams",
+                "id": base_url,
+                "type": "OrderedCollection",
+                "totalItems": total,
+                "first": f"{base_url}?page=1"
+            }
+            return Response(
+                json.dumps(response),
+                mimetype='application/activity+json'
+            )
+        else:
+            follows = activitypub.ActivityPubFollow.query.filter_by(
+                follower_id=actor.id,
+                status='accepted'
+            ).order_by(activitypub.ActivityPubFollow.created_at.desc()).paginate(
+                page=page,
+                per_page=per_page,
+                error_out=False
+            )
+            items = [
                 f"https://{follow.following.domain}/activitypub/actors/{follow.following.username}"
-                for follow in follows
+                for follow in follows.items
             ]
-        }
-        
-        return Response(
-            json.dumps(response),
-            mimetype='application/activity+json'
-        )
-        
+            response = {
+                "@context": "https://www.w3.org/ns/activitystreams",
+                "id": f"{base_url}?page={page}",
+                "type": "OrderedCollectionPage",
+                "partOf": base_url,
+                "orderedItems": items
+            }
+            if follows.has_next:
+                response["next"] = f"{base_url}?page={follows.next_num}"
+            if follows.has_prev:
+                response["prev"] = f"{base_url}?page={follows.prev_num}"
+            return Response(
+                json.dumps(response),
+                mimetype='application/activity+json'
+            )
     except Exception as e:
         log.error(f"Following error: {e}")
         return jsonify(default_error_response), 500
