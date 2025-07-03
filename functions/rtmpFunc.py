@@ -1,6 +1,5 @@
 import os
 import time
-import hashlib
 import datetime
 import logging
 import pathlib
@@ -9,21 +8,17 @@ from typing import Union
 
 from celery import states
 from celery.exceptions import Ignore
-from flask import Blueprint, request, redirect, current_app, abort
+from flask import current_app
 
 from classes.shared import db, celery, cache
 from classes import Sec
 from classes import RecordedVideo
 from classes import subscriptions
-from classes import notifications
-from classes import Channel
 from classes import Stream
-from classes import settings
 from classes import upvotes
 from classes import logs
 from classes import topics
 
-from functions import webhookFunc
 from functions import system
 from functions import templateFilters
 from functions import subsFunc
@@ -63,14 +58,14 @@ def rtmp_stage1_streamkey_check(key: str, ipaddress: str) -> dict:
                     return returnMessage
 
                 # Checks for is there are any existing live streams and terminates them
-                existingStreamQuery = Stream.Stream.query.filter_by(
+                Stream.Stream.query.filter_by(
                     active=True, linkedChannel=channelRequest.id
                 ).delete()
 
                 db.session.commit()
 
                 # Checks for is there are any pending live streams and terminates them
-                existingStreamQuery = Stream.Stream.query.filter_by(
+                Stream.Stream.query.filter_by(
                     pending=True, linkedChannel=channelRequest.id
                 ).delete()
                 db.session.commit()
@@ -169,7 +164,7 @@ def rtmp_stage2_user_auth_check(channelLoc: str, ipaddress: str, authorizedRTMP:
                 xmpp.getChannelCounts(requestedChannel.channelLoc)
             )
 
-            authedStreamUpdate = Stream.Stream.query.filter_by(id=authedStream.id).update(dict(currentViewers=currentViewers, totalViewers=totalViewers, active=True, pending=False, rtmpServer=authorizedRTMP))
+            Stream.Stream.query.filter_by(id=authedStream.id).update(dict(currentViewers=currentViewers, totalViewers=totalViewers, active=True, pending=False, rtmpServer=authorizedRTMP))
             db.session.commit()
 
             if requestedChannel.imageLocation is None:
@@ -266,9 +261,11 @@ def rtmp_stage2_user_auth_check(channelLoc: str, ipaddress: str, authorizedRTMP:
                             linkedChannel=requestedChannel.id, active=True
                         ).order_by(Stream.Stream.startTimestamp.desc()).first()
                         if actor and stream:
-                            ap_stream_obj = service.create_stream_object(stream, actor)
+                            ap_stream_obj, note_obj = service.create_stream_object(stream, actor)
                             if ap_stream_obj:
                                 service.send_activity("Create", actor, object_data=ap_stream_obj.object_data)
+                            if note_obj:
+                                service.send_activity("Create", actor, object_data=note_obj)
             except Exception as e:
                 log.warning(f"ActivityPub: Failed to create stream activity: {e}")
 
@@ -422,7 +419,7 @@ def rtmp_user_deauth_check(key: str, ipaddress: str) -> dict:
     for stream in closingStreams:
         closingStreamIds.append(stream.id)
 
-    authedStream = Stream.Stream.query.filter_by(
+    Stream.Stream.query.filter_by(
         active=True,
         complete=False,
         streamKey=key
@@ -663,11 +660,11 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
                             actor = service.create_user_actor(user)
                             video = RecordedVideo.RecordedVideo.query.options(noload('*')).filter_by(id=workingVideoID).first()
                             if actor and video:
-                                ap_video_obj = service.create_video_object(video, actor)
+                                ap_video_obj, note_obj = service.create_video_object(video, actor)
                                 if ap_video_obj:
                                     service.send_activity("Create", actor, object_data=ap_video_obj.object_data)
-                            else:
-                                log.warning(f"ActivityPub: Failed to create video object: {video}")
+                                if note_obj:
+                                    service.send_activity("Create", actor, object_data=note_obj)
                 except Exception as e:
                     log.warning(f"ActivityPub: Failed to create video activity: {e}")
 

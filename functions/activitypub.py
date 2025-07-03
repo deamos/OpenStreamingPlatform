@@ -159,21 +159,16 @@ class ActivityPubService:
             return None
     
     def create_video_object(self, video, actor):
-        """Create ActivityPub Video object"""
+        """Create ActivityPub Video object and a Note for Mastodon"""
         try:
-            # Check if ActivityPub is enabled
             if not getattr(self.config, 'activitypubEnabled', True):
-                return None
-                
-            # Check if object already exists
+                return None, None
             existing_object = activitypub.ActivityPubObject.query.filter_by(
                 local_object_id=video.id,
                 local_object_type='video'
             ).first()
-            
             if existing_object:
-                return existing_object
-            
+                return existing_object, None
             # Create video object data
             video_data = {
                 "@context": "https://www.w3.org/ns/activitystreams",
@@ -184,28 +179,15 @@ class ActivityPubService:
                 "content": video.description or "",
                 "duration": f"PT{int(video.length)}S" if video.length else None,
                 "url": [
-                    {
-                        "type": "Link",
-                        "href": f"https://{self.domain}/play/{video.id}",
-                        "mediaType": "text/html"
-                    },
-                    {
-                        "type": "Link",
-                        "href": f"https://{self.domain}/videos/{video.videoLocation}",
-                        "mediaType": "video/mp4"
-                    }
+                    {"type": "Link", "href": f"https://{self.domain}/play/{video.id}", "mediaType": "text/html"},
+                    {"type": "Link", "href": f"https://{self.domain}/videos/{video.videoLocation}", "mediaType": "video/mp4"}
                 ],
-                "icon": {
-                    "type": "Image",
-                    "url": f"https://{self.domain}/videos/{video.thumbnailLocation}"
-                } if video.thumbnailLocation else None,
+                "icon": {"type": "Image", "url": f"https://{self.domain}/videos/{video.thumbnailLocation}"} if video.thumbnailLocation else None,
                 "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
                 "published": video.videoDate.isoformat(),
                 "to": ["https://www.w3.org/ns/activitystreams#Public"],
                 "cc": [f"https://{self.domain}/activitypub/actors/{actor.username}/followers"]
             }
-            
-            # Create ActivityPub object
             ap_object = activitypub.ActivityPubObject(
                 object_type="Video",
                 actor_id=actor.id,
@@ -213,41 +195,51 @@ class ActivityPubService:
                 local_object_type='video',
                 object_data=video_data
             )
-            ap_object.uuid = video.uuid  # Set the UUID explicitly
-            
+            ap_object.uuid = video.uuid
             db.session.add(ap_object)
             db.session.commit()
-            
-            return ap_object
-            
+            # Create Note object for Mastodon
+            note_object = {
+                "@context": "https://www.w3.org/ns/activitystreams",
+                "type": "Note",
+                "content": f"{video.description or video.channelName} <a href='https://{self.domain}/play/{video.id}'>Watch here</a>",
+                "attachment": [
+                    {
+                        "type": "Video",
+                        "mediaType": "video/mp4",
+                        "url": f"https://{self.domain}/videos/{video.videoLocation}",
+                        "icon": {"type": "Image", "url": f"https://{self.domain}/videos/{video.thumbnailLocation}"} if video.thumbnailLocation else None,
+                        "name": video.channelName,
+                        "summary": video.description or "",
+                        "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
+                        "published": video.videoDate.isoformat()
+                    }
+                ],
+                "published": video.videoDate.isoformat(),
+                "to": ["https://www.w3.org/ns/activitystreams#Public"],
+                "cc": [f"https://{self.domain}/activitypub/actors/{actor.username}/followers"]
+            }
+            return ap_object, note_object
         except Exception as e:
             log.error(f"Error creating video object: {e}")
             db.session.rollback()
-            return None
+            return None, None
     
     def create_stream_object(self, stream, actor):
-        """Create ActivityPub Stream object"""
+        """Create ActivityPub Stream object and a Note for Mastodon"""
         try:
-            # Check if ActivityPub is enabled
             if not getattr(self.config, 'activitypubEnabled', True):
-                return None
-                
-            # Check if object already exists
+                return None, None
             existing_object = activitypub.ActivityPubObject.query.filter_by(
                 local_object_id=stream.id,
                 local_object_type='stream'
             ).first()
-            
             if existing_object:
-                return existing_object
-
+                return existing_object, None
             channelQuery = cachedDbCalls.getChannel(stream.linkedChannel)
-            
             if channelQuery is None or not hasattr(channelQuery, 'channelLoc'):
                 log.error(f"Could not find channel or channelLoc for stream {stream.id}")
-                return None
-            
-            # Create stream object data
+                return None, None
             stream_data = {
                 "@context": "https://www.w3.org/ns/activitystreams",
                 "id": f"https://{self.domain}/activitypub/streams/{stream.uuid}",
@@ -256,28 +248,15 @@ class ActivityPubService:
                 "summary": f"Live stream by {actor.display_name}",
                 "content": f"Live stream by {actor.display_name}",
                 "url": [
-                    {
-                        "type": "Link",
-                        "href": f"https://{self.domain}/view/{channelQuery.channelLoc}",
-                        "mediaType": "text/html"
-                    },
-                    {
-                        "type": "Link",
-                        "href": f"https://{self.domain}/live/{channelQuery.channelLoc}/index.m3u8",
-                        "mediaType": "application/x-mpegURL"
-                    }
+                    {"type": "Link", "href": f"https://{self.domain}/view/{channelQuery.channelLoc}", "mediaType": "text/html"},
+                    {"type": "Link", "href": f"https://{self.domain}/live/{channelQuery.channelLoc}/index.m3u8", "mediaType": "application/x-mpegURL"}
                 ],
-                "icon": {
-                    "type": "Image",
-                    "url": f"https://{self.domain}/stream-thumb/{channelQuery.channelLoc}.png"
-                },
+                "icon": {"type": "Image", "url": f"https://{self.domain}/stream-thumb/{channelQuery.channelLoc}.png"},
                 "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
                 "published": stream.startTimestamp.isoformat(),
                 "to": ["https://www.w3.org/ns/activitystreams#Public"],
                 "cc": [f"https://{self.domain}/activitypub/actors/{actor.username}/followers"]
             }
-            
-            # Create ActivityPub object
             ap_object = activitypub.ActivityPubObject(
                 object_type="Video",
                 actor_id=actor.id,
@@ -285,17 +264,35 @@ class ActivityPubService:
                 local_object_type='stream',
                 object_data=stream_data
             )
-            ap_object.uuid = stream.uuid  # Set the UUID explicitly
-            
+            ap_object.uuid = stream.uuid
             db.session.add(ap_object)
             db.session.commit()
-            
-            return ap_object
-            
+            # Create Note object for Mastodon
+            note_object = {
+                "@context": "https://www.w3.org/ns/activitystreams",
+                "type": "Note",
+                "content": f"Live stream by {actor.display_name} <a href='https://{self.domain}/view/{channelQuery.channelLoc}'>Watch here</a>",
+                "attachment": [
+                    {
+                        "type": "Video",
+                        "mediaType": "application/x-mpegURL",
+                        "url": f"https://{self.domain}/live/{channelQuery.channelLoc}/index.m3u8",
+                        "icon": {"type": "Image", "url": f"https://{self.domain}/stream-thumb/{channelQuery.channelLoc}.png"},
+                        "name": stream.streamName,
+                        "summary": f"Live stream by {actor.display_name}",
+                        "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
+                        "published": stream.startTimestamp.isoformat()
+                    }
+                ],
+                "published": stream.startTimestamp.isoformat(),
+                "to": ["https://www.w3.org/ns/activitystreams#Public"],
+                "cc": [f"https://{self.domain}/activitypub/actors/{actor.username}/followers"]
+            }
+            return ap_object, note_object
         except Exception as e:
             log.error(f"Error creating stream object: {e}")
             db.session.rollback()
-            return None
+            return None, None
     
     def send_activity(self, activity_type, actor, object_data=None, target_id=None, to=None, cc=None):
         """Send ActivityPub activity to remote servers"""
