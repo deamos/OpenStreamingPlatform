@@ -521,9 +521,9 @@ class ActivityPubService:
                 remote_actor = activitypub.ActivityPubActor(
                     actor_type="Person",
                     username=follower_username,
-                    domain=actor_url.split('/')[2],  # crude domain extraction
-                    is_local=False
+                    domain=actor_url.split('/')[2]  # crude domain extraction
                 )
+                remote_actor.is_local = False
                 db.session.add(remote_actor)
                 db.session.commit()
 
