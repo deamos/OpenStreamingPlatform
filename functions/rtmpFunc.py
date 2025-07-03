@@ -249,23 +249,25 @@ def rtmp_stage2_user_auth_check(channelLoc: str, ipaddress: str, authorizedRTMP:
 
             # ActivityPub: Create and send stream activity
             try:
-                from functions.activitypub import get_activitypub_service
-                service = get_activitypub_service()
-                if service:
-                    # Get the channel owner (user)
-                    user = Sec.User.query.options(noload('*')).filter_by(id=requestedChannel.owningUser).first()
-                    if user:
-                        actor = service.create_user_actor(user)
-                        # Get the stream object (active stream for this channel)
-                        stream = Stream.Stream.query.options(noload('*')).filter_by(
-                            linkedChannel=requestedChannel.id, active=True
-                        ).order_by(Stream.Stream.startTimestamp.desc()).first()
-                        if actor and stream:
-                            ap_stream_obj, note_obj = service.create_stream_object(stream, actor)
-                            if ap_stream_obj:
-                                service.send_activity("Create", actor, object_data=ap_stream_obj.object_data)
-                            if note_obj:
-                                service.send_activity("Create", actor, object_data=note_obj)
+                from conf import config
+                if getattr(config, 'activitypubEnabled', False):
+                    from functions.activitypub import get_activitypub_service
+                    service = get_activitypub_service()
+                    if service:
+                        # Get the channel owner (user)
+                        user = Sec.User.query.options(noload('*')).filter_by(id=requestedChannel.owningUser).first()
+                        if user:
+                            actor = service.create_user_actor(user)
+                            # Get the stream object (active stream for this channel)
+                            stream = Stream.Stream.query.options(noload('*')).filter_by(
+                                linkedChannel=requestedChannel.id, active=True
+                            ).order_by(Stream.Stream.startTimestamp.desc()).first()
+                            if actor and stream:
+                                ap_stream_obj, note_obj = service.create_stream_object(stream, actor)
+                                if ap_stream_obj:
+                                    service.send_activity("Create", actor, object_data=ap_stream_obj.object_data)
+                                if note_obj:
+                                    service.send_activity("Create", actor, object_data=note_obj)
             except Exception as e:
                 log.warning(f"ActivityPub: Failed to create stream activity: {e}")
 
