@@ -370,7 +370,6 @@ class ActivityPubService:
                 continue  # Skip public recipient
                 
             try:
-                # Parse recipient URL to get inbox
                 parsed_url = urlparse(recipient)
                 if parsed_url.path.endswith('/followers'):
                     # Extract actor URL from followers URL
@@ -383,10 +382,17 @@ class ActivityPubService:
                         inbox_url = actor_data.get('inbox')
                         if inbox_url:
                             self._send_to_inbox(activity_data, inbox_url, max_retries, timeout, user_agent)
+                elif not parsed_url.path.endswith('/inbox'):
+                    # If it's an actor profile, fetch their inbox
+                    response = requests.get(recipient, timeout=timeout, headers={"Accept": "application/activity+json"})
+                    if response.status_code == 200:
+                        actor_data = response.json()
+                        inbox_url = actor_data.get('inbox')
+                        if inbox_url:
+                            self._send_to_inbox(activity_data, inbox_url, max_retries, timeout, user_agent)
                 else:
-                    # Assume it's an inbox URL
+                    # It's already an inbox URL
                     self._send_to_inbox(activity_data, recipient, max_retries, timeout, user_agent)
-                    
             except Exception as e:
                 log.error(f"Error delivering to {recipient}: {e}")
     
@@ -472,7 +478,17 @@ class ActivityPubService:
             # Check if ActivityPub is enabled
             if not getattr(self.config, 'activitypubEnabled', True):
                 return
-                
+
+            activity_id = activity_data.get('id')
+            if not activity_id:
+                log.warning('Incoming activity missing id, ignoring.')
+                return
+            # Deduplication: check if this activity has already been processed
+            existing = activitypub.ActivityPubActivity.query.filter_by(target_id=activity_id).first()
+            if existing:
+                log.info(f"Duplicate activity {activity_id} ignored.")
+                return
+
             activity_type = activity_data.get('type')
             
             if activity_type == 'Follow':
@@ -492,6 +508,16 @@ class ActivityPubService:
             else:
                 log.info(f"Unhandled activity type: {activity_type}")
                 
+            # Store the incoming activity for deduplication
+            # (Assume actor_id can be resolved as in your outgoing logic, or set to None for remote)
+            new_activity = activitypub.ActivityPubActivity(
+                activity_type=activity_type,
+                actor_id=None,
+                object_data=activity_data.get('object'),
+                target_id=activity_id
+            )
+            db.session.add(new_activity)
+            db.session.commit()
         except Exception as e:
             log.error(f"Error handling incoming activity: {e}")
     
