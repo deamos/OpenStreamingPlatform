@@ -295,7 +295,7 @@ class ActivityPubService:
             return None, None
     
     def send_activity(self, activity_type, actor, object_data=None, target_id=None, to=None, cc=None):
-        """Send ActivityPub activity to remote servers"""
+        """Send ActivityPub activity to remote servers and all followers"""
         try:
             # Check if ActivityPub is enabled
             if not getattr(self.config, 'activitypubEnabled', True):
@@ -324,8 +324,8 @@ class ActivityPubService:
             # Sign the activity
             signed_activity = self._sign_activity(activity)
 
-            # Send to remote servers
-            self._deliver_activity(signed_activity, activity.to)
+            # Deliver to all followers' inboxes (in addition to any explicit recipients)
+            self._deliver_activity_to_followers_and_recipients(signed_activity, actor)
 
             return activity
 
@@ -361,50 +361,36 @@ class ActivityPubService:
             log.error(f"Error signing activity: {e}")
             return None
     
-    def _deliver_activity(self, activity_data, recipients):
-        """Deliver activity to remote servers"""
-        max_retries = getattr(self.config, 'activitypubMaxRetries', 3)
-        timeout = getattr(self.config, 'activitypubTimeout', 30)
-        user_agent = getattr(self.config, 'activitypubUserAgent', 'OSP-ActivityPub/1.0')
-
-        # Ensure recipients is a list, not a string
-        if isinstance(recipients, str):
-            import json
-            try:
-                recipients = json.loads(recipients)
-            except Exception:
-                recipients = [recipients]
-
-        for recipient in recipients:
-            if recipient == "https://www.w3.org/ns/activitystreams#Public":
-                continue  # Skip public recipient
-                
-            try:
-                parsed_url = urlparse(recipient)
-                if parsed_url.path.endswith('/followers'):
-                    # Extract actor URL from followers URL
-                    actor_url = recipient.replace('/followers', '')
-                    # Get actor's inbox
-                    # Use Accept: application/activity+json to ensure we get ActivityPub JSON, not HTML
-                    response = requests.get(actor_url, timeout=timeout, headers={"Accept": "application/activity+json"})
-                    if response.status_code == 200:
-                        actor_data = response.json()
-                        inbox_url = actor_data.get('inbox')
-                        if inbox_url:
-                            self._send_to_inbox(activity_data, inbox_url, max_retries, timeout, user_agent)
-                elif not parsed_url.path.endswith('/inbox'):
-                    # If it's an actor profile, fetch their inbox
-                    response = requests.get(recipient, timeout=timeout, headers={"Accept": "application/activity+json"})
-                    if response.status_code == 200:
-                        actor_data = response.json()
-                        inbox_url = actor_data.get('inbox')
-                        if inbox_url:
-                            self._send_to_inbox(activity_data, inbox_url, max_retries, timeout, user_agent)
-                else:
-                    # It's already an inbox URL
-                    self._send_to_inbox(activity_data, recipient, max_retries, timeout, user_agent)
-            except Exception as e:
-                log.error(f"Error delivering to {recipient}: {e}")
+    def _deliver_activity_to_followers_and_recipients(self, activity_data, actor):
+        """Deliver activity to all followers' inboxes and any explicit recipients."""
+        # Deliver to explicit recipients (to/cc)
+        recipients = []
+        if 'to' in activity_data:
+            recipients.extend(activity_data['to'])
+        if 'cc' in activity_data:
+            recipients.extend(activity_data['cc'])
+        # Remove duplicates
+        recipients = list(set(recipients))
+        # Remove #Public and followers collection URLs (we'll handle followers below)
+        recipients = [r for r in recipients if not r.endswith('/followers') and r != "https://www.w3.org/ns/activitystreams#Public"]
+        self._deliver_activity(activity_data, recipients)
+        # Deliver to all followers' inboxes (for local actors only)
+        if getattr(actor, 'is_local', True):
+            from classes.activitypub import ActivityPubFollow, ActivityPubActor
+            # Find all accepted followers
+            follows = ActivityPubFollow.query.filter_by(following_id=actor.id, status='accepted').all()
+            for follow in follows:
+                follower = ActivityPubActor.query.filter_by(id=follow.follower_id).first()
+                if follower and not follower.is_local:
+                    # Fetch remote actor's inbox URL
+                    try:
+                        resp = requests.get(f"https://{follower.domain}/activitypub/actors/{follower.username}", headers={"Accept": "application/activity+json"}, timeout=10)
+                        if resp.status_code == 200:
+                            inbox_url = resp.json().get('inbox')
+                            if inbox_url:
+                                self._send_to_inbox(activity_data, inbox_url, 3, 30, 'OSP-ActivityPub/1.0')
+                    except Exception as e:
+                        log.warning(f"Failed to deliver to follower {follower.username}@{follower.domain}: {e}")
     
     def _send_to_inbox(self, activity_data, inbox_url, max_retries=3, timeout=30, user_agent='OSP-ActivityPub/1.0'):
         """Send activity to a specific inbox"""
