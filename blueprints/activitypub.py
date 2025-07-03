@@ -1,6 +1,7 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, Response
 from flask_security import current_user
 import logging
+import json
 
 from classes import activitypub
 from classes import Sec
@@ -12,6 +13,8 @@ activitypub_bp = Blueprint("activitypub", __name__, url_prefix="/activitypub")
 
 # Create a separate blueprint for discovery endpoints at root level
 discovery_bp = Blueprint("discovery", __name__)
+
+default_error_response = {"error": "Internal server error"}
 
 
 @discovery_bp.route("/.well-known/webfinger")
@@ -59,7 +62,7 @@ def webfinger():
         
     except Exception as e:
         log.error(f"WebFinger error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(default_error_response), 500
 
 
 @discovery_bp.route("/.well-known/nodeinfo")
@@ -78,7 +81,7 @@ def nodeinfo_discovery():
         
     except Exception as e:
         log.error(f"NodeInfo discovery error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(default_error_response), 500
 
 
 @discovery_bp.route("/nodeinfo/2.0")
@@ -112,7 +115,7 @@ def nodeinfo():
         
     except Exception as e:
         log.error(f"NodeInfo error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(default_error_response), 500
 
 
 @activitypub_bp.route("/actors/<username>")
@@ -127,11 +130,14 @@ def actor(username):
         if not actor:
             return jsonify({"error": "Actor not found"}), 404
         
-        return jsonify(actor.to_activitypub())
+        return Response(
+            json.dumps(actor.to_activitypub()),
+            mimetype='application/activity+json'
+        )
         
     except Exception as e:
         log.error(f"Actor endpoint error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(default_error_response), 500
 
 
 @activitypub_bp.route("/actors/<username>/inbox", methods=['POST'])
@@ -172,7 +178,7 @@ def inbox(username):
         
     except Exception as e:
         log.error(f"Inbox error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(default_error_response), 500
 
 
 @activitypub_bp.route("/actors/<username>/outbox")
@@ -210,11 +216,14 @@ def outbox(username):
             "orderedItems": [activity.to_activitypub() for activity in activities.items]
         }
         
-        return jsonify(response)
+        return Response(
+            json.dumps(response),
+            mimetype='application/activity+json'
+        )
         
     except Exception as e:
         log.error(f"Outbox error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(default_error_response), 500
 
 
 @activitypub_bp.route("/actors/<username>/followers")
@@ -247,11 +256,14 @@ def followers(username):
             ]
         }
         
-        return jsonify(response)
+        return Response(
+            json.dumps(response),
+            mimetype='application/activity+json'
+        )
         
     except Exception as e:
         log.error(f"Followers error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(default_error_response), 500
 
 
 @activitypub_bp.route("/actors/<username>/following")
@@ -284,11 +296,14 @@ def following(username):
             ]
         }
         
-        return jsonify(response)
+        return Response(
+            json.dumps(response),
+            mimetype='application/activity+json'
+        )
         
     except Exception as e:
         log.error(f"Following error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(default_error_response), 500
 
 
 @activitypub_bp.route("/videos/<video_uuid>")
@@ -303,11 +318,14 @@ def video(video_uuid):
         if not ap_object:
             return jsonify({"error": "Video not found"}), 404
         
-        return jsonify(ap_object.to_activitypub())
+        return Response(
+            json.dumps(ap_object.to_activitypub()),
+            mimetype='application/activity+json'
+        )
         
     except Exception as e:
         log.error(f"Video endpoint error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(default_error_response), 500
 
 
 @activitypub_bp.route("/streams/<stream_uuid>")
@@ -322,11 +340,14 @@ def stream(stream_uuid):
         if not ap_object:
             return jsonify({"error": "Stream not found"}), 404
         
-        return jsonify(ap_object.to_activitypub())
+        return Response(
+            json.dumps(ap_object.to_activitypub()),
+            mimetype='application/activity+json'
+        )
         
     except Exception as e:
         log.error(f"Stream endpoint error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(default_error_response), 500
 
 
 # Admin endpoints for managing ActivityPub
@@ -354,7 +375,7 @@ def admin_actors():
         
     except Exception as e:
         log.error(f"Admin actors error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(default_error_response), 500
 
 
 @activitypub_bp.route("/admin/activities")
@@ -396,7 +417,7 @@ def admin_activities():
         
     except Exception as e:
         log.error(f"Admin activities error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify(default_error_response), 500
 
 
 @activitypub_bp.route("/activities/<activity_uuid>")
@@ -410,7 +431,10 @@ def activity(activity_uuid):
         activity_obj = ap_activity.to_activitypub()
         if "@context" not in activity_obj:
             activity_obj["@context"] = "https://www.w3.org/ns/activitystreams"
-        return jsonify(activity_obj)
+        return Response(
+            json.dumps(activity_obj),
+            mimetype='application/activity+json'
+        )
     except Exception as e:
         log.error(f"Activity endpoint error: {e}")
-        return jsonify({"error": "Internal server error"}), 500 
+        return jsonify(default_error_response), 500 
