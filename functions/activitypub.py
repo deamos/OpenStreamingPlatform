@@ -429,10 +429,10 @@ class ActivityPubService:
             signature_string = '\n'.join(signature_string_parts)
 
             # Add detailed logging for debugging 401 errors
-            log.info(f"[ActivityPub] Outgoing delivery:")
-            log.info(f"  actor_url: {actor_url}")
-            log.info(f"  inbox_url: {inbox_url}")
-            log.info(f"  signature string: {signature_string}")
+            log.warning(f"[ActivityPub] Outgoing delivery:")
+            log.warning(f"  actor_url: {actor_url}")
+            log.warning(f"  inbox_url: {inbox_url}")
+            log.warning(f"  signature string: {signature_string}")
 
             # Sign the string
             private_key = serialization.load_pem_private_key(
@@ -463,8 +463,8 @@ class ActivityPubService:
                 'Signature': signature_header
             }
 
-            log.info(f"  headers: {headers}")
-            log.info(f"  activity_data: {json.dumps(activity_data, indent=2)}")
+            log.warning(f"  headers: {headers}")
+            log.warning(f"  activity_data: {json.dumps(activity_data, indent=2)}")
 
             response = requests.post(
                 inbox_url,
@@ -731,27 +731,35 @@ class ActivityPubService:
             if not signature_header:
                 log.warning("No signature header found")
                 return False
-            
+
+            # Add detailed logging for debugging signature verification
+            log.warning(f"[ActivityPub] Incoming signature verification:")
+            log.warning(f"  actor_url: {actor_url}")
+            log.warning(f"  signature header: {signature_header}")
+            log.warning(f"  request headers: {dict(request.headers)}")
+
             # Parse signature header
             signature_parts = {}
             for part in signature_header.split(','):
                 if '=' in part:
                     key, value = part.split('=', 1)
                     signature_parts[key.strip()] = value.strip().strip('"')
-            
+
             # Extract required parts
             key_id = signature_parts.get('keyId')
             algorithm = signature_parts.get('algorithm')
             headers = signature_parts.get('headers', '').split(' ')
             signature = signature_parts.get('signature')
-            
+
             if not all([key_id, algorithm, signature]):
                 log.warning("Missing required signature parts")
                 return False
-            
+
             # Get actor's public key
             # Use Accept: application/activity+json to ensure we get ActivityPub JSON, not HTML
             actor_response = requests.get(actor_url, timeout=10, headers={"Accept": "application/activity+json"})
+            log.warning(f"  actor_response.status_code: {actor_response.status_code}")
+            log.warning(f"  actor_response.content: {actor_response.text}")
             if actor_response.status_code != 200:
                 log.warning(f"Failed to fetch actor: {actor_url} (status {actor_response.status_code}) Content: {actor_response.text}")
                 return False
@@ -764,12 +772,12 @@ class ActivityPubService:
             if not public_key_pem:
                 log.warning("No public key found in actor data")
                 return False
-            
+
             # Load public key
             public_key = serialization.load_pem_public_key(
                 public_key_pem.encode('utf-8')
             )
-            
+
             # Build signature string
             signature_string_parts = []
             for header_name in headers:
@@ -783,9 +791,10 @@ class ActivityPubService:
                     signature_string_parts.append(f'content-type: {request.headers.get("Content-Type", "")}')
                 else:
                     signature_string_parts.append(f'{header_name}: {request.headers.get(header_name, "")}')
-            
+
             signature_string = '\n'.join(signature_string_parts)
-            
+            log.warning(f"  signature string: {signature_string}")
+
             # Verify signature
             try:
                 signature_bytes = base64.b64decode(signature)
