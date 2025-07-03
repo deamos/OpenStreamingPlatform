@@ -209,6 +209,7 @@ class ActivityPubService:
                 local_object_type='video',
                 object_data=video_data
             )
+            ap_object.uuid = video.uuid  # Set the UUID explicitly
             
             db.session.add(ap_object)
             db.session.commit()
@@ -270,6 +271,7 @@ class ActivityPubService:
                 local_object_type='stream',
                 object_data=stream_data
             )
+            ap_object.uuid = stream.uuid  # Set the UUID explicitly
             
             db.session.add(ap_object)
             db.session.commit()
