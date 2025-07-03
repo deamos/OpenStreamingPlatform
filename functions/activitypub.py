@@ -8,6 +8,8 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from urllib.parse import urlparse
 import logging
 import uuid
+import hashlib
+from datetime import datetime
 
 from classes.shared import db
 from functions import cachedDbCalls
@@ -241,6 +243,10 @@ class ActivityPubService:
 
             channelQuery = cachedDbCalls.getChannel(stream.linkedChannel)
             
+            if channelQuery is None or not hasattr(channelQuery, 'channelLoc'):
+                log.error(f"Could not find channel or channelLoc for stream {stream.id}")
+                return None
+            
             # Create stream object data
             stream_data = {
                 "@context": "https://www.w3.org/ns/activitystreams",
@@ -416,59 +422,64 @@ class ActivityPubService:
                 log.error(f"Actor not found: {actor_username}")
                 return
             
-            from datetime import datetime
-            
-            # Generate signature string
+            # Prepare the request body
+            body = json.dumps(activity_data, separators=(',', ':')).encode('utf-8')
+            digest = base64.b64encode(hashlib.sha256(body).digest()).decode('utf-8')
+            digest_header = f"SHA-256={digest}"
+
+            # Generate signature string (now includes digest)
             date = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
             signature_string_parts = [
                 f'(request-target): post {urlparse(inbox_url).path}',
                 f'host: {urlparse(inbox_url).netloc}',
                 f'date: {date}',
+                f'digest: {digest_header}',
                 'content-type: application/activity+json'
             ]
             signature_string = '\n'.join(signature_string_parts)
 
             # Add detailed logging for debugging 401 errors
-            log.warning(f"[ActivityPub] Outgoing delivery:")
-            log.warning(f"  actor_url: {actor_url}")
-            log.warning(f"  inbox_url: {inbox_url}")
-            log.warning(f"  signature string: {signature_string}")
+            log.debug("[ActivityPub] Outgoing delivery:")
+            log.debug(f"  actor_url: {actor_url}")
+            log.debug(f"  inbox_url: {inbox_url}")
+            log.debug(f"  signature string: {signature_string}")
 
             # Sign the string
             private_key = serialization.load_pem_private_key(
                 actor.private_key_pem.encode('utf-8'),
                 password=None
             )
-            
+
             signature = private_key.sign(
                 signature_string.encode('utf-8'),
                 padding.PKCS1v15(),
                 hashes.SHA256()
             )
-            
+
             signature_b64 = base64.b64encode(signature).decode('utf-8')
-            
-            # Create signature header
+
+            # Create signature header (now includes digest)
             signature_header = (
                 f'keyId="{actor_url}#main-key",'
                 f'algorithm="rsa-sha256",'
-                f'headers="(request-target) host date content-type",'
+                f'headers="(request-target) host date digest content-type",'
                 f'signature="{signature_b64}"'
             )
-            
+
             headers = {
                 'Content-Type': 'application/activity+json',
                 'User-Agent': user_agent,
                 'Date': date,
+                'Digest': digest_header,
                 'Signature': signature_header
             }
 
-            log.warning(f"  headers: {headers}")
-            log.warning(f"  activity_data: {json.dumps(activity_data, indent=2)}")
+            log.debug(f"  headers: {headers}")
+            log.debug(f"  activity_data: {json.dumps(activity_data, indent=2)}")
 
             response = requests.post(
                 inbox_url,
-                json=activity_data,
+                data=body,
                 headers=headers,
                 timeout=timeout
             )
@@ -733,10 +744,10 @@ class ActivityPubService:
                 return False
 
             # Add detailed logging for debugging signature verification
-            log.warning(f"[ActivityPub] Incoming signature verification:")
-            log.warning(f"  actor_url: {actor_url}")
-            log.warning(f"  signature header: {signature_header}")
-            log.warning(f"  request headers: {dict(request.headers)}")
+            log.debug("[ActivityPub] Incoming signature verification:")
+            log.debug(f"  actor_url: {actor_url}")
+            log.debug(f"  signature header: {signature_header}")
+            log.debug(f"  request headers: {dict(request.headers)}")
 
             # Parse signature header
             signature_parts = {}
@@ -758,8 +769,8 @@ class ActivityPubService:
             # Get actor's public key
             # Use Accept: application/activity+json to ensure we get ActivityPub JSON, not HTML
             actor_response = requests.get(actor_url, timeout=10, headers={"Accept": "application/activity+json"})
-            log.warning(f"  actor_response.status_code: {actor_response.status_code}")
-            log.warning(f"  actor_response.content: {actor_response.text}")
+            log.debug(f"  actor_response.status_code: {actor_response.status_code}")
+            log.debug(f"  actor_response.content: {actor_response.text}")
             if actor_response.status_code != 200:
                 log.warning(f"Failed to fetch actor: {actor_url} (status {actor_response.status_code}) Content: {actor_response.text}")
                 return False
@@ -793,10 +804,13 @@ class ActivityPubService:
                     signature_string_parts.append(f'{header_name}: {request.headers.get(header_name, "")}')
 
             signature_string = '\n'.join(signature_string_parts)
-            log.warning(f"  signature string: {signature_string}")
+            log.debug(f"  signature string: {signature_string}")
 
             # Verify signature
             try:
+                if signature is None:
+                    log.warning("Signature value is None, cannot verify.")
+                    return False
                 signature_bytes = base64.b64decode(signature)
                 public_key.verify(
                     signature_bytes,
