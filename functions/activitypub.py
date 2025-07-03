@@ -346,7 +346,15 @@ class ActivityPubService:
         max_retries = getattr(self.config, 'activitypubMaxRetries', 3)
         timeout = getattr(self.config, 'activitypubTimeout', 30)
         user_agent = getattr(self.config, 'activitypubUserAgent', 'OSP-ActivityPub/1.0')
-        
+
+        # Ensure recipients is a list, not a string
+        if isinstance(recipients, str):
+            import json
+            try:
+                recipients = json.loads(recipients)
+            except Exception:
+                recipients = [recipients]
+
         for recipient in recipients:
             if recipient == "https://www.w3.org/ns/activitystreams#Public":
                 continue  # Skip public recipient
