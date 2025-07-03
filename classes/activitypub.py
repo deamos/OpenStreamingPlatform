@@ -77,6 +77,16 @@ class ActivityPubActor(db.Model):
             "updated": self.updated_at.isoformat()
         }
 
+    @property
+    def followers(self):
+        # Return a list of ActivityPubActor objects who follow this actor
+        return [f.follower for f in self.follower_links if f.status == 'accepted']
+
+    @property
+    def following(self):
+        # Return a list of ActivityPubActor objects this actor is following
+        return [f.following for f in self.following_links if f.status == 'accepted']
+
 
 class ActivityPubActivity(db.Model):
     """ActivityPub Activity objects"""
@@ -144,8 +154,8 @@ class ActivityPubFollow(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    follower = db.relationship('ActivityPubActor', foreign_keys=[follower_id], backref='following')
-    following = db.relationship('ActivityPubActor', foreign_keys=[following_id], backref='followers')
+    follower = db.relationship('ActivityPubActor', foreign_keys=[follower_id], backref='following_links')
+    following = db.relationship('ActivityPubActor', foreign_keys=[following_id], backref='follower_links')
 
 
 class ActivityPubObject(db.Model):
