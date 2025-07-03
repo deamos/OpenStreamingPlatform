@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import logging
 
 from classes.shared import db
+from functions import cachedDbCalls
 from classes import activitypub
 
 log = logging.getLogger("app.functions.activitypub")
@@ -234,6 +235,8 @@ class ActivityPubService:
             
             if existing_object:
                 return existing_object
+
+            channelQuery = cachedDbCalls.getChannel(stream.linkedChannel)
             
             # Create stream object data
             stream_data = {
@@ -245,13 +248,13 @@ class ActivityPubService:
                 "url": [
                     {
                         "type": "Link",
-                        "href": f"https://{self.domain}/live/{stream.channel.channelLoc}/index.m3u8",
+                        "href": f"https://{self.domain}/live/{channelQuery.channelLoc}/index.m3u8",
                         "mediaType": "application/x-mpegURL"
                     }
                 ],
                 "icon": {
                     "type": "Image",
-                    "url": f"https://{self.domain}/stream-thumb/{stream.channel.channelLoc}.png"
+                    "url": f"https://{self.domain}/stream-thumb/{channelQuery.channelLoc}.png"
                 },
                 "attributedTo": f"https://{self.domain}/activitypub/actors/{actor.username}",
                 "published": stream.startTimestamp.isoformat(),
