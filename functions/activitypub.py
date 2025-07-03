@@ -178,6 +178,7 @@ class ActivityPubService:
                 "type": "Video",
                 "name": video.channelName,
                 "summary": video.description or "",
+                "content": video.description or "",
                 "duration": f"PT{int(video.length)}S" if video.length else None,
                 "url": [
                     {
@@ -246,6 +247,7 @@ class ActivityPubService:
                 "type": "Video",
                 "name": stream.streamName,
                 "summary": f"Live stream by {actor.display_name}",
+                "content": f"Live stream by {actor.display_name}",
                 "url": [
                     {
                         "type": "Link",
