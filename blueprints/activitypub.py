@@ -197,10 +197,20 @@ def outbox(username):
         per_page = min(request.args.get('per_page', 20, type=int), 100)
         base_url = f"https://{actor.domain}/activitypub/actors/{username}/outbox"
         
-        # Only count and return Create activities with object type Note, Video, or Article
+        # Include both Create and Delete activities for Note, Video, or Article
         post_types = ["Note", "Video", "Article"]
-        post_activities_query = activitypub.ActivityPubActivity.query.filter_by(actor_id=actor.id, activity_type="Create")
-        post_activities = [a for a in post_activities_query if a.object_data and (isinstance(a.object_data, dict) and a.object_data.get("type") in post_types or isinstance(a.object_data, str) and any(pt in a.object_data for pt in post_types))]
+        activity_types = ["Create", "Delete"]
+        post_activities_query = activitypub.ActivityPubActivity.query.filter(
+            activitypub.ActivityPubActivity.actor_id == actor.id,
+            activitypub.ActivityPubActivity.activity_type.in_(activity_types)
+        )
+        post_activities = [
+            a for a in post_activities_query
+            if a.object_data and (
+                (isinstance(a.object_data, dict) and a.object_data.get("type") in post_types)
+                or (isinstance(a.object_data, str) and any(pt in a.object_data for pt in post_types))
+            )
+        ]
         
         if page is None:
             # Return OrderedCollection with 'first' field
