@@ -52,6 +52,22 @@ def deleteVideo(videoID: int) -> bool:
     recordedVid = RecordedVideo.RecordedVideo.query.filter_by(id=videoID).with_entities(RecordedVideo.RecordedVideo.id, RecordedVideo.RecordedVideo.videoLocation, RecordedVideo.RecordedVideo.channelID, RecordedVideo.RecordedVideo.owningUser, RecordedVideo.RecordedVideo.topic).first()
 
     if recordedVid.videoLocation is not None:
+        # ActivityPub: Send delete activity before removing the video
+        try:
+            from conf import config
+            if getattr(config, 'activitypubEnabled', False):
+                from functions.activitypub import get_activitypub_service
+                service = get_activitypub_service()
+                if service:
+                    # Get the channel owner (user)
+                    user = cachedDbCalls.getUser(recordedVid.owningUser)
+                    if user:
+                        actor = service.create_user_actor(user)
+                        if actor:
+                            service.delete_video_object(videoID, actor)
+        except Exception as e:
+            log.warning(f"ActivityPub: Failed to send delete activity for video {videoID}: {e}")
+
         videos_root = globalvars.videoRoot + "videos/"
         filePath = videos_root + recordedVid.videoLocation
         thumbnailPath = videos_root + recordedVid.videoLocation[:-4] + ".png"
@@ -72,7 +88,6 @@ def deleteVideo(videoID: int) -> bool:
         # Delete Views Attached to Video
         views.views.query.filter_by(viewType=1, itemID=recordedVid.id).delete()
 
-        # Delete Video and Thumbnails
         # Delete Video and Thumbnails
         if filePath != videos_root:
             if os.path.exists(filePath):

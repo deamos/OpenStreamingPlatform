@@ -1,3 +1,4 @@
+from functools import cache
 from flask import abort
 from flask_security import current_user
 
@@ -147,10 +148,23 @@ def togglePublishedSocketIO(message):
         videoID = int(message["videoID"])
         videoQuery = RecordedVideo.RecordedVideo.query.filter_by(
             owningUser=current_user.id, id=videoID
+        ).with_entities(
+            RecordedVideo.RecordedVideo.id,
+            RecordedVideo.RecordedVideo.published
         ).first()
         if videoQuery is not None:
+
             newState = not videoQuery.published
-            videoQuery.published = newState
+            RecordedVideo.RecordedVideo.query.filter_by(id=videoQuery.id).update(dict(published=newState))
+            db.session.commit()
+            
+            cache.delete_memoized(cachedDbCalls.getVideo, videoQuery.id)
+            cache.delete_memoized(cachedDbCalls.getChannelVideos, videoQuery.channel.id)
+            cache.delete_memoized(cachedDbCalls.getAllVideo_View, videoQuery.channelID)
+            cache.delete_memoized(cachedDbCalls.getAllVideoByOwnerId, videoQuery.owningUser)
+            cache.delete_memoized(cachedDbCalls.getAllVideo)
+
+            videoQuery = cachedDbCalls.getVideo(videoQuery.id)
 
             if videoQuery.channel.imageLocation is None:
                 channelImage = (
@@ -167,6 +181,28 @@ def togglePublishedSocketIO(message):
                 )
 
             if newState is True:
+
+                # ActivityPub: Publish video to ActivityPub when published
+                try:
+                    from conf import config
+                    if getattr(config, 'activitypubEnabled', False):
+                        from functions.activitypub import get_activitypub_service
+                        service = get_activitypub_service()
+                        if service:
+                            # Get the channel owner (user)
+                            user = cachedDbCalls.getUser(videoQuery.channel.owningUser)
+                            if user:
+                                actor = service.create_user_actor(user)
+                                if actor:
+                                    ap_video_obj, note_obj = service.create_video_object(videoQuery, actor)
+                                    if ap_video_obj:
+                                        service.send_activity("Create", actor, object_data=ap_video_obj.object_data)
+                                    if note_obj and getattr(config, 'activitypubCreateNotes', False):
+                                        service.send_activity("Create", actor, object_data=note_obj)
+                except Exception as e:
+                    import logging
+                    log = logging.getLogger(__name__)
+                    log.warning(f"ActivityPub: Failed to publish video {videoQuery.id} to ActivityPub: {e}")
 
                 message_tasks.send_webhook.delay(
                     videoQuery.channel.id,

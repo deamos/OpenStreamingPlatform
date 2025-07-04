@@ -297,6 +297,7 @@ class ActivityPubService:
             if channelQuery is None or not hasattr(channelQuery, 'channelLoc'):
                 log.error(f"Could not find channel or channelLoc for stream {stream.id}")
                 return None, None
+            # Create stream object data
             stream_data = {
                 "@context": "https://www.w3.org/ns/activitystreams",
                 "id": f"https://{self.domain}/activitypub/streams/{stream.uuid}",
@@ -356,6 +357,48 @@ class ActivityPubService:
             log.error(f"Error creating stream object: {e}")
             db.session.rollback()
             return None, None
+    
+    def delete_video_object(self, video_id, actor):
+        """Send ActivityPub Delete activity for a video and clean up database objects"""
+        try:
+            # Check if ActivityPub is enabled
+            if not getattr(self.config, 'activitypubEnabled', True):
+                return None
+
+            # Find and delete the ActivityPub object for this video
+            ap_object = activitypub.ActivityPubObject.query.filter_by(
+                local_object_id=video_id,
+                local_object_type='video'
+            ).first()
+            
+            if ap_object:
+                # Get the video UUID for the delete activity
+                video_uuid = ap_object.uuid
+                # Delete the object from database
+                db.session.delete(ap_object)
+                db.session.commit()
+            else:
+                # If no object found, use video_id as fallback
+                video_uuid = video_id
+
+            # Create delete activity for the video
+            video_url = f"https://{self.domain}/activitypub/videos/{video_uuid}"
+            delete_activity = {
+                "@context": "https://www.w3.org/ns/activitystreams",
+                "id": f"https://{self.domain}/activitypub/activities/delete-{video_uuid}",
+                "type": "Delete",
+                "actor": f"https://{self.domain}/activitypub/actors/{actor.username}",
+                "object": video_url,
+                "to": ["https://www.w3.org/ns/activitystreams#Public"],
+                "cc": [f"https://{self.domain}/activitypub/actors/{actor.username}/followers"]
+            }
+            
+            return self.send_activity("Delete", actor, object_data=delete_activity)
+            
+        except Exception as e:
+            log.error(f"Error sending delete activity for video {video_id}: {e}")
+            db.session.rollback()
+            return None
     
     def send_activity(self, activity_type, actor, object_data=None, target_id=None, to=None, cc=None):
         """Send ActivityPub activity to remote servers and all followers"""
