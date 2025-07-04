@@ -27,6 +27,7 @@ class ActivityPubActor(db.Model):
     is_public = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    canonical_url = db.Column(db.String(512))  # New field for canonical actor URL
     
     # Foreign key relationships
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)

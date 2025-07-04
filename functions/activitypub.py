@@ -749,9 +749,10 @@ class ActivityPubService:
             actor_url = activity_data.get('actor')
             object_url = activity_data.get('object')
             
-            # Extract usernames from URLs
+            # Extract usernames and domain from URLs
             following_username = object_url.split('/')[-1]
             follower_username = actor_url.split('/')[-1]
+            follower_domain = actor_url.split('/')[2]
 
             # Find local actor being followed
             local_actor = activitypub.ActivityPubActor.query.filter_by(
@@ -762,18 +763,27 @@ class ActivityPubService:
             # Find or create remote actor (the follower)
             remote_actor = activitypub.ActivityPubActor.query.filter_by(
                 username=follower_username,
+                domain=follower_domain,
                 is_local=False
             ).first()
             if not remote_actor:
-                # Create a minimal remote actor record
+                # Use WebFinger to get canonical actor URL
+                canonical_url = get_actor_url(type('Follower', (), {'username': follower_username, 'domain': follower_domain})())
                 remote_actor = activitypub.ActivityPubActor(
                     actor_type="Person",
                     username=follower_username,
-                    domain=actor_url.split('/')[2]  # crude domain extraction
+                    domain=follower_domain,
+                    canonical_url=canonical_url
                 )
                 remote_actor.is_local = False
                 db.session.add(remote_actor)
                 db.session.commit()
+            else:
+                # Update canonical_url if not set
+                if not getattr(remote_actor, 'canonical_url', None):
+                    canonical_url = get_actor_url(type('Follower', (), {'username': follower_username, 'domain': follower_domain})())
+                    remote_actor.canonical_url = canonical_url
+                    db.session.commit()
 
             # Prevent duplicate follows
             existing_follow = activitypub.ActivityPubFollow.query.filter_by(
