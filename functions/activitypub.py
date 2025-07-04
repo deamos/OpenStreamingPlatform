@@ -397,11 +397,11 @@ class ActivityPubService:
                     video_uuid = str(video_id)
                     log.warning(f"Using video_id {video_id} as UUID fallback")
 
-            # Create delete activity for the video
+            # Send delete activity for the Video object
             video_url = f"https://{self.domain}/activitypub/videos/{video_uuid}"
-            delete_activity = {
+            video_delete_activity = {
                 "@context": "https://www.w3.org/ns/activitystreams",
-                "id": f"https://{self.domain}/activitypub/activities/delete-{video_uuid}",
+                "id": f"https://{self.domain}/activitypub/activities/delete-video-{video_uuid}",
                 "type": "Delete",
                 "actor": f"https://{self.domain}/activitypub/actors/{actor.username}",
                 "object": video_url,
@@ -409,15 +409,43 @@ class ActivityPubService:
                 "cc": [f"https://{self.domain}/activitypub/actors/{actor.username}/followers"]
             }
             
-            log.info(f"Sending delete activity for video {video_id} (UUID: {video_uuid})")
-            result = self.send_activity("Delete", actor, object_data=delete_activity)
+            log.info(f"Sending delete activity for video object {video_id} (UUID: {video_uuid})")
+            video_result = self.send_activity("Delete", actor, object_data=video_delete_activity)
             
-            if result:
-                log.info(f"Successfully sent delete activity for video {video_id}")
+            # Also send delete activity for the Note object (if notes were enabled)
+            if getattr(self.config, 'activitypubCreateNotes', False):
+                note_url = f"https://{self.domain}/activitypub/notes/{video_uuid}"
+                note_delete_activity = {
+                    "@context": "https://www.w3.org/ns/activitystreams",
+                    "id": f"https://{self.domain}/activitypub/activities/delete-note-{video_uuid}",
+                    "type": "Delete",
+                    "actor": f"https://{self.domain}/activitypub/actors/{actor.username}",
+                    "object": note_url,
+                    "to": ["https://www.w3.org/ns/activitystreams#Public"],
+                    "cc": [f"https://{self.domain}/activitypub/actors/{actor.username}/followers"]
+                }
+                
+                log.info(f"Sending delete activity for note object {video_id} (UUID: {video_uuid})")
+                note_result = self.send_activity("Delete", actor, object_data=note_delete_activity)
+                
+                # Return the video result, but log both
+                if video_result and note_result:
+                    log.info(f"Successfully sent delete activities for both video and note objects for video {video_id}")
+                elif video_result:
+                    log.warning(f"Sent delete activity for video object but failed for note object for video {video_id}")
+                elif note_result:
+                    log.warning(f"Sent delete activity for note object but failed for video object for video {video_id}")
+                else:
+                    log.error(f"Failed to send delete activities for both video and note objects for video {video_id}")
+                
+                return video_result or note_result
             else:
-                log.error(f"Failed to send delete activity for video {video_id}")
-            
-            return result
+                if video_result:
+                    log.info(f"Successfully sent delete activity for video {video_id}")
+                else:
+                    log.error(f"Failed to send delete activity for video {video_id}")
+                
+                return video_result
             
         except Exception as e:
             log.error(f"Error sending delete activity for video {video_id}: {e}")
