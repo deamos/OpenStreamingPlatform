@@ -64,9 +64,24 @@ def deleteVideo(videoID: int) -> bool:
                     if user:
                         actor = service.create_user_actor(user)
                         if actor:
-                            service.delete_video_object(videoID, actor)
+                            log.info(f"ActivityPub: Sending delete activity for video {videoID} by user {user.username}")
+                            result = service.delete_video_object(videoID, actor)
+                            if result:
+                                log.info(f"ActivityPub: Successfully sent delete activity for video {videoID}")
+                            else:
+                                log.warning(f"ActivityPub: Failed to send delete activity for video {videoID}")
+                        else:
+                            log.warning(f"ActivityPub: Could not create/get actor for user {user.username}")
+                    else:
+                        log.warning(f"ActivityPub: Could not find user {recordedVid.owningUser} for video {videoID}")
+                else:
+                    log.warning(f"ActivityPub: Could not get ActivityPub service for video {videoID}")
+            else:
+                log.info(f"ActivityPub: Disabled, skipping delete activity for video {videoID}")
         except Exception as e:
             log.warning(f"ActivityPub: Failed to send delete activity for video {videoID}: {e}")
+            import traceback
+            log.warning(f"ActivityPub: Traceback: {traceback.format_exc()}")
 
         videos_root = globalvars.videoRoot + "videos/"
         filePath = videos_root + recordedVid.videoLocation

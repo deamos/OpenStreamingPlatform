@@ -363,7 +363,10 @@ class ActivityPubService:
         try:
             # Check if ActivityPub is enabled
             if not getattr(self.config, 'activitypubEnabled', True):
+                log.info(f"ActivityPub disabled, skipping delete for video {video_id}")
                 return None
+
+            log.info(f"Processing ActivityPub delete for video {video_id}")
 
             # Find and delete the ActivityPub object for this video
             ap_object = activitypub.ActivityPubObject.query.filter_by(
@@ -371,15 +374,28 @@ class ActivityPubService:
                 local_object_type='video'
             ).first()
             
+            video_uuid = None
             if ap_object:
                 # Get the video UUID for the delete activity
                 video_uuid = ap_object.uuid
+                log.info(f"Found ActivityPub object {ap_object.uuid} for video {video_id}")
                 # Delete the object from database
                 db.session.delete(ap_object)
                 db.session.commit()
+                log.info(f"Deleted ActivityPub object {ap_object.uuid} from database")
             else:
-                # If no object found, use video_id as fallback
-                video_uuid = video_id
+                # If no object found, try to get UUID from video record
+                log.warning(f"No ActivityPub object found for video {video_id}")
+                # Try to get UUID from the video record itself
+                from classes import RecordedVideo
+                video = RecordedVideo.RecordedVideo.query.filter_by(id=video_id).first()
+                if video and hasattr(video, 'uuid') and video.uuid:
+                    video_uuid = video.uuid
+                    log.info(f"Using video UUID {video_uuid} from video record")
+                else:
+                    # Use video_id as fallback
+                    video_uuid = str(video_id)
+                    log.warning(f"Using video_id {video_id} as UUID fallback")
 
             # Create delete activity for the video
             video_url = f"https://{self.domain}/activitypub/videos/{video_uuid}"
@@ -393,10 +409,20 @@ class ActivityPubService:
                 "cc": [f"https://{self.domain}/activitypub/actors/{actor.username}/followers"]
             }
             
-            return self.send_activity("Delete", actor, object_data=delete_activity)
+            log.info(f"Sending delete activity for video {video_id} (UUID: {video_uuid})")
+            result = self.send_activity("Delete", actor, object_data=delete_activity)
+            
+            if result:
+                log.info(f"Successfully sent delete activity for video {video_id}")
+            else:
+                log.error(f"Failed to send delete activity for video {video_id}")
+            
+            return result
             
         except Exception as e:
             log.error(f"Error sending delete activity for video {video_id}: {e}")
+            import traceback
+            log.error(f"Traceback: {traceback.format_exc()}")
             db.session.rollback()
             return None
     
@@ -431,7 +457,13 @@ class ActivityPubService:
             signed_activity = self._sign_activity(activity)
 
             # Deliver to all followers' inboxes (in addition to any explicit recipients)
-            self._deliver_activity_to_followers_and_recipients(signed_activity, actor)
+            delivery_success = self._deliver_activity_to_followers_and_recipients(signed_activity, actor)
+            
+            # Mark as delivered if successful
+            if delivery_success:
+                activity.delivered = True
+                db.session.commit()
+                log.info(f"Activity {activity.id} marked as delivered")
 
             return activity
 
@@ -469,39 +501,61 @@ class ActivityPubService:
     
     def _deliver_activity_to_followers_and_recipients(self, activity_data, actor):
         """Deliver activity to all followers' inboxes and any explicit recipients."""
-        # Deliver to explicit recipients (to/cc)
-        recipients = []
-        if 'to' in activity_data:
-            recipients.extend(activity_data['to'])
-        if 'cc' in activity_data:
-            recipients.extend(activity_data['cc'])
-        # Remove duplicates
-        recipients = list(set(recipients))
-        # Remove #Public and followers collection URLs (we'll handle followers below)
-        recipients = [r for r in recipients if not r.endswith('/followers') and r != "https://www.w3.org/ns/activitystreams#Public"]
-        self._deliver_activity(activity_data, recipients)
-        # Deliver to all followers' inboxes (for local actors only)
-        if getattr(actor, 'is_local', True):
-            # Find all accepted followers
-            follows = activitypub.ActivityPubFollow.query.filter_by(following_id=actor.id, status='accepted').all()
-            for follow in follows:
-                follower = activitypub.ActivityPubActor.query.filter_by(id=follow.follower_id).first()
-                if follower and not follower.is_local:
-                    # Get the canonical actor URL using WebFinger discovery
-                    actor_url = get_actor_url(follower)
-                    if not actor_url:
-                        log.warning(f"Could not determine actor URL for {follower.username}@{follower.domain}")
-                        continue
-                    
-                    # Fetch remote actor's inbox URL
-                    try:
-                        resp = requests.get(actor_url, headers={"Accept": "application/activity+json"}, timeout=10)
-                        if resp.status_code == 200:
-                            inbox_url = resp.json().get('inbox')
-                            if inbox_url:
-                                self._send_to_inbox(activity_data, inbox_url, 3, 30, 'OSP-ActivityPub/1.0')
-                    except Exception as e:
-                        log.warning(f"Failed to deliver to follower {follower.username}@{follower.domain}: {e}")
+        try:
+            # Deliver to explicit recipients (to/cc)
+            recipients = []
+            if 'to' in activity_data:
+                recipients.extend(activity_data['to'])
+            if 'cc' in activity_data:
+                recipients.extend(activity_data['cc'])
+            # Remove duplicates
+            recipients = list(set(recipients))
+            # Remove #Public and followers collection URLs (we'll handle followers below)
+            recipients = [r for r in recipients if not r.endswith('/followers') and r != "https://www.w3.org/ns/activitystreams#Public"]
+            self._deliver_activity(activity_data, recipients)
+            
+            # Deliver to all followers' inboxes (for local actors only)
+            delivery_success = True
+            if getattr(actor, 'is_local', True):
+                # Find all accepted followers
+                follows = activitypub.ActivityPubFollow.query.filter_by(following_id=actor.id, status='accepted').all()
+                log.info(f"Delivering activity to {len(follows)} followers")
+                
+                for follow in follows:
+                    follower = activitypub.ActivityPubActor.query.filter_by(id=follow.follower_id).first()
+                    if follower and not follower.is_local:
+                        # Get the canonical actor URL using WebFinger discovery
+                        actor_url = get_actor_url(follower)
+                        if not actor_url:
+                            log.warning(f"Could not determine actor URL for {follower.username}@{follower.domain}")
+                            delivery_success = False
+                            continue
+                        
+                        # Fetch remote actor's inbox URL
+                        try:
+                            resp = requests.get(actor_url, headers={"Accept": "application/activity+json"}, timeout=10)
+                            if resp.status_code == 200:
+                                inbox_url = resp.json().get('inbox')
+                                if inbox_url:
+                                    log.info(f"Delivering to {follower.username}@{follower.domain} at {inbox_url}")
+                                    success = self._send_to_inbox(activity_data, inbox_url, 3, 30, 'OSP-ActivityPub/1.0')
+                                    if not success:
+                                        delivery_success = False
+                                else:
+                                    log.warning(f"No inbox URL found for {follower.username}@{follower.domain}")
+                                    delivery_success = False
+                            else:
+                                log.warning(f"Failed to fetch actor profile for {follower.username}@{follower.domain}: {resp.status_code}")
+                                delivery_success = False
+                        except Exception as e:
+                            log.warning(f"Failed to deliver to follower {follower.username}@{follower.domain}: {e}")
+                            delivery_success = False
+            
+            return delivery_success
+            
+        except Exception as e:
+            log.error(f"Error in _deliver_activity_to_followers_and_recipients: {e}")
+            return False
     
     def _send_to_inbox(self, activity_data, inbox_url, max_retries=3, timeout=30, user_agent='OSP-ActivityPub/1.0'):
         """Send activity to a specific inbox"""
@@ -510,7 +564,7 @@ class ActivityPubService:
             actor_url = activity_data.get('actor')
             if not actor_url:
                 log.error("No actor URL in activity data")
-                return
+                return False
             
             # Extract actor username from URL
             actor_username = actor_url.split('/')[-1]
@@ -521,7 +575,7 @@ class ActivityPubService:
             
             if not actor:
                 log.error(f"Actor not found: {actor_username}")
-                return
+                return False
             
             # Prepare the request body
             body = json.dumps(activity_data, separators=(',', ':')).encode('utf-8')
@@ -587,11 +641,14 @@ class ActivityPubService:
             
             if response.status_code in [200, 201, 202]:
                 log.info(f"Successfully delivered activity to {inbox_url}")
+                return True
             else:
                 log.warning(f"Failed to deliver activity to {inbox_url}: {response.status_code}")
+                return False
                 
         except Exception as e:
             log.error(f"Error sending to inbox {inbox_url}: {e}")
+            return False
     
     def handle_incoming_activity(self, activity_data):
         """Handle incoming ActivityPub activity"""
