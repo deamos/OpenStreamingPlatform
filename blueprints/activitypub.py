@@ -299,8 +299,10 @@ def followers(username):
                 error_out=False
             )
             items = [
-                f"https://{follow.follower.domain}/activitypub/actors/{follow.follower.username}"
-                for follow in follows.items
+                follower.canonical_url if getattr(follower, 'canonical_url', None)
+                else f"https://{follower.domain}/activitypub/actors/{follower.username}"
+                for follower in (activitypub.ActivityPubActor.query.filter_by(id=follow.follower_id).first() for follow in follows.items)
+                if follower is not None
             ]
             response = {
                 "@context": "https://www.w3.org/ns/activitystreams",
