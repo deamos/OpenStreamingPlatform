@@ -38,6 +38,7 @@ from flask_cors import CORS
 from flask_babel import Babel
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy import exc
+from contextlib import contextmanager
 
 import redis
 
@@ -166,15 +167,10 @@ coreNginxRTMPAddress = "127.0.0.1"
 # Initialize RedisURL Variable
 RedisURL = None
 if config.redisPassword == "" or config.redisPassword is None:
-    RedisURL = "redis://" + config.redisHost + ":" + str(config.redisPort)
+    RedisURL = f"redis://{config.redisHost}:{config.redisPort}"
 else:
     RedisURL = (
-        "redis://:"
-        + config.redisPassword
-        + "@"
-        + config.redisHost
-        + ":"
-        + str(config.redisPort)
+        f"redis://:{config.redisPassword}@{config.redisHost}:{config.redisPort}"
     )
 
 app = Flask(__name__)
@@ -382,7 +378,7 @@ if config.redisPassword == "" or config.redisPassword is None:
         app,
         logger=False,
         engineio_logger=False,
-        message_queue="redis://" + config.redisHost + ":" + str(config.redisPort),
+        message_queue=f"redis://{config.redisHost}:{config.redisPort}",
         ping_interval=20,
         ping_timeout=40,
         cookie=None,
@@ -393,12 +389,7 @@ else:
         app,
         logger=False,
         engineio_logger=False,
-        message_queue="redis://:"
-        + config.redisPassword
-        + "@"
-        + config.redisHost
-        + ":"
-        + str(config.redisPort),
+        message_queue=f"redis://:{config.redisPassword}@{config.redisHost}:{config.redisPort}",
         ping_interval=20,
         ping_timeout=40,
         cookie=None,
@@ -789,6 +780,8 @@ app.logger.info({"level": "info", "message": "Setting Flask Context Processors"}
 # ----------------------------------------------------------------------------#
 # Context Processors
 # ----------------------------------------------------------------------------#
+
+
 @app.context_processor
 def inject_notifications():
     notificationList = []
@@ -869,6 +862,8 @@ app.logger.info({"level": "info", "message": "Initializing Flask Signal Handlers
 # ----------------------------------------------------------------------------#
 # Flask Signal Handlers.
 # ----------------------------------------------------------------------------#
+
+
 @user_registered.connect_via(app)
 def user_registered_sighandler(
     app, user, confirm_token, confirmation_token=None, form_data=None
@@ -883,13 +878,10 @@ def user_registered_sighandler(
     app.logger.info(
         {
             "level": "info",
-            "message": "New User Registered - "
-            + str(user.username)
-            + " - "
-            + str(user.current_login_ip),
+            "message": f"New User Registered - {user.username} - {user.current_login_ip}"
         }
     )
-    system.newLog(1, "A New User has Registered - Username:" + str(user.username))
+    system.newLog(1, f"A New User has Registered - Username: {user.username}")
     
     # Create ActivityPub actor for new user
     try:
@@ -944,7 +936,7 @@ def do_before_request():
     if requestIP != "127.0.0.1":
         try:
             banQuery = banList.ipList.query.filter_by(ipAddress=requestIP).first()
-            if banQuery != None:
+            if banQuery is not None:
                 return str({"error": "banned", "reason": banQuery.reason})
 
             # Apply Guest UUID in Session and Handle Object
@@ -976,7 +968,7 @@ def do_before_request():
                             NewGuest = Sec.Guest(session["guestUUID"], requestIP[0:100])
                             db.session.add(NewGuest)
                             db.session.commit()
-        except:
+        except Exception:
             pass
 
 
@@ -1003,8 +995,10 @@ try:
     
     # Only initialize if ActivityPub is enabled
     if getattr(config, 'activitypubEnabled', False):
-        init_activitypub_service(domain)
-        app.logger.info({"level": "info", "message": "ActivityPub service initialized"})
+        if init_activitypub_service(domain):
+            app.logger.info({"level": "info", "message": "ActivityPub service initialized successfully"})
+        else:
+            app.logger.warning({"level": "warning", "message": "ActivityPub service initialization failed"})
     else:
         app.logger.info({"level": "info", "message": "ActivityPub service disabled in configuration"})
 except Exception as e:
@@ -1027,8 +1021,6 @@ if __name__ == "__main__":
     app.jinja_env.auto_reload = False
     app.config["TEMPLATES_AUTO_RELOAD"] = False
     socketio.run(app, Debug=config.debugMode)
-
-from contextlib import contextmanager
 
 
 @contextmanager

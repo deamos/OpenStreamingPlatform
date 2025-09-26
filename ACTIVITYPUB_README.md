@@ -16,7 +16,7 @@ ActivityPub is a W3C standard for decentralized social networking. This integrat
 
 ### 1. Dependencies
 
-The ActivityPub dependencies are already included in the main `setup/requirements.txt` file:
+The ActivityPub dependencies are already included in the main `pyproject.toml` file:
 
 - `cryptography>=3.4.8` - For RSA key generation and signing
 - `requests>=2.25.1` - For HTTP communication with remote servers
@@ -62,20 +62,20 @@ This will create the following tables:
 - `activitypub_activities` - Stores ActivityPub activities
 - `activitypub_follows` - Stores follow relationships
 
-### 4. Setup and Testing
+### 4. Automatic Setup and Validation
 
-Use the provided setup script to configure and test ActivityPub:
+**No manual setup script needed!** ActivityPub is automatically initialized when the application starts:
 
-```bash
-python setup_activitypub.py
-```
+- **Configuration validation** happens automatically
+- **Database table verification** occurs during startup
+- **Basic functionality testing** runs automatically
+- **Service initialization** is handled by the core application
 
-This script will:
-- Check your configuration
-- Verify database tables exist
-- Test ActivityPub endpoints
-- Create a test actor
-- Test WebFinger discovery
+The system will log the status of each step:
+- ✅ Configuration validated
+- ✅ Database tables verified
+- ✅ Service initialized successfully
+- ⚠️ Any warnings or errors will be logged
 
 ### 5. Restart the Application
 
@@ -96,7 +96,7 @@ python app.py
 **No additional key generation is needed!** The ActivityPub implementation:
 
 - **Generates RSA keys automatically** for each user/channel when they become ActivityPub actors
-- **Uses the cryptography library** (already included in requirements)
+- **Uses the cryptography library** (already included in dependencies)
 - **Stores keys securely** in the database
 - **Does NOT use nginx keys** - ActivityPub has its own key management
 
@@ -122,7 +122,8 @@ When ActivityPub is enabled:
 2. **Set your domain** in configuration
 3. **Run database migration**
 4. **Restart the application**
-5. **Test with the setup script**
+
+That's it! The system handles everything else automatically.
 
 ## API Endpoints
 
@@ -344,6 +345,15 @@ log_level = 'debug'
 ### Log Files
 
 ActivityPub logs are written to the main application log. Look for messages with the prefix `app.functions.activitypub`.
+
+**Startup Logs:**
+When the application starts, you'll see ActivityPub initialization logs:
+```
+INFO: ActivityPub configuration validated - Domain: yourdomain.com
+INFO: ActivityPub database validated - Actors: 5, Activities: 12
+INFO: ActivityPub WebFinger endpoint is working
+INFO: ActivityPub service initialized successfully
+```
 
 ## Contributing
 

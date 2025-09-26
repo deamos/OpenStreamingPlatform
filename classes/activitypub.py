@@ -33,7 +33,7 @@ class ActivityPubActor(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     channel_id = db.Column(db.Integer, db.ForeignKey('Channel.id'), nullable=True)
     
-    def __init__(self, actor_type, username, domain, display_name=None, summary=None):
+    def __init__(self, actor_type, username, domain, display_name=None, summary=None, canonical_url=None):
         self.uuid = str(uuid.uuid4())
         self.actor_type = actor_type
         self.username = username
@@ -44,6 +44,7 @@ class ActivityPubActor(db.Model):
         self.outbox_url = f"https://{domain}/activitypub/actors/{username}/outbox"
         self.followers_url = f"https://{domain}/activitypub/actors/{username}/followers"
         self.following_url = f"https://{domain}/activitypub/actors/{username}/following"
+        self.canonical_url = canonical_url
     
     def to_activitypub(self):
         """Convert to ActivityPub Actor object"""

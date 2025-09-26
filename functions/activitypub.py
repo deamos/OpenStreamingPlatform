@@ -73,21 +73,8 @@ class ActivityPubService:
     
     def __init__(self, domain):
         self.domain = domain
-        # Load configuration
-        try:
-            from conf import config
-            self.config = config
-        except ImportError:
-            # Fallback to default values if config not available
-            self.config = type('Config', (), {
-                'activitypubEnabled': True,
-                'activitypubMaxRetries': 3,
-                'activitypubTimeout': 30,
-                'activitypubUserAgent': 'OSP-ActivityPub/1.0',
-                'activitypubSignatureAlgorithm': 'rsa-sha256',
-                'activitypubDefaultVisibility': 'public',
-                'activitypubCreateNotes': False
-            })()
+        # Use the global config import
+        self.config = config
     
     def create_user_actor(self, user):
         """Create ActivityPub actor for a user"""
@@ -1098,9 +1085,94 @@ activitypub_service = None
 
 
 def init_activitypub_service(domain):
-    """Initialize global ActivityPub service"""
+    """Initialize global ActivityPub service with validation and setup"""
     global activitypub_service
+    
+    # Validate configuration
+    if not validate_activitypub_config():
+        log.error("ActivityPub configuration validation failed")
+        return False
+    
+    # Create service instance
     activitypub_service = ActivityPubService(domain)
+    
+    # Validate database tables
+    if not validate_activitypub_database():
+        log.error("ActivityPub database validation failed")
+        return False
+    
+    # Test basic functionality
+    if not test_activitypub_basics():
+        log.warning("ActivityPub basic functionality test failed")
+    
+    log.info("ActivityPub service initialized successfully")
+    return True
+
+
+def validate_activitypub_config():
+    """Validate ActivityPub configuration"""
+    try:
+        from conf import config
+        
+        # Check required settings
+        enabled = getattr(config, 'activitypubEnabled', False)
+        domain = getattr(config, 'activitypubDomain', None)
+        
+        if not enabled:
+            log.warning("ActivityPub is disabled in configuration")
+            return False
+            
+        if not domain or domain == 'localhost':
+            log.error("ActivityPub domain not properly configured. Set activitypubDomain to your actual domain")
+            return False
+            
+        log.info(f"ActivityPub configuration validated - Domain: {domain}")
+        return True
+        
+    except Exception as e:
+        log.error(f"ActivityPub configuration validation failed: {e}")
+        return False
+
+
+def validate_activitypub_database():
+    """Validate ActivityPub database tables exist"""
+    try:
+        from classes import activitypub
+        
+        # Try to query ActivityPub tables
+        actor_count = activitypub.ActivityPubActor.query.count()
+        activity_count = activitypub.ActivityPubActivity.query.count()
+        
+        log.info(f"ActivityPub database validated - Actors: {actor_count}, Activities: {activity_count}")
+        return True
+        
+    except Exception as e:
+        log.error(f"ActivityPub database validation failed: {e}")
+        log.error("Run 'flask db upgrade' to create ActivityPub tables")
+        return False
+
+
+def test_activitypub_basics():
+    """Test basic ActivityPub functionality"""
+    try:
+        # Get domain from config
+        from conf import config
+        domain = getattr(config, 'activitypubDomain', 'localhost')
+        
+        # Test WebFinger endpoint
+        webfinger_url = f"https://{domain}/.well-known/webfinger?resource=acct:test@{domain}"
+        response = requests.get(webfinger_url, timeout=10)
+        
+        if response.status_code == 200:
+            log.info("ActivityPub WebFinger endpoint is working")
+            return True
+        else:
+            log.warning(f"ActivityPub WebFinger endpoint returned status {response.status_code}")
+            return False
+            
+    except Exception as e:
+        log.warning(f"ActivityPub basic functionality test failed: {e}")
+        return False
 
 
 def get_activitypub_service():
@@ -1117,4 +1189,4 @@ def create_activitypub_actor_for_user(user):
         return None
     except Exception as e:
         log.error(f"Error creating ActivityPub actor for user {user.username}: {e}")
-        return None 
+        return None

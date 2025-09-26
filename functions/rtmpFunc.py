@@ -599,7 +599,7 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
                     "channelLoc": requestedChannel.channelLoc,
                     "ipAddress": None,
                     "message": "Failure - No Pending Video Exists to Close",
-                }   
+                }
                 db.session.close()
                 return returnMessage
 
