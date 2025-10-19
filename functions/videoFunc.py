@@ -112,14 +112,13 @@ def deleteVideo(videoID: int) -> bool:
                 if os.path.exists(gifPath):
                     os.remove(gifPath)
 
-
         cache.delete_memoized(cachedDbCalls.getChannelVideos, recordedVid.channelID)
         cache.delete_memoized(cachedDbCalls.getAllVideo_View, recordedVid.channelID)
         cache.delete_memoized(cachedDbCalls.getVideo, recordedVid.id)
         cache.delete_memoized(cachedDbCalls.getAllVideoByOwnerId, recordedVid.owningUser)
         cache.delete_memoized(cachedDbCalls.getAllVideo)
         if recordedVid.topic is not None:
-             cache.delete_memoized(cachedDbCalls.getTopicsVideo_View, recordedVid.topic)
+            cache.delete_memoized(cachedDbCalls.getTopicsVideo_View, recordedVid.topic)
         # Invalidate caches for related entities if they are cached individually
         cache.delete_memoized(cachedDbCalls.getVideoUpvotes, recordedVid.id)
         cache.delete_memoized(cachedDbCalls.getVideoTags, recordedVid.id)
@@ -185,12 +184,7 @@ def changeVideoMetadata(
             channelQuery.id,
             9,
             channelname=channelQuery.channelName,
-            channelurl=(
-                sysSettings.siteProtocol
-                + sysSettings.siteAddress
-                + "/channel/"
-                + str(channelQuery.id)
-            ),
+            channelurl=f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/channel/{channelQuery.id}",
             channeltopic=templateFilters.get_topicName(channelQuery.topic),
             channelimage=channelImage,
             streamer=templateFilters.get_userName(recordedVidQuery.owningUser),
@@ -199,21 +193,11 @@ def changeVideoMetadata(
             videodate=recordedVidQuery.videoDate,
             videodescription=recordedVidQuery.description,
             videotopic=templateFilters.get_topicName(recordedVidQuery.topic),
-            videourl=(
-                sysSettings.siteProtocol
-                + sysSettings.siteAddress
-                + "/videos/"
-                + recordedVidQuery.videoLocation
-            ),
-            videothumbnail=(
-                sysSettings.siteProtocol
-                + sysSettings.siteAddress
-                + "/videos/"
-                + recordedVidQuery.thumbnailLocation
-            ),
+            videourl=f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/videos/{recordedVidQuery.videoLocation}",
+            videothumbnail=f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/videos/{recordedVidQuery.thumbnailLocation}"
         )
         db.session.commit()
-        system.newLog(4, "Video Metadata Changed - ID # " + str(recordedVidQuery.id))
+        system.newLog(4, f"Video Metadata Changed - ID # {str(recordedVidQuery.id)}")
         return True
     return False
 
@@ -236,14 +220,14 @@ def moveVideo(videoID: int, newChannel: int):
                 try:
                     os.mkdir(videos_root + newChannelQuery.channelLoc)
                 except OSError:
-                    system.newLog(4,f"Error Moving Video ID # {str(recordedVidQuery.id)} to Channel ID {str(newChannelQuery.id)}/{newChannelQuery.channelLoc}",)
+                    system.newLog(4, f"Error Moving Video ID # {str(recordedVidQuery.id)} to Channel ID {str(newChannelQuery.id)}/{newChannelQuery.channelLoc}",)
                     flash("Error Moving Video - Unable to Create Directory", "error")
                     return False
             shutil.move(f"{videos_root}{recordedVidQuery.videoLocation}", f"{videos_root}{newChannelQuery.channelLoc}/{newChannelQuery.channelLoc}_{coreVideo}")
 
             updatedVideoLocation = f"{newChannelQuery.channelLoc}/{newChannelQuery.channelLoc}_{coreVideo}"
 
-            recordedVid = RecordedVideo.RecordedVideo.query.filter_by(id=recordedVidQuery.id).update(dict(videoLocation=updatedVideoLocation, channelID=newChannelQuery.id))
+            RecordedVideo.RecordedVideo.query.filter_by(id=recordedVidQuery.id).update(dict(videoLocation=updatedVideoLocation, channelID=newChannelQuery.id))
 
             if (recordedVidQuery.thumbnailLocation is not None) and (
                 os.path.exists(videos_root + recordedVidQuery.thumbnailLocation)
@@ -270,8 +254,8 @@ def moveVideo(videoID: int, newChannel: int):
                     try:
                         os.mkdir(destClipFolderAbsPath)
                     except OSError:
-                        system.newLog(4,f"Error Moving Video ID #{str(recordedVidQuery.id)} to Channel ID {str(newChannelQuery.id)}/{newChannelQuery.channelLoc}",)
-                        flash("Error Moving Video - Unable to Create Clips Directory","error",)
+                        system.newLog(4, f"Error Moving Video ID #{str(recordedVidQuery.id)} to Channel ID {str(newChannelQuery.id)}/{newChannelQuery.channelLoc}",)
+                        flash("Error Moving Video - Unable to Create Clips Directory", "error",)
                         return False
                 # Update clip channel ID in bulk for efficiency
                 # RecordedVideo.Clips.query.filter_by(parentVideo=recordedVidQuery.id).update({RecordedVideo.Clips.channelID: newChannelQuery.id})
@@ -374,7 +358,7 @@ def createClip(videoID: int, clipStart: float, clipStop: float, clipName: int, c
 
             RecordedVideo.Clips.query.filter_by(id=newClipQuery.id).update(dict(published=True))
 
-            system.newLog(6, "New Clip Created - ID #" + str(redirectID))
+            system.newLog(6, f"New Clip Created - ID # {str(redirectID)}")
 
             # Invalidate caches for the parent video's clips
             cache.delete_memoized(cachedDbCalls.getClipsForVideo, videoID)
@@ -454,7 +438,7 @@ def moveClips(clipId: int, videosRoot: str, destChannelLoc: str) -> bool:
         os.path.join(videosRoot, clipQuery.gifLocation), os.path.join(videosRoot, newGifLocationValue), 
     )
 
-    clipUpdate = RecordedVideo.Clips.query.filter_by(id=clipQuery.id).update(dict(videoLocation=newMp4LocationValue, thumbnailLocation=newPngLocationValue, gifLocation=newGifLocationValue))
+    RecordedVideo.Clips.query.filter_by(id=clipQuery.id).update(dict(videoLocation=newMp4LocationValue, thumbnailLocation=newPngLocationValue, gifLocation=newGifLocationValue))
     db.session.commit()
 
     return True
@@ -469,7 +453,7 @@ def getClipCreationTimeFromFiles(clip: RecordedVideo.Clips) -> None:
     statResults = os.stat(mp4AbsPath)
     try:
         earliestDatetime = datetime.datetime.fromtimestamp(statResults.st_birthtime, datetime.timezone.utc)
-    except AttributeError as e:
+    except AttributeError:
         currentDatetime = None
         earliestDatetime = datetime.datetime.fromtimestamp(statResults.st_ctime, datetime.timezone.utc)
 
@@ -480,7 +464,7 @@ def getClipCreationTimeFromFiles(clip: RecordedVideo.Clips) -> None:
         currentDatetime = datetime.datetime.fromtimestamp(statResults.st_atime, datetime.timezone.utc)
         if currentDatetime < earliestDatetime:
             earliestDatetime = currentDatetime
-    clipUpdate = RecordedVideo.Clips.query.filter_by(id=clip.id).update(dict(clipDate=earliestDatetime))
+    RecordedVideo.Clips.query.filter_by(id=clip.id).update(dict(clipDate=earliestDatetime))
 
     db.session.commit()
 
@@ -500,9 +484,9 @@ def changeClipMetadata(clipID: int, name: str, topicID: int, description: str, c
             or current_user.has_role("Admin")
         ):
 
-            clipUpdate = RecordedVideo.Clips.query.filter_by(id=clipQuery.id).update(dict(clipName=system.strip_html(name), description=system.strip_html(description), topic=topicID))
+            RecordedVideo.Clips.query.filter_by(id=clipQuery.id).update(dict(clipName=system.strip_html(name), description=system.strip_html(description), topic=topicID))
 
-            if clipTags != None:
+            if clipTags is not None:
                 tagArray = system.parseTags(clipTags)
                 existingTagArray = RecordedVideo.clip_tags.query.filter_by(
                     clipID=clipID
@@ -530,7 +514,7 @@ def changeClipMetadata(clipID: int, name: str, topicID: int, description: str, c
 
             # Invalidate caches for the clip's parent video's clips
             if parentVideoID is not None:
-                 cache.delete_memoized(cachedDbCalls.getClipsForVideo, parentVideoID)
+                cache.delete_memoized(cachedDbCalls.getClipsForVideo, parentVideoID)
 
             # Need channelID and owningUser before invalidating channel/user lists
             channelID = clipQuery.channelID # Assuming channelID is loaded
@@ -538,9 +522,9 @@ def changeClipMetadata(clipID: int, name: str, topicID: int, description: str, c
 
             # Invalidate caches for the channel's and user's clip lists
             if channelID is not None:
-                 cache.delete_memoized(cachedDbCalls.getAllClipsForChannel_View, channelID)
+                cache.delete_memoized(cachedDbCalls.getAllClipsForChannel_View, channelID)
             if owningUser is not None:
-                 cache.delete_memoized(cachedDbCalls.getAllClipsForUser, owningUser)
+                cache.delete_memoized(cachedDbCalls.getAllClipsForUser, owningUser)
 
             system.newLog(6, f"Clip Metadata Changed - ID #{str(clipID)}")
             return True
@@ -558,7 +542,7 @@ def deleteClip(clipID: int) -> bool:
         channelID = clipQuery.channelID
         owningUser = clipQuery.owningUser
 
-        clipTagsDelete = RecordedVideo.clip_tags.query.filter_by(clipID=clipQuery.id).delete()
+        RecordedVideo.clip_tags.query.filter_by(clipID=clipQuery.id).delete()
 
         videoPath = None
         if clipQuery.videoLocation is not None:
@@ -599,7 +583,7 @@ def deleteClip(clipID: int) -> bool:
         # Invalidate cache for the specific clip and the parent video's clips
         cache.delete_memoized(cachedDbCalls.getClip, clipID)
         if parentVideoID is not None:
-             cache.delete_memoized(cachedDbCalls.getClipsForVideo, parentVideoID)
+            cache.delete_memoized(cachedDbCalls.getClipsForVideo, parentVideoID)
 
         system.newLog(6, f"Clip Deleted - ID #{str(clipID)}")
         log.info(f"Clip Deleted - ID: {str(clipID)}")

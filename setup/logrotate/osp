@@ -8,5 +8,6 @@
   sharedscripts
   postrotate
       systemctl reload osp.target
+      systemctl reload 'osp-worker@*.service' || true
   endscript
 }

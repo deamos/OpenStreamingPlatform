@@ -30,7 +30,7 @@ def deleteTopic(topicID: int, toTopicID: int) -> bool:
     topics.topics.query.filter_by(id=topicQuery.id).delete()
 
     system.newLog(
-        1, "User " + current_user.username + " deleted Topic " + str(topicQuery.name)
+        1, f"User {current_user.username} deleted Topic {str(topicQuery.name)}"
     )
 
     db.session.commit()

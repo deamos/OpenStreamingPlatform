@@ -38,7 +38,7 @@ def rtmp_stage1_streamkey_check(key: str, ipaddress: str) -> dict:
 
     channelRequest = cachedDbCalls.getChannelByStreamKey(key)
 
-    currentTime = datetime.datetime.utcnow()
+    currentTime = datetime.datetime.now(datetime.timezone.utc)
 
     if channelRequest is not None:
         userQuery = Sec.User.query.filter_by(id=channelRequest.owningUser).first()
@@ -146,7 +146,7 @@ def rtmp_stage1_streamkey_check(key: str, ipaddress: str) -> dict:
 def rtmp_stage2_user_auth_check(channelLoc: str, ipaddress: str, authorizedRTMP: str) -> dict:
     sysSettings = cachedDbCalls.getSystemSettings()
 
-    currentTime = datetime.datetime.utcnow()
+    currentTime = datetime.datetime.now(datetime.timezone.utc)
 
     requestedChannel = cachedDbCalls.getChannelByLoc(channelLoc)
 
@@ -168,48 +168,23 @@ def rtmp_stage2_user_auth_check(channelLoc: str, ipaddress: str, authorizedRTMP:
             db.session.commit()
 
             if requestedChannel.imageLocation is None:
-                channelImage = (
-                    sysSettings.siteProtocol
-                    + sysSettings.siteAddress
-                    + "/static/img/video-placeholder.jpg"
-                )
+                channelImage = f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/static/img/video-placeholder.jpg"
             else:
-                channelImage = (
-                    sysSettings.siteProtocol
-                    + sysSettings.siteAddress
-                    + "/images/"
-                    + requestedChannel.imageLocation
-                )
+                channelImage = f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/images/{requestedChannel.imageLocation}"
 
             message_tasks.send_webhook.delay(
                 requestedChannel.id,
                 0,
                 channelname=requestedChannel.channelName,
-                channelurl=(
-                    sysSettings.siteProtocol
-                    + sysSettings.siteAddress
-                    + "/channel/"
-                    + str(requestedChannel.id)
-                ),
+                channelurl=f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/channel/{requestedChannel.id}",
                 channeltopic=requestedChannel.topic,
                 channelimage=channelImage,
                 streamer=templateFilters.get_userName(requestedChannel.owningUser),
                 channeldescription=str(requestedChannel.description),
                 streamname=authedStream.streamName,
-                streamurl=(
-                    sysSettings.siteProtocol
-                    + sysSettings.siteAddress
-                    + "/view/"
-                    + requestedChannel.channelLoc
-                ),
+                streamurl=f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/view/{requestedChannel.channelLoc}",
                 streamtopic=templateFilters.get_topicName(authedStream.topic),
-                streamimage=(
-                    sysSettings.siteProtocol
-                    + sysSettings.siteAddress
-                    + "/stream-thumb/"
-                    + requestedChannel.channelLoc
-                    + ".png"
-                ),
+                streamimage=f"{sysSettings.siteProtocol}{sysSettings.siteAddress}/stream-thumb/{requestedChannel.channelLoc}.png",
             )
 
             subscriptionQuery = (
@@ -310,7 +285,7 @@ def rtmp_record_auth_check(channelLoc: str) -> dict:
 
     sysSettings = cachedDbCalls.getSystemSettings()
     channelRequest = cachedDbCalls.getChannelByLoc(channelLoc)
-    currentTime = datetime.datetime.utcnow()
+    currentTime = datetime.datetime.now(datetime.timezone.utc)
 
     if channelRequest is not None:
         userQuery = Sec.User.query.filter_by(id=channelRequest.owningUser).first()
@@ -407,7 +382,7 @@ def rtmp_record_auth_check(channelLoc: str) -> dict:
 def rtmp_user_deauth_check(key: str, ipaddress: str) -> dict:
     sysSettings = cachedDbCalls.getSystemSettings()
 
-    currentTime = datetime.datetime.utcnow()
+    currentTime = datetime.datetime.now(datetime.timezone.utc)
 
     closingStreams = Stream.Stream.query.filter_by(
         active=True,
@@ -458,7 +433,7 @@ def rtmp_user_deauth_check(key: str, ipaddress: str) -> dict:
             for stream in authedStream:
                 wasRecorded = False
                 recordingID = None
-                endTimestamp = datetime.datetime.utcnow()
+                endTimestamp = datetime.datetime.now(datetime.timezone.utc)
                 length = (endTimestamp - stream.startTimestamp).total_seconds()
 
                 pendingVideo = RecordedVideo.RecordedVideo.query.filter_by(
@@ -563,7 +538,7 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
     try:
         sysSettings = cachedDbCalls.getSystemSettings()
 
-        currentTime = datetime.datetime.utcnow()
+        currentTime = datetime.datetime.now(datetime.timezone.utc)
 
         requestedChannel = cachedDbCalls.getChannelByLoc(channelLoc)
 
@@ -711,43 +686,14 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
                 for sub in subscriptionQuery:
                     # Create Notification for Channel Subs
                     notificationFunctions.sendNotification(
-                        templateFilters.get_userName(requestedChannel.owningUser)
-                        + " has posted a new video to "
-                        + requestedChannel.channelName
-                        + " titled "
-                        + pendingVideo.channelName,
-                        "/play/" + str(pendingVideo.id),
-                        "/images/"
-                        + str(
-                            templateFilters.get_pictureLocation(
-                                requestedChannel.owningUser
-                            )
-                        ),
-                        sub.userID,
-                    )
+                        f"{templateFilters.get_userName(requestedChannel.owningUser)} has posted a new video to {requestedChannel.channelName} titled {pendingVideo.channelName}", f"/play/{pendingVideo.id}", f"/images/{templateFilters.get_pictureLocation(requestedChannel.owningUser)}",
+                        sub.userID
+                    )        
                     
                 subsFunc.processSubscriptions(
                     requestedChannel.id,
-                    sysSettings.siteName
-                    + " - "
-                    + requestedChannel.channelName
-                    + " has posted a new video",
-                    "<html><body><img src='"
-                    + sysSettings.siteProtocol
-                    + sysSettings.siteAddress
-                    + sysSettings.systemLogo
-                    + "'><p>Channel "
-                    + requestedChannel.channelName
-                    + " has posted a new video titled <u>"
-                    + pendingVideo.channelName
-                    + "</u> to the channel.</p><p>Click this link to watch<br><a href='"
-                    + sysSettings.siteProtocol
-                    + sysSettings.siteAddress
-                    + "/play/"
-                    + str(pendingVideo.id)
-                    + "'>"
-                    + pendingVideo.channelName
-                    + "</a></p>",
+                    f"{sysSettings.siteName} - {requestedChannel.channelName} has posted a new video",
+                    f"<html><body><img src='{sysSettings.siteProtocol}{sysSettings.siteAddress}{sysSettings.systemLogo}'><p>Channel {requestedChannel.channelName} has posted a new video titled <u>{pendingVideo.channelName}</u> to the channel.</p><p>Click this link to watch<br><a href='{sysSettings.siteProtocol}{sysSettings.siteAddress}/play/{pendingVideo.id}'>{pendingVideo.channelName}</a></p>",
                     "video",
                 )
 
@@ -775,11 +721,6 @@ def rtmp_rec_Complete_handler(self, channelLoc: str, path: str, pendingVideoID: 
             }
             return returnMessage
     except Exception as ex:
-        log.exception(
-            "Failed to process Recording Close - Attempt #"
-            + str(self.request.retries)
-            + " : "
-            + str(ex)
-        )
+        log.exception(f"Failed to process Recording Close - Attempt #{self.request.retries} : {ex}")
         self.retry(countdown=3**self.request.retries)
     return {}

@@ -3,7 +3,6 @@ from typing import Iterator
 import logging
 from flask import current_app
 from flask_security import current_user
-from classes.settings import settings
 from classes import Channel
 from classes.Sec import User
 
@@ -52,21 +51,19 @@ def sanityCheck() -> bool:
 
 
 def buildMissingRooms() -> bool:
-    sysSettings = cachedDbCalls.getSystemSettings()
     channelQuery = Channel.Channel.query.join(
         User, Channel.Channel.owningUser == User.id
     ).with_entities(Channel.Channel.channelLoc, User.uuid.label("userUUID"))
     for channel in channelQuery:
         try:
-            xmppQuery = ejabberd.get_room_affiliations(
+            ejabberd.get_room_affiliations(
                 channel.channelLoc, f"conference.{defaultChatDomain}"
             )
-        except:
+        except Exception:
             log.info(
                 {
                     "level": "info",
-                    "message": "Rebuilding missing ejabberd room - "
-                    + str(channel.channelLoc),
+                    "message": f"Rebuilding missing ejabberd room - {str(channel.channelLoc)}",
                 }
             )
 
@@ -116,7 +113,6 @@ def buildRoom(channel_loc, owner_uuid, channel_title="", channel_desc="") -> boo
 
 
 def verifyExistingRooms() -> None:
-    sysSettings = cachedDbCalls.getSystemSettings()
     log.info({"level": "info", "message": "Verifying existing ejabberd Rooms"})
     channelQuery = Channel.Channel.query.join(
         User, Channel.Channel.owningUser == User.id
@@ -193,10 +189,8 @@ def verifyExistingRooms() -> None:
 
 
 def cleanInvalidRooms() -> None:
-    sysSettings = cachedDbCalls.getSystemSettings()
     xmppChannels = ejabberd.muc_online_rooms("global")
 
-    roomList = []
     count = 0
     if "rooms" in xmppChannels:
         for room in xmppChannels["rooms"]:
@@ -217,11 +211,11 @@ def getChannelOccupants(channelLoc) -> Iterator[dict]:
         channelLoc, "conference." + defaultChatDomain
     )['occupants']:
         occupant = {}
-        for kv_item in item['occupant']: # A list of dictionaries, each with only one key-value pair.
+        for kv_item in item['occupant']:  # A list of dictionaries, each with only one key-value pair.
             for key, val in kv_item.items():
                 occupant[key] = val
         
-        user_uuid = occupant['jid'].split('@',1)[0]
+        user_uuid = occupant['jid'].split('@', 1)[0]
         if cachedDbCalls.IsUserGCMByUUID(user_uuid):
             occupant['affiliation'] = 'gcm'
         elif user_uuid in affiliations:
@@ -233,7 +227,6 @@ def getChannelOccupants(channelLoc) -> Iterator[dict]:
 
 
 def getChannelCounts(channelLoc: str) -> int:
-    sysSettings = cachedDbCalls.getSystemSettings()
     roomOccupantsJSON = ejabberd.get_room_occupants_number(
         channelLoc, f"conference.{defaultChatDomain}"
     )
@@ -272,7 +265,6 @@ def getChannelAffiliation(channelLoc: str, user_uuid: str) -> str:
 
 
 def getChannelAffiliations(channelLoc: str) -> dict:
-    sysSettings = cachedDbCalls.getSystemSettings()
     roomAffiliationJSON = ejabberd.get_room_affiliations(
         channelLoc, f"conference.{defaultChatDomain}"
     )
