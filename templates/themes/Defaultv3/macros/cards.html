@@ -2,253 +2,259 @@
 
 {% macro live_stream_card(stream) %}
 <li class="streamCard item">
+    <!-- Hidden data for list.js sorting -->
     <div class="d-none list_streamName">{{ stream.streamName }}</div>
-    <div class="d-none list_streamOwner">{{stream.linkedChannel | channeltoOwnerID | get_userName}}</div>
-    <div class="d-none list_streamViewers">{{stream.currentViewers}}</div>
-    <div class="d-none list_streamTopic">{{stream.topic | get_topicName }}</div>
-    <div class="streamCard-badges">
-        {% if stream.linkedChannel | get_channelProtected %}
-            {{ core_ui.protected_badge() }}
-        {% endif %}
-        {{ core_ui.live_badge() }}
-        {{ core_ui.live_views_badge(stream.currentViewers) }}
+    <div class="d-none list_streamOwner">{{ stream.linkedChannel | channeltoOwnerID | get_userName }}</div>
+    <div class="d-none list_streamViewers">{{ stream.currentViewers }}</div>
+    <div class="d-none list_streamTopic">{{ stream.topic | get_topicName }}</div>
+
+    <!-- Thumbnail with badges overlay -->
+    <div class="streamCard-thumbnail">
+        <div class="streamCard-badges">
+            {% if stream.linkedChannel | get_channelProtected %}
+                {{ core_ui.protected_badge() }}
+            {% endif %}
+            {{ core_ui.live_badge() }}
+            {{ core_ui.live_views_badge(stream.currentViewers) }}
+        </div>
+        <a href="/view/{{ stream.linkedChannel | get_channelLocationFromID }}/">
+            <img class="streamCard-thumb gif lazy" 
+                {% if stream.linkedChannel | get_channelProtected and sysSettings.protectionEnabled %}
+                    src="/static/img/video-locked.jpg" 
+                    onerror="this.src='/static/img/video-locked.jpg';"
+                {% else %}
+                    src="/static/img/video-placeholder.jpg" 
+                    onerror="this.src='/static/img/video-placeholder.jpg';"
+                {% endif %}
+                data-src="/stream-thumb/{{ stream.linkedChannel | get_channelLocationFromID }}.png"
+                alt="{{ stream.streamName }}">
+        </a>
     </div>
-    <a href="/view/{{ stream.linkedChannel | get_channelLocationFromID }}/">
-      <img class="streamCard-thumb boxShadow gif lazy" {% if stream.linkedChannel | get_channelProtected and sysSettings.protectionEnabled %} src="/static/img/video-locked.jpg" onerror="this.src='/static/img/video-locked.jpg';" {% else %} src="/static/img/video-placeholder.jpg" onerror="this.src='/static/img/video-placeholder.jpg';" {% endif %} data-src="/stream-thumb/{{ stream.linkedChannel | get_channelLocationFromID }}.png">
-    </a>
-    <div class="card mb-3" style="max-width: 540px;">
-        <div class="row g-0">
-          <div class="col-2">
-            <a href="/streamer/{{stream.linkedChannel | channeltoOwnerID}}">
-              <img class="mt-3 userImage boxShadow img-fluid rounded-circle" src="/images/{{ stream.linkedChannel | channeltoOwnerID | get_pictureLocation }}" onerror="this.src='/static/img/user2.png';">
-            </a>
-          </div>
-          <div class="col-10">
-            <div class="card-body">
-              <p class="card-text textShadow">
-                <b><a href="/view/{{ stream.linkedChannel | get_channelLocationFromID }}" data-toggle="tooltip" title="{{ stream.streamName }}">{{ stream.streamName }}</a></b><br>
-                <a href="/channel/{{stream.linkedChannel}}" data-toggle="tooltip" title="{{ stream.linkedChannel | get_channelName }}">{{ stream.linkedChannel | get_channelName  }}</a><br>
-                <a href="/topic/{{stream.topic}}" data-toggle="tooltip" title="{{ stream.topic | get_topicName }}">{{ stream.topic | get_topicName }}</a>
-              </p>
-            </div>
-          </div>
+
+    <!-- Info section -->
+    <div class="streamCard-info">
+        <a href="/streamer/{{ stream.linkedChannel | channeltoOwnerID }}" class="streamCard-avatar">
+            <img class="streamCard-avatar-img" src="/images/{{ stream.linkedChannel | channeltoOwnerID | get_pictureLocation }}" onerror="this.src='/static/img/user2.png';" alt="">
+        </a>
+        <div class="streamCard-meta">
+            <a href="/view/{{ stream.linkedChannel | get_channelLocationFromID }}" class="streamCard-title" title="{{ stream.streamName }}">{{ stream.streamName }}</a>
+            <a href="/channel/{{ stream.linkedChannel }}" class="streamCard-channel" title="{{ stream.linkedChannel | get_channelName }}">{{ stream.linkedChannel | get_channelName }}</a>
+            <a href="/topic/{{ stream.topic }}" class="streamCard-topic" title="{{ stream.topic | get_topicName }}">{{ stream.topic | get_topicName }}</a>
         </div>
-        <div class="streamCard-tags row g-0">
-            <div class="col-12">
-                  {% for tag in stream.linkedChannel | get_channelTags %}
-                    <span class="badge rounded-pill bg-primary boxShadow">{{ tag.name }}</span>
-                  {% endfor %}
-            </div>
-        </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="streamCard-tags">
+        {% for tag in stream.linkedChannel | get_channelTags %}
+            <span class="badge rounded-pill bg-primary">{{ tag.name }}</span>
+        {% endfor %}
     </div>
 </li>
 {% endmacro %}
 
 {% macro video_card(video) %}
 <li class="streamCard item">
+    <!-- Hidden data for list.js sorting -->
+    <div class="d-none list-videoName">{{ video.channelName }}</div>
+    <div class="d-none list-videoViews">{{ video.views }}</div>
+    <div class="d-none list-videoDate">{{ video.videoDate }}</div>
+    <div class="d-none list-videoTopic">{{ video.topic | get_topicName }}</div>
 
-  <div class="streamCard-thumbnail-container zoom {% if video.gifLocation != None %}gifhover{% endif %}">
-      <div class="d-none list-videoName">{{ video.channelName }}</div>
-      <div class="d-none list-videoViews">{{ video.views }}</div>
-      <div class="d-none list-videoDate">{{ video.videoDate }}</div>
-      <div class="d-none list-videoTopic">{{ video.topic | get_topicName }}</div>
-      <div class="streamCard-badges">
-          {% if video.channelID | get_channelProtected %}
-          {{ core_ui.protected_badge() }}
-          {% endif %}
-          {{ core_ui.views_badge(video.views) }}
-          {{ core_ui.length_badge(video.length) }}
-      </div>
-      <div class="streamCard-date">
-        {{ core_ui.date_badge(video.videoDate) }}
-      </div>
-      <a href="/play/{{video.id}}">
-        <img class="streamCard-thumb boxShadow lazy" src="/static/img/video-placeholder.jpg" data-src="/videos/{{video.thumbnailLocation}}" onerror="this.src='/static/img/video-placeholder.jpg';">
-      </a>
-  </div>
-  <div class="card mb-3" style="max-width: 540px;">
-      <div class="row g-0">
-        <div class="col-2">
-          <a href="/streamer/{{video.owningUser}}">
-            <img class="mt-3 userImage boxShadow img-fluid rounded-circle" src="/images/{{video.owningUser | get_pictureLocation}}" onerror="this.src='/static/img/user2.png';" alt="Username Picture">
-          </a>
+    <!-- Thumbnail with badges overlay -->
+    <div class="streamCard-thumbnail {% if video.gifLocation != None %}gifhover{% endif %}">
+        <div class="streamCard-badges">
+            {% if video.channelID | get_channelProtected %}
+                {{ core_ui.protected_badge() }}
+            {% endif %}
+            {{ core_ui.views_badge(video.views) }}
+            {{ core_ui.length_badge(video.length) }}
         </div>
-        <div class="col-10">
-          <div class="card-body">
-            <p class="card-text textShadow">
-              <a href="/play/{{video.id}}" data-toggle="tooltip" title="{{ video.channelName }}"><b>{{ video.channelName }}</b></a><br>
-              <a href="/channel/{{video.channelID}}" data-toggle="tooltip" title="{{ video.channelID | get_channelName }}">{{ video.channelID | get_channelName }}</a><br>
-              <a href="/topic/{{video.topic}}" data-toggle="tooltip" title="{{ video.topic | get_topicName }}">{{ video.topic | get_topicName }}</a><br>
-            </p>
-          </div>
+        <div class="streamCard-date">
+            {{ core_ui.date_badge(video.videoDate) }}
         </div>
-      </div>
-      <div class="streamCard-tags row mt-2 g-0">
-          <div class="col-12">
-                {% for tag in video.id | get_videoTags %}
-                  <span class="badge rounded-pill bg-primary boxShadow textShadow">{{ tag.name }}</span>
-                {% endfor %}
-          </div>
-      </div>
-  </div>
+        <a href="/play/{{ video.id }}">
+            <img class="streamCard-thumb lazy" 
+                src="/static/img/video-placeholder.jpg" 
+                data-src="/videos/{{ video.thumbnailLocation }}" 
+                onerror="this.src='/static/img/video-placeholder.jpg';"
+                alt="{{ video.channelName }}">
+        </a>
+    </div>
 
+    <!-- Info section -->
+    <div class="streamCard-info">
+        <a href="/streamer/{{ video.owningUser }}" class="streamCard-avatar">
+            <img class="streamCard-avatar-img" src="/images/{{ video.owningUser | get_pictureLocation }}" onerror="this.src='/static/img/user2.png';" alt="">
+        </a>
+        <div class="streamCard-meta">
+            <a href="/play/{{ video.id }}" class="streamCard-title" title="{{ video.channelName }}">{{ video.channelName }}</a>
+            <a href="/channel/{{ video.channelID }}" class="streamCard-channel" title="{{ video.channelID | get_channelName }}">{{ video.channelID | get_channelName }}</a>
+            <a href="/topic/{{ video.topic }}" class="streamCard-topic" title="{{ video.topic | get_topicName }}">{{ video.topic | get_topicName }}</a>
+        </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="streamCard-tags">
+        {% for tag in video.id | get_videoTags %}
+            <span class="badge rounded-pill bg-primary">{{ tag.name }}</span>
+        {% endfor %}
+    </div>
 </li>
 {% endmacro %}
 
 {% macro clip_card(clip) %}
 <li class="streamCard item">
+    <!-- Hidden data for list.js sorting -->
+    <div class="d-none list-clipName">{{ clip.clipName }}</div>
+    <div class="d-none list-clipViews">{{ clip.views }}</div>
+    <div class="d-none list-clipDate">{{ clip.clipDate }}</div>
+    <div class="d-none list-clipLength">{{ clip.length }}</div>
+    <div class="d-none list-clipTopic">{{ clip.topic | get_topicName }}</div>
 
-    <div class="streamCard-thumbnail-container zoom {% if clip.gifLocation != None %}gifhover{% endif %}">
-        <div class="d-none list-clipName">{{ clip.clipName }}</div>
-        <div class="d-none list-clipViews">{{ clip.views }}</div>
-        <div class="d-none list-clipDate">{{ clip.clipDate }}</div>
-        <div class="d-none list-clipLength">{{ clip.length }}</div>
-        <div class="d-none list-clipTopic">{{ clip.topic | get_topicName }}</div>
+    <!-- Thumbnail with badges overlay -->
+    <div class="streamCard-thumbnail {% if clip.gifLocation != None %}gifhover{% endif %}">
         <div class="streamCard-badges">
             {% if clip.channelID | get_channelProtected %}
-            {{ core_ui.protected_badge() }}
+                {{ core_ui.protected_badge() }}
             {% endif %}
             {{ core_ui.views_badge(clip.views) }}
             {{ core_ui.length_badge(clip.length) }}
         </div>
         <div class="streamCard-date">
-          {{ core_ui.date_badge(clip.clipDate) }}
+            {{ core_ui.date_badge(clip.clipDate) }}
         </div>
-        <a href="/clip/{{clip.id}}">
-          <img class="streamCard-thumb boxShadow lazy" src="/static/img/video-placeholder.jpg" data-src="/videos/{{clip.thumbnailLocation}}" onerror="this.src='/static/img/video-placeholder.jpg';">
+        <a href="/clip/{{ clip.id }}">
+            <img class="streamCard-thumb lazy" 
+                src="/static/img/video-placeholder.jpg" 
+                data-src="/videos/{{ clip.thumbnailLocation }}" 
+                onerror="this.src='/static/img/video-placeholder.jpg';"
+                alt="{{ clip.clipName }}">
         </a>
     </div>
-    <div class="card mb-3" style="max-width: 540px;">
-        <div class="row g-0">
-          <div class="col-2">
-            <a href="/streamer/{{clip.owningUser}}">
-              <img class="mt-3 userImage boxShadow img-fluid rounded-circle" src="/images/{{ clip.owningUser | get_pictureLocation}}" onerror="this.src='/static/img/user2.png';" alt="Username Picture">
-            </a>
-          </div>
-          <div class="col-10">
-            <div class="card-body">
-              <p class="card-text textShadow">
-                <b><a href="/clip/{{clip.id}}" data-toggle="tooltip" title="{{ clip.clipName }}">{{ clip.clipName }}</a></b><br>
-                <a href="/channel/{{clip.channelID}}" data-toggle="tooltip" title="{{ clip.channelID | get_channelName }}">{{ clip.channelID | get_channelName  }}</a><br>
-                <a href="/topic/{{clip.topic}}" data-toggle="tooltip" title="{{ clip.topic | get_topicName }}">{{ clip.topic | get_topicName }}</a>
-              </p>
-            </div>
-          </div>
+
+    <!-- Info section -->
+    <div class="streamCard-info">
+        <a href="/streamer/{{ clip.owningUser }}" class="streamCard-avatar">
+            <img class="streamCard-avatar-img" src="/images/{{ clip.owningUser | get_pictureLocation }}" onerror="this.src='/static/img/user2.png';" alt="">
+        </a>
+        <div class="streamCard-meta">
+            <a href="/clip/{{ clip.id }}" class="streamCard-title" title="{{ clip.clipName }}">{{ clip.clipName }}</a>
+            <a href="/channel/{{ clip.channelID }}" class="streamCard-channel" title="{{ clip.channelID | get_channelName }}">{{ clip.channelID | get_channelName }}</a>
+            <a href="/topic/{{ clip.topic }}" class="streamCard-topic" title="{{ clip.topic | get_topicName }}">{{ clip.topic | get_topicName }}</a>
         </div>
-        <div class="streamCard-tags row mt-2 g-0">
-          <div class="col-12">
-                {% for tag in clip.id | get_clipTags %}
-                  <span class="badge rounded-pill bg-primary boxShadow textShadow">{{ tag.name }}</span>
-                {% endfor %}
-          </div>
-      </div>
     </div>
 
+    <!-- Tags -->
+    <div class="streamCard-tags">
+        {% for tag in clip.id | get_clipTags %}
+            <span class="badge rounded-pill bg-primary">{{ tag.name }}</span>
+        {% endfor %}
+    </div>
 </li>
 {% endmacro %}
 
 {% macro topic_card(topic) %}
-  <li class="topicCard item">
-    <a href="/topic/{{topic.id}}/">
-      <div class="topicImg"><img class="lazy zoom" src="/images/{{topic.iconClass}}" onerror="this.src='/static/img/video-placeholder.jpg';" alt="{{ topic.name }}"></div>
+<li class="topicCard item">
+    <a href="/topic/{{ topic.id }}/" class="topicCard-link">
+        <div class="topicImg">
+            <img class="lazy" src="/images/{{ topic.iconClass }}" onerror="this.src='/static/img/video-placeholder.jpg';" alt="{{ topic.name }}">
+        </div>
     </a>
-      <div class="topicName mt-2"><a href="/topic/{{topic.id}}/" data-toggle="tooltip" title="{{topic.name}}"><b>{{ topic.name | limit_title20 }}</b></a></div>
-  </li>
-
+    <div class="topicName">
+        <a href="/topic/{{ topic.id }}/" title="{{ topic.name }}">{{ topic.name | limit_title20 }}</a>
+    </div>
+</li>
 {% endmacro %}
 
 {% macro streamer_card(streamerInfo) %}
-    <a href="/streamer/{{ streamerInfo.id }}">
-        <li class="streamer-avatar">
-          <img class="shadow zoom" src="/images/{{ streamerInfo.pictureLocation }}" onerror="this.src='/static/img/user2.png';">
-          <div class="username m-t2"><b>{{ streamerInfo.username | limit_string14 }}</b></div>
-        </li>
+<li class="streamer-avatar">
+    <a href="/streamer/{{ streamerInfo.id }}" class="streamer-avatar-link">
+        <img src="/images/{{ streamerInfo.pictureLocation }}" onerror="this.src='/static/img/user2.png';" alt="{{ streamerInfo.username }}">
+        <div class="username">{{ streamerInfo.username | limit_string14 }}</div>
     </a>
+</li>
 {% endmacro %}
 
 {% macro user_card(userInfo) %}
-<a href="/profile/{{ userInfo.username }}">
-  <li class="streamer-avatar">
-    <img class="shadow zoom" src="/images/{{ userInfo.pictureLocation }}" onerror="this.src='/static/img/user2.png';">
-    <div class="username m-t2"><b>{{ userInfo.username | limit_string14 }}</b></div>
-  </li>
-</a>
+<li class="streamer-avatar">
+    <a href="/profile/{{ userInfo.username }}" class="streamer-avatar-link">
+        <img src="/images/{{ userInfo.pictureLocation }}" onerror="this.src='/static/img/user2.png';" alt="{{ userInfo.username }}">
+        <div class="username">{{ userInfo.username | limit_string14 }}</div>
+    </a>
+</li>
 {% endmacro %}
 
 {% macro channel_card(channelData) %}
 <li class="channelCard item">
-    <div class="d-none list_channelName">{{channelData.channelName}}</div>
+    <!-- Hidden data for list.js sorting -->
+    <div class="d-none list_channelName">{{ channelData.channelName }}</div>
     <div class="d-none list_channelOwner">{{ channelData.owningUser | get_userName }}</div>
-    <div class="zoom">
+
+    <!-- Thumbnail with badges -->
+    <div class="channelCard-thumbnail">
         <div class="channelCard-badges">
-        {% if channelData.id | get_channelLiveStatus %}
-            {{ core_ui.live_badge() }}
-        {% endif %}
-        {% if channelData.id | get_channelProtected %}
-            {{ core_ui.protected_badge() }}
-        {% endif %}
-        {% if channelData.private %}
-            {{ core_ui.private_badge() }}
-        {% endif %}
-        {{ core_ui.views_badge(channelData.views) }}
+            {% if channelData.id | get_channelLiveStatus %}
+                {{ core_ui.live_badge() }}
+            {% endif %}
+            {% if channelData.id | get_channelProtected %}
+                {{ core_ui.protected_badge() }}
+            {% endif %}
+            {% if channelData.private %}
+                {{ core_ui.private_badge() }}
+            {% endif %}
+            {{ core_ui.views_badge(channelData.views) }}
         </div>
-        <a href="/channel/{{channelData.id}}/">
-          <div class="channelImg"><img class="lazy" src="/images/{{ channelData.imageLocation }}" onerror="this.src='/static/img/video-placeholder.jpg';" alt="{{ channelData.name }}"></div>
+        <a href="/channel/{{ channelData.id }}/">
+            <div class="channelImg">
+                <img class="lazy" src="/images/{{ channelData.imageLocation }}" onerror="this.src='/static/img/video-placeholder.jpg';" alt="{{ channelData.channelName }}">
+            </div>
         </a>
     </div>
-    <div class="channelMetadata mt-2">
-        <div class="row">
-            <!-- <div class="col-3">
-                <img class="mt-2 userImage boxShadow img-fluid rounded-circle" src="/images/{{ channelData.owningUser | get_pictureLocation }}" alt="{{ channelData.channelName }} Picture" onerror="this.src='/static/img/user2.png';">
-            </div> -->
-            <div class="col">
-                <div class="channelName mt-2">
-                  <b><a href="/channel/{{channelData.id}}/" data-toggle="tooltop" title="{{channelData.channelName}}">{{ channelData.channelName | limit_title20 }}</a></b>
-                </div>
-                <div class="channelOwner">
-                  <b><a href="/streamer/{{channelData.owningUser}}/">{{ channelData.owningUser | get_userName | limit_title20 }}</a></b>
-                </div>
-            </div>
-        </div>
-    </div>
 
+    <!-- Channel info -->
+    <div class="channelCard-info">
+        <a href="/channel/{{ channelData.id }}/" class="channelName" title="{{ channelData.channelName }}">{{ channelData.channelName | limit_title20 }}</a>
+        <a href="/streamer/{{ channelData.owningUser }}/" class="channelOwner">{{ channelData.owningUser | get_userName | limit_title20 }}</a>
+    </div>
 </li>
 {% endmacro %}
 
 {% macro comment_card(comment) %}
-<div class="comment boxShadow" id="vidComment-{{ comment.id }}">
-  <div class="row gx-0">
-    <div class="comment-avatar col-auto mx-1 mt-2">
-        <img class="avatar-md mx-2 boxShadow" src="/images/{{ comment.userID | get_pictureLocation }}" onerror="this.src='/static/img/user2.png';">
-    </div>
-    <div class="col mt-2">
-      <div class="comment-header">
-        <span><b><a href="/profile/{{ comment.userID | get_userName }}">{{ comment.userID | get_userName }}</a></b></span>
-        <span class="float-end me-2"><i class="bi bi-calendar-date"></i> {{ comment.timestamp | normalize_date }}</span>
-      </div>
-      <div class="row my-2">
-        <div class="col-11">
-          <span>{{ comment.comment | markdown }}</span>
+<div class="comment" id="vidComment-{{ comment.id }}">
+    <div class="comment-container">
+        <div class="comment-avatar">
+            <a href="/profile/{{ comment.userID | get_userName }}">
+                <img class="avatar-md" src="/images/{{ comment.userID | get_pictureLocation }}" onerror="this.src='/static/img/user2.png';" alt="">
+            </a>
         </div>
-        <div class="col-1">
-          <span class="float-end me-2">
-            {% if check_isCommentUpvoted(comment.id) %}
-                <button id="commentUpvoteButton-{{comment.id}}" type="button" class="btn btn-success" onclick="changeUpvote('comment',{{comment.id}});"> <i id="commentUpvoteIcon-{{comment.id}}"
-                    class="fas fa-thumbs-up"></i>
-            {% else %} <button type="button" id="commentUpvoteButton-{{comment.id}}" type="button" class="btn btn-outline-success" onclick="changeUpvote('comment',{{comment.id}});"> <i id="commentUpvoteIcon-{{comment.id}}"
-                      class="far fa-thumbs-up"></i>
-            {% endif %}
-                <span id="upvoteTotalComments-{{comment.id}}">{{comment.upvotes|length}}</span></button>
-            {% if video.owningUser == current_user.id or current_user.has_role('Admin') or comment.userID == current_user.id %}
-            <button type="button" data-id="{{comment.id}}" class="deleteComment btn btn-danger shadow" onclick="confirmDeleteComment('{{ comment.id }}');">
-              <i class="fas fa-trash-alt"></i>
-            </button>
-            {% endif %}
-          </span>
+        <div class="comment-content">
+            <div class="comment-header">
+                <a href="/profile/{{ comment.userID | get_userName }}" class="comment-username">{{ comment.userID | get_userName }}</a>
+                <span class="comment-date"><i class="bi bi-calendar-date"></i> {{ comment.timestamp | normalize_date }}</span>
+            </div>
+            <div class="comment-body">
+                {{ comment.comment | markdown }}
+            </div>
+            <div class="comment-actions">
+                {% if check_isCommentUpvoted(comment.id) %}
+                    <button id="commentUpvoteButton-{{ comment.id }}" type="button" class="btn btn-sm btn-success" onclick="changeUpvote('comment', {{ comment.id }});">
+                        <i id="commentUpvoteIcon-{{ comment.id }}" class="fas fa-thumbs-up"></i>
+                        <span id="upvoteTotalComments-{{ comment.id }}">{{ comment.upvotes|length }}</span>
+                    </button>
+                {% else %}
+                    <button id="commentUpvoteButton-{{ comment.id }}" type="button" class="btn btn-sm btn-outline-success" onclick="changeUpvote('comment', {{ comment.id }});">
+                        <i id="commentUpvoteIcon-{{ comment.id }}" class="far fa-thumbs-up"></i>
+                        <span id="upvoteTotalComments-{{ comment.id }}">{{ comment.upvotes|length }}</span>
+                    </button>
+                {% endif %}
+                {% if video.owningUser == current_user.id or current_user.has_role('Admin') or comment.userID == current_user.id %}
+                    <button type="button" data-id="{{ comment.id }}" class="btn btn-sm btn-danger deleteComment" onclick="confirmDeleteComment('{{ comment.id }}');">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                {% endif %}
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 </div>
 {% endmacro %}
 

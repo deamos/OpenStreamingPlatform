@@ -50,42 +50,42 @@
     </button>
 
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <!--Search Bar - Centered-->
+      <div class="searchBox mx-auto my-2 my-lg-0" style="position: relative; display: flex; align-items: center;">
+          <i class="searchIcon bi bi-search" style="position: absolute; left: 12px; font-size: 14px; color: var(--font-color-secondary); pointer-events: none; z-index: 2;"></i>
+          <input id="systemSearchInput" type="text" placeholder="Search..." autocomplete="off" style="padding-left: 38px; padding-right: 12px;">
+          <i id="searchClearIcon" class="searchClear fas fa-times" onclick="clearSearch();" style="position: absolute; right: 12px; font-size: 14px; color: var(--font-color-secondary); cursor: pointer; z-index: 2; display: none;"></i>
+          <div id="searchResults" class="searchResults" style="display:none;">
+            <ul id="searchResultList" class="list-group list-group-flush">
+                <li id="searchResultsGroup-Channels" class="searchResults-Group"><b><i class="bi bi-tv-fill textShadow me-2"></i> Channels</b> <hr>
+                    <ul id="searchResultsList-Channels">
+                    </ul>
+                    <ul id="searchResults-Channels-ShowMore" style="display:none;"><a class="ms-auto" id="searchResults-Channels-ShowMore-link" href="#"><div class="boxShadow textShadow badge badge-success">Show More</div></a></ul>
+                </li>
+                <li id="searchResultsGroup-Streams" class="searchResults-Group"><b><i class="bi bi-tv-fill textShadow me-2"></i> Streams</b> <hr>
+                    <ul id="searchResultsList-Streams">
+                    </ul>
+                    <ul id="searchResults-Streams-ShowMore" style="display:none;"><a class="ms-auto" id="searchResults-Streams-ShowMore-link" href="#"><div class="boxShadow textShadow badge badge-success">Show More</div></a></ul>
+                </li>
+                <li id="searchResultsGroup-Videos" class="searchResults-Group"><b><i class="bi bi-play-circle-fill textShadow me-2"></i> Videos</b> <hr>
+                    <ul id="searchResultsList-Videos">
+                    </ul>
+                    <ul id="searchResults-Videos-ShowMore" style="display:none;"><a class="ms-auto" id="searchResults-Videos-ShowMore-link" href="#"><div class="boxShadow textShadow badge badge-success">Show More</div></a></ul>
+                </li>
+                <li id="searchResultsGroup-Clips" class="searchResults-Group"><b><i class="bi bi-scissors textShadow me-2"></i> Clips</b> <hr>
+                    <ul id="searchResultsList-Clips">
+                    </ul>
+                    <ul id="searchResults-Clips-ShowMore" style="display:none;"><a class="ms-auto" id="searchResults-Clips-ShowMore-link" href="#"><div class="boxShadow textShadow badge badge-success">Show More</div></a></ul>
+                </li>
+                <li id="searchResultsGroup-Users" class="searchResults-Group"><b><i class="bi bi-people-fill textShadow me-2"></i> Users</b> <hr>
+                    <ul id="searchResultsList-Users">
+                    </ul>
+                    <ul id="searchResults-Users-ShowMore" style="display:none;"><a class="ms-auto" id="searchResults-Users-ShowMore-link" href="#"><div class="boxShadow textShadow badge badge-success">Show More</div></a></ul>
+                </li>
+            </ul>
+          </div>
+      </div>
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-        <!--Search Bar-->
-        <div class="searchBox my-2 my-lg-0">
-            <i class="searchIcon bi bi-search"></i>
-            <input id="systemSearchInput" class="insetBoxShadow w-75" type="text" placeholder="Search..." autocomplete="off">
-            <i id="searchClearIcon" class="searchClear fas fa-times" onclick="clearSearch();"></i>
-        </div>
-        <div id="searchResults" class="searchResults" style="display:none;">
-          <ul id="searchResultList" class="list-group list-group-flush">
-              <li id="searchResultsGroup-Channels" class="searchResults-Group"><b><i class="bi bi-tv-fill textShadow me-2"></i> Channels</b> <hr>
-                  <ul id="searchResultsList-Channels">
-                  </ul>
-                  <ul id="searchResults-Channels-ShowMore" style="display:none;"><a class="ms-auto" id="searchResults-Channels-ShowMore-link" href="#"><div class="boxShadow textShadow badge badge-success">Show More</div></a></ul>
-              </li>
-              <li id="searchResultsGroup-Streams" class="searchResults-Group"><b><i class="bi bi-tv-fill textShadow me-2"></i> Streams</b> <hr>
-                  <ul id="searchResultsList-Streams">
-                  </ul>
-                  <ul id="searchResults-Streams-ShowMore" style="display:none;"><a class="ms-auto" id="searchResults-Streams-ShowMore-link" href="#"><div class="boxShadow textShadow badge badge-success">Show More</div></a></ul>
-              </li>
-              <li id="searchResultsGroup-Videos" class="searchResults-Group"><b><i class="bi bi-play-circle-fill textShadow me-2"></i> Videos</b> <hr>
-                  <ul id="searchResultsList-Videos">
-                  </ul>
-                  <ul id="searchResults-Videos-ShowMore" style="display:none;"><a class="ms-auto" id="searchResults-Videos-ShowMore-link" href="#"><div class="boxShadow textShadow badge badge-success">Show More</div></a></ul>
-              </li>
-              <li id="searchResultsGroup-Clips" class="searchResults-Group"><b><i class="bi bi-scissors textShadow me-2"></i> Clips</b> <hr>
-                  <ul id="searchResultsList-Clips">
-                  </ul>
-                  <ul id="searchResults-Clips-ShowMore" style="display:none;"><a class="ms-auto" id="searchResults-Clips-ShowMore-link" href="#"><div class="boxShadow textShadow badge badge-success">Show More</div></a></ul>
-              </li>
-              <li id="searchResultsGroup-Users" class="searchResults-Group"><b><i class="bi bi-people-fill textShadow me-2"></i> Users</b> <hr>
-                  <ul id="searchResultsList-Users">
-                  </ul>
-                  <ul id="searchResults-Users-ShowMore" style="display:none;"><a class="ms-auto" id="searchResults-Users-ShowMore-link" href="#"><div class="boxShadow textShadow badge badge-success">Show More</div></a></ul>
-              </li>
-          </ul>
-        </div>
 
         <!--Begin Authenticated User Navbar Options-->
         {% if current_user.is_authenticated %}
