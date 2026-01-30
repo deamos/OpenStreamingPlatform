@@ -1342,6 +1342,14 @@ select {
   scrollbar-color: #b5b5b5 #858585;
 }
 
+@media (max-width: 1199px) {
+  .video-panel {
+    height: auto;
+    overflow-y: visible;
+    overflow-x: visible;
+  }
+}
+
 /* Chrome, Edge, and Safari */
 .video-panel::-webkit-scrollbar {
   width: 0;
@@ -1656,11 +1664,14 @@ video.vjs-tech {
   
   .vod-main-content {
     max-width: 100%;
+    flex: 0 0 auto;
+    overflow: visible;
   }
   
   .vod-comments-sidebar {
     flex: 0 0 auto;
     width: 100%;
+    order: 2;
   }
 }
 
@@ -1711,7 +1722,8 @@ video.vjs-tech {
 @media (max-width: 1199px) {
   .side-comments-panel {
     height: auto;
-    max-height: 50vh;
+    min-height: 300px;
+    max-height: none;
     border-left: none;
     border-top: 1px solid var(--input-border);
   }
