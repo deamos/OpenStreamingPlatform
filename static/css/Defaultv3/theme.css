@@ -831,7 +831,6 @@ table tbody tr {
 }
 
 .userBannerImg {
-  background-color: var(--banner-background);
   border-radius: 6px;
   padding: 10px 0px 10px 0px;
 }
