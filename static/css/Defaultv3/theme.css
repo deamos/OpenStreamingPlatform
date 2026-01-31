@@ -383,7 +383,7 @@ table tbody tr {
 
 #systemSearchInput {
   height: 36px;
-  width: 280px !important;
+  width: calc(100vw / 3) !important;
   border-radius: var(--corner-radius-sm);
   border: 1px solid var(--input-border);
   background-color: var(--box3-background);
@@ -410,7 +410,7 @@ table tbody tr {
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
-  width: 420px;
+  width: calc(100vw / 3);
   border-radius: var(--corner-radius-sm);
   overflow: hidden;
   margin-top: 8px;
