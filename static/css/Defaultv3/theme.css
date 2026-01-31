@@ -73,6 +73,10 @@ body {
   font-size: var(--font-size);
 }
 
+select {
+  color: var(--font-color) !important;
+}
+
 .table {
   color: var(--font-color) !important;
 }
