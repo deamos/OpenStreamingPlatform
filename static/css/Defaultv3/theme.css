@@ -676,7 +676,8 @@ table tbody tr {
   color: var(--font-color);
   width: 100%;
   padding: 30px 30px;
-  background-color: var(--box2-background);
+  background-size: cover;
+  background-position: center;
 }
 
 .steamer-info-picture-img {
