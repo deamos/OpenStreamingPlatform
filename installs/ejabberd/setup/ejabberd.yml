@@ -33,7 +33,7 @@ loglevel: info
 listen:
   -
     port: 5222
-    ip: "::"
+    ip: "0.0.0.0"
     module: ejabberd_c2s
     max_stanza_size: 262144
     shaper: c2s_shaper
@@ -50,12 +50,12 @@ listen:
   #  starttls_required: true
   -
     port: 5269
-    ip: "::"
+    ip: "0.0.0.0"
     module: ejabberd_s2s_in
     max_stanza_size: 524288
   -
     port: 5443
-    ip: "::FFFF:127.0.0.1"
+    ip: "127.0.0.1"
     module: ejabberd_http
     tls: true
     request_handlers:
@@ -67,7 +67,7 @@ listen:
       /ws: ejabberd_http_ws
   -
     port: 5280
-    ip: "::FFFF:127.0.0.1"
+    ip: "127.0.0.1"
     module: ejabberd_http
     request_handlers:
       /admin: ejabberd_web_admin
@@ -79,7 +79,7 @@ listen:
       /.well-known/acme-challenge: ejabberd_acme
   -
     port: 4560
-    ip: "::FFFF:127.0.0.1"
+    ip: "127.0.0.1"
     module: ejabberd_xmlrpc
     access_commands:
       admin:
@@ -87,7 +87,7 @@ listen:
         options: []
   -
     port: 3478
-    ip: "::"
+    ip: "0.0.0.0"
     transport: udp
     module: ejabberd_stun
     use_turn: true
@@ -97,7 +97,7 @@ listen:
     # turn_ipv6_address: "2001:db8::3"
   -
     port: 1883
-    ip: "::"
+    ip: "0.0.0.0"
     module: mod_mqtt
     backlog: 1000
 
@@ -109,7 +109,6 @@ acl:
   loopback:
     ip:
       - 127.0.0.0/8
-      - ::1/128
   admin:
     user:
       - "admin@localhost"

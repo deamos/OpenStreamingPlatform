@@ -1,6 +1,26 @@
+import socket
 import xmlrpc.client
 
 from http.client import BadStatusLine
+
+
+class _TimeoutTransport(xmlrpc.client.Transport):
+    """XML-RPC transport with a configurable socket timeout.
+
+    Without this, xmlrpc.client.ServerProxy will hang indefinitely when
+    the target host (ejabberd) is not reachable — blocking flask startup
+    and flask db upgrade.
+    """
+
+    def __init__(self, timeout=30, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._timeout = timeout
+
+    def make_connection(self, host):
+        conn = super().make_connection(host)
+        conn.timeout = self._timeout
+        return conn
+
 
 
 class ejabberdctl(object):
@@ -35,7 +55,8 @@ class ejabberdctl(object):
             "missing_arg": "ERROR: call failed, missing input argument",
         }
         uri = "{}://{}:{}".format(protocol, server, port)
-        self.xmlrpc_server = xmlrpc.client.ServerProxy(uri, verbose=verbose)
+        transport = _TimeoutTransport(timeout=30)
+        self.xmlrpc_server = xmlrpc.client.ServerProxy(uri, verbose=verbose, transport=transport)
 
     def ctl(self, command, payload=None):
         """
