@@ -647,6 +647,7 @@ def getAllStreams() -> list:
         .join(Channel.Channel, and_(Channel.Channel.id == Stream.Stream.linkedChannel, Channel.Channel.private == False, Channel.Channel.protected == False))
         .with_entities(
             Stream.Stream.id,
+            Stream.Stream.linkedChannel,
             Stream.Stream.topic,
             Stream.Stream.streamName,
             Stream.Stream.startTimestamp,
