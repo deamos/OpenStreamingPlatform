@@ -3,7 +3,7 @@ from flask import Blueprint, render_template
 from functions import themes
 from functions import cachedDbCalls
 
-livestreams_bp = Blueprint("livestreams", __name__, url_prefix="/livestreams")
+livestreams_bp = Blueprint("livestreams", __name__, url_prefix="/streams")
 
 
 @livestreams_bp.route("/")
