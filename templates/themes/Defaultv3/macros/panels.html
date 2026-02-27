@@ -110,6 +110,35 @@
 </script>
 {% endmacro %}
 
+{% macro clips_panel(clipList, title="Clips") %}
+{%- set listClass = '' | generateRandomString %}
+<div id="{{ listClass }}" class="clips-container insetBoxShadow">
+  <h3 class="textShadow"><b>{{ title }}</b></h3>
+  <ul id="clipList" class="itemList d-flex flex-wrap justify-content-md-start justify-content-evenly list" style="width:100%">
+  {% for clip in clipList %}
+    {{ cards.clip_card(clip) }}
+  {% endfor %}
+  </ul>
+  <ul id="paging_{{ listClass }}" class="pagination justify-content-center panel-pagination"></ul>
+</div>
+<script>
+    list_{{ listClass }}_options = {
+        valueNames: ['list-clipName', 'list-clipViews', 'list-clipTopic'],
+        page: 10,
+        pagination: true
+    };
+    var list_{{ listClass }} = new List('{{listClass}}', list_{{ listClass }}_options);
+    if (list_{{ listClass }}.items.length < 10) {
+        document.getElementById('paging_{{ listClass }}').style.display = "none";
+    }
+    list_{{ listClass }}.on('updated', function(list) {
+        lazyLoadInstance.update();
+        resetGifHover();
+        document.getElementById('{{ listClass }}').scrollIntoView();
+    })
+</script>
+{% endmacro %}
+
 {% macro videos_panel(videoList, title="Videos", order=0, heightOverride=False, justification="start", shadow=True) %}
 {%- set videoListClass = '' | generateRandomString %}
 <div id="{{ videoListClass }}" class="videos-container {% if shadow == True %}boxShadow{% endif %} {% if heightOverride == True %}h-100{% endif %}">

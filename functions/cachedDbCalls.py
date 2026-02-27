@@ -955,6 +955,42 @@ def getAllClipsForUser(userId: int) -> list:
     ).all()
 
 
+@cache.memoize(timeout=60)
+def getAllClips() -> list:
+    """Returns all published clips from public, non-protected channels."""
+    return (
+        RecordedVideo.Clips.query.filter_by(published=True)
+        .join(
+            Channel.Channel,
+            and_(
+                Channel.Channel.id == RecordedVideo.Clips.channelID,
+                Channel.Channel.protected == False,
+                Channel.Channel.private == False,
+            ),
+        )
+        .join(Sec.User, Sec.User.id == RecordedVideo.Clips.owningUser)
+        .with_entities(
+            RecordedVideo.Clips.id,
+            RecordedVideo.Clips.clipName,
+            RecordedVideo.Clips.uuid,
+            RecordedVideo.Clips.thumbnailLocation,
+            RecordedVideo.Clips.owningUser,
+            RecordedVideo.Clips.views,
+            RecordedVideo.Clips.length,
+            Channel.Channel.protected,
+            RecordedVideo.Clips.channelID,
+            Channel.Channel.channelName,
+            RecordedVideo.Clips.topic,
+            Sec.User.pictureLocation,
+            Sec.User.bannerLocation,
+            RecordedVideo.Clips.parentVideo,
+            RecordedVideo.Clips.description,
+            RecordedVideo.Clips.published,
+        )
+        .all()
+    )
+
+
 @cache.memoize(timeout=120)
 def searchClips(term: str) -> list:
     if term is None:
