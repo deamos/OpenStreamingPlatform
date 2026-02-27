@@ -146,9 +146,9 @@
         {% endif %}
 
         <li class="nav-item d-lg-none mx-3 my-1 mx-lg-0 my-lg-0">
-            <a href="/channel">
-                <i class="textShadow bi bi-tv-fill bs-icon"></i>
-                <span class="ms-2" style="position: relative; top: -4px;">Channels</span>
+            <a href="/livestreams">
+                <i class="textShadow bi bi-broadcast bs-icon"></i>
+                <span class="ms-2" style="position: relative; top: -4px;">Live Streams</span>
             </a>
         </li>
         <li class="nav-item d-lg-none mx-3 my-1 mx-lg-0 my-lg-0">
@@ -157,21 +157,6 @@
                 <span class="ms-2" style="position: relative; top: -4px;">Topics</span>
             </a>
         </li>
-
-        <li class="nav-item d-lg-none mx-3 my-1 mx-lg-0 my-lg-0">
-            <a href="/streamer">
-                <i class="textShadow bi-people-fill bs-icon"></i>
-                <span class="ms-2" style="position: relative; top: -4px;">Streamers</span>
-            </a>
-        </li>
-
-        <li class="nav-item d-lg-none mx-3 my-1 mx-lg-0 my-lg-0">
-            <a href="/live">
-                <i class="textShadow bi bi-broadcast bs-icon"></i>
-                <span class="ms-2" style="position: relative; top: -4px;">Live Streams</span>
-            </a>
-        </li>
-
         <li class="nav-item d-lg-none mx-3 my-1 mx-lg-0 my-lg-0">
             <a href="/video">
                 <i class="textShadow bi bi-camera-video-fill bs-icon"></i>
@@ -183,6 +168,18 @@
             <a href="/clips">
                 <i class="textShadow bi bi-scissors bs-icon"></i>
                 <span class="ms-2" style="position: relative; top: -4px;">Clips</span>
+            </a>
+        </li>
+        <li class="nav-item d-lg-none mx-3 my-1 mx-lg-0 my-lg-0">
+            <a href="/channel">
+                <i class="textShadow bi bi-tv-fill bs-icon"></i>
+                <span class="ms-2" style="position: relative; top: -4px;">Channels</span>
+            </a>
+        </li>
+        <li class="nav-item d-lg-none mx-3 my-1 mx-lg-0 my-lg-0">
+            <a href="/streamer">
+                <i class="textShadow bi-people-fill bs-icon"></i>
+                <span class="ms-2" style="position: relative; top: -4px;">Streamers</span>
             </a>
         </li>
 
@@ -220,12 +217,12 @@
 </nav>
 <div id="leftnav" class="uiBar sideNavbar">
     <div class="sideIcons">
+        {{ coreui.ui_sidebar_item("Live Streams", "/livestreams", "bi bi-broadcast") }}
+        {{ coreui.ui_sidebar_item("Videos", "/video", "bi bi-camera-video-fill") }}
+        {{ coreui.ui_sidebar_item("Clips", "/clips", "bi bi-scissors") }}
         {{ coreui.ui_sidebar_item("Channels", "/channel", "bi bi-tv-fill") }}
         {{ coreui.ui_sidebar_item("Topics", "/topic", "bi bi-hash") }}
         {{ coreui.ui_sidebar_item("Streamers", "/streamer", "bi-people-fill") }}
-        {{ coreui.ui_sidebar_item("Live Streams", "/live", "bi bi-broadcast") }}
-        {{ coreui.ui_sidebar_item("Videos", "/video", "bi bi-camera-video-fill") }}
-        {{ coreui.ui_sidebar_item("Clips", "/clips", "bi bi-scissors") }}
         {% for page in static_pages %}
             {% if page.isTopBar == False %}
             {{ coreui.ui_sidebar_item(page.title, "/p/" + page.name, page.iconClass) }}
