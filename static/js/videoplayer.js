@@ -258,34 +258,33 @@ socket.on('newVideoCommentData', function (msg) {
     }
 
     var commentHTML = `
-    <div id="vidComment-${comment.id}" class="row mb-3 video-comment border-bottom pb-3">
-        <div class="col-auto">
-            <a href="/streamer/${comment.userID}">
-                <img class="rounded-circle shadow" style="width: 44px; height: 44px; object-fit: cover;" src="${comment.userPicture}" onerror="this.src='/static/img/user2.png';">
+<div class="comment" id="vidComment-${comment.id}">
+    <div class="comment-container">
+        <div class="comment-avatar">
+            <a href="/profile/${comment.userName}">
+                <img class="avatar-md" src="${comment.userPicture}" onerror="this.src='/static/img/user2.png';" alt="">
             </a>
         </div>
-        <div class="col px-0">
-            <div class="d-flex justify-content-between align-items-baseline mb-1">
-                <div>
-                    <a href="/streamer/${comment.userID}" class="fw-bold text-decoration-none text-body">${comment.userName}</a>
-                    <span class="text-secondary small ms-2">${comment.date}</span>
-                </div>
-                <!-- Controls Placeholder - Real page refresh required for full ownership verification currently, but appending UI handles immediate display -->
-                <button type="button" class="btn btn-sm text-danger ms-2 p-0" title="Delete Comment" onclick="confirmDeleteComment(${comment.id});">
+        <div class="comment-content">
+            <div class="comment-header">
+                <a href="/profile/${comment.userName}" class="comment-username">${comment.userName}</a>
+                <span class="comment-date"><i class="bi bi-calendar-date"></i> ${comment.date}</span>
+            </div>
+            <div class="comment-body">
+                ${comment.comment}
+            </div>
+            <div class="comment-actions">
+                <button id="commentUpvoteButton-${comment.id}" type="button" class="btn btn-sm btn-outline-success" onclick="changeUpvote('comment', ${comment.id});">
+                    <i id="commentUpvoteIcon-${comment.id}" class="far fa-thumbs-up"></i>
+                    <span id="upvoteTotalComments-${comment.id}">0</span>
+                </button>
+                <button type="button" data-id="${comment.id}" class="btn btn-sm btn-danger deleteComment" onclick="confirmDeleteComment('${comment.id}');">
                     <i class="fas fa-trash-alt"></i>
                 </button>
             </div>
-            <div class="comment-text mb-2 text-wrap text-break" style="font-size: 15px;">
-                ${comment.comment}
-            </div>
-            <div class="d-flex align-items-center gap-3">
-                <button id="commentUpvoteButton-${comment.id}" type="button" class="btn btn-outline-success btn-sm border-0 px-2 py-1" onclick="changeUpvote('comment',${comment.id});">
-                    <i id="commentUpvoteIcon-${comment.id}" class="far fa-thumbs-up"></i>
-                    <span id="upvoteTotalComments-${comment.id}" class="ms-1">0</span>
-                </button>
-            </div>
         </div>
-    </div>`;
+    </div>
+</div>`;
 
     var commentsBody = document.getElementById('commentsBody');
     if (commentsBody) {
