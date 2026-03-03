@@ -487,11 +487,6 @@ def newVideoCommentSocketIO(message):
                 + str(recordedVid.id),
             )
             
-            import jinja2
-
-            # Render the comment HTML to broadcast
-            from render import render_template
-            
             try:
                 from flask import current_app
                 with current_app.app_context():
