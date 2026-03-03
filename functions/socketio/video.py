@@ -502,15 +502,18 @@ def newVideoCommentSocketIO(message):
                         "userID": current_user.id,
                         "userPicture": pictureLocation,
                         "userName": current_user.username,
-                        "date": str(newComment.sysdate),
+                        "date": templateFilters.normalize_date(newComment.timestamp),
                         "comment": comment,
                         "upvotes": 0,
                     }
                     socketio.emit('newVideoCommentData', {'comment': comment_data}, room='video-' + str(recordedVid.id))
             except Exception as e:
                 import logging
+                import traceback
                 log = logging.getLogger(__name__)
-                log.warning("SocketIO Comment render emit error: " + str(e))
+                log.error("SocketIO Comment render emit error: " + str(e))
+                with open("socket_error.log", "w") as f:
+                    f.write(traceback.format_exc())
                 pass
 
         db.session.commit()
