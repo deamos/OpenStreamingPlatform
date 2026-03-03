@@ -320,7 +320,7 @@ def createClip(videoID: int, clipStart: float, clipStop: float, clipName: int, c
                 clipName,
                 clipDescription,
             )
-            clipFilesName = f"clip-{newClip.id}"
+            clipFilesName = f"{str(uuid.uuid4())}"
             newClip.published = False
 
             channelLocation = str(cachedDbCalls.getChannelLocationFromID(recordedVidQuery.channelID))
