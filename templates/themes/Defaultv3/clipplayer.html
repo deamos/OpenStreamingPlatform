@@ -24,33 +24,44 @@
 
 <!--Start Body Block-->
 {% block body %}
-    <div class="row gx-0">
-        <div id="mainContentPanel" class="col-xl-6 col-lg-12 col-md-12 col-sm-12 col-12">
+    <div class="vod-page-layout">
+        <div id="mainContentPanel" class="vod-main-content">
             <div class="video-panel">
                 {{ panels.video_player(streamURL, clip.thumbnailLocation) }}
-                <div class="row gx-0 boxShadow">
-                    <div class="col-xl-8 col-lg-8 col-md-12">
-                        {{ panels.clip_metadata_panel(clip) }}
-                    </div>
-                    <div class="col-xl-4 col-lg-4 col-md-12 box2-fill">
-                        <div class="row gx-0">
-                            <div class="col">
-                                {{ panels.clip_control_panel(streamURL, clip, current_user) }}
-                            </div>
+                <div class="video-info-bar box2-fill">
+                    <div class="d-flex align-items-start py-2 px-3">
+                        <div class="flex-grow-1">
+                            {{ panels.clip_metadata_panel(clip) }}
                         </div>
-                        <div class="row gx-0">
-                            <div class="col">
-                                {{ panels.clip_views_panel(clip) }}
-                            </div>
+                        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                            {{ panels.clip_control_panel(streamURL, clip, current_user) }}
+                            {{ panels.clip_views_panel(clip) }}
                         </div>
                     </div>
                 </div>
+                <div class="other-videos-section box2-fill px-3 py-3">
+                    <h5 class="mb-3 fw-semibold">Other Clips</h5>
+                    <ul class="d-flex flex-wrap gap-3 list-unstyled mb-0">
+                        {% for rand_clip in randomClips[:6] %}
+                            {{ cards.clip_card(rand_clip) }}
+                        {% endfor %}
+                    </ul>
+                </div>
             </div>
         </div>
-        <div id="sidePanel" class="col-xl-6 col-lg-12 col-md-12 col-sm-12">
-            <div class="side-video-panel">
-                <div class="side-video-panel-container">
-                    {{ panels.clips_panel(randomClips, title="Other Clips", heightOverride=True, justification="center") }}
+        <div id="sidePanel-comments" class="vod-comments-sidebar">
+            <div class="side-comments-panel">
+                <div id="commentsContainer" class="comments-container">
+                  <div class="comments-header-container my-2">
+                    <span class="fs-3 textShadow"><b>Comments</b></span>
+                  </div>
+                  <div class="comments-content-container">
+                    <div class="text-center my-5">
+                        <i class="bi bi-chat-dots fs-1 text-muted"></i>
+                        <h5 class="mt-3 textShadow">No Comments Yet</h5>
+                        <p class="text-muted">Comments are not supported for clips.</p>
+                    </div>
+                  </div>
                 </div>
             </div>
         </div>
