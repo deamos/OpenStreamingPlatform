@@ -1,16 +1,21 @@
 // Socket.IO Connection
-var conn_options = {'sync disconnect on unload':true};
+var conn_options = { 'sync disconnect on unload': true };
 var socket = io();
 
-var easymdeVideoEditor = new EasyMDE({ autoDownloadFontAwesome: false, spellChecker: false, element: document.getElementById("description")});
+var easymdeVideoEditor = new EasyMDE({ autoDownloadFontAwesome: false, spellChecker: false, element: document.getElementById("description") });
 
 socket.on('connect', function () {
     console.log('Connected to SocketIO');
-    socket.emit('getUpvoteTotal', {loc: videoID, vidType: 'video'});
+    socket.emit('getUpvoteTotal', { loc: videoID, vidType: 'video' });
+    socket.emit('newVideoViewer', { data: "video-" + videoID });
+});
+
+window.addEventListener('beforeunload', function () {
+    socket.emit('removeVideoViewer', { data: "video-" + videoID });
 });
 
 setInterval(function () {
-    socket.emit('getUpvoteTotal', {loc: videoID, vidType: 'video'});
+    socket.emit('getUpvoteTotal', { loc: videoID, vidType: 'video' });
 }, 30000);
 
 socket.on('upvoteTotalResponse', function (msg) {
@@ -59,12 +64,12 @@ socket.on('sendChanSubResults', function (msg) {
 });
 
 function secondsToTimeHMS(seconds) {
-    var secondString = (seconds % 60).toString().padStart(2,'0');
+    var secondString = (seconds % 60).toString().padStart(2, '0');
     if (seconds < 60) {
         return `0:00:${secondString}`;
     }
 
-    var minuteString = (Math.floor(seconds / 60) % 60).toString().padStart(2,'0');
+    var minuteString = (Math.floor(seconds / 60) % 60).toString().padStart(2, '0');
     if (seconds < 3600) {
         return `0:${minuteString}:${secondString}`;
     }
@@ -74,7 +79,7 @@ function secondsToTimeHMS(seconds) {
 }
 
 function changeUpvote(type, id) {
-    socket.emit('changeUpvote', {loc: id, vidType: type});
+    socket.emit('changeUpvote', { loc: id, vidType: type });
 }
 
 function toggleChannelSub(chanID) {
@@ -90,13 +95,12 @@ socket.on('checkScreenShot', function (msg) {
 });
 
 function toggleShareTimestamp(requestURL, startTime) {
-    if (document.getElementById('shareTimestamp').checked)
-    {
-        document.getElementById('embedURLInput').value = '<iframe src="' + requestURL + '?embedded=True&autoplay=True&startTime='.replace('?startTime=' + startTime,'') + player.currentTime() + '" width=600 height=345></iframe>';
-        document.getElementById('linkShareInput').value = requestURL.replace('?startTime=' + startTime,'') + '?startTime=' + player.currentTime();
+    if (document.getElementById('shareTimestamp').checked) {
+        document.getElementById('embedURLInput').value = '<iframe src="' + requestURL + '?embedded=True&autoplay=True&startTime='.replace('?startTime=' + startTime, '') + player.currentTime() + '" width=600 height=345></iframe>';
+        document.getElementById('linkShareInput').value = requestURL.replace('?startTime=' + startTime, '') + '?startTime=' + player.currentTime();
     } else {
-        document.getElementById('embedURLInput').value = '<iframe src="' + requestURL + '?embedded=True&autoplay=True" width=600 height=345></iframe>'.replace('?startTime=' + startTime,'');
-        document.getElementById('linkShareInput').value = requestURL.replace('?startTime=' + startTime,'');
+        document.getElementById('embedURLInput').value = '<iframe src="' + requestURL + '?embedded=True&autoplay=True" width=600 height=345></iframe>'.replace('?startTime=' + startTime, '');
+        document.getElementById('linkShareInput').value = requestURL.replace('?startTime=' + startTime, '');
     }
 }
 
@@ -144,9 +148,9 @@ function openClipModal() {
 
     var clipMaxLengthSpan = document.getElementById('clipMaxLength');
     if (maxClipLength > 300) {
-      clipMaxLengthSpan.innerText = 'Infinite';
+        clipMaxLengthSpan.innerText = 'Infinite';
     } else {
-      clipMaxLengthSpan.innerText = secondsToTimeHMS(maxClipLength);
+        clipMaxLengthSpan.innerText = secondsToTimeHMS(maxClipLength);
     }
 
     $("#clipModal").modal('show');
@@ -225,7 +229,7 @@ function createClip() {
     var clipStart = document.getElementById('clipStartTime').value;
     var clipStop = document.getElementById('clipStopTime').value;
 
-    socket.emit('createClip', {videoID: videoID, clipName: clipName, clipDescription: clipDescription, clipStart: clipStart, clipStop:clipStop});
+    socket.emit('createClip', { videoID: videoID, clipName: clipName, clipDescription: clipDescription, clipStart: clipStart, clipStop: clipStop });
     createNewBSAlert("Clip Queued for Creation", "Success");
 }
 
@@ -236,15 +240,82 @@ function hideComments() {
     contentsDiv.className = 'col-9 mx-auto';
 }
 
+function submitVideoComment(videoID) {
+    var commentText = easymde_Comments.value();
+    if (commentText.trim() === "") {
+        return;
+    }
+    socket.emit('newVideoComment', { videoID: videoID, commentText: commentText });
+    easymde_Comments.value("");
+}
+
+socket.on('newVideoCommentData', function (msg) {
+    var comment = msg.comment;
+
+    var emptyMessage = document.getElementById('emptyCommentsMessage');
+    if (emptyMessage) {
+        emptyMessage.style.display = 'none';
+    }
+
+    var commentHTML = `
+    <div id="vidComment-${comment.id}" class="row mb-3 video-comment border-bottom pb-3">
+        <div class="col-auto">
+            <a href="/streamer/${comment.userID}">
+                <img class="rounded-circle shadow" style="width: 44px; height: 44px; object-fit: cover;" src="${comment.userPicture}" onerror="this.src='/static/img/user2.png';">
+            </a>
+        </div>
+        <div class="col px-0">
+            <div class="d-flex justify-content-between align-items-baseline mb-1">
+                <div>
+                    <a href="/streamer/${comment.userID}" class="fw-bold text-decoration-none text-body">${comment.userName}</a>
+                    <span class="text-secondary small ms-2">${comment.date}</span>
+                </div>
+                <!-- Controls Placeholder - Real page refresh required for full ownership verification currently, but appending UI handles immediate display -->
+                <button type="button" class="btn btn-sm text-danger ms-2 p-0" title="Delete Comment" onclick="confirmDeleteComment(${comment.id});">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+            <div class="comment-text mb-2 text-wrap text-break" style="font-size: 15px;">
+                ${comment.comment}
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <button id="commentUpvoteButton-${comment.id}" type="button" class="btn btn-outline-success btn-sm border-0 px-2 py-1" onclick="changeUpvote('comment',${comment.id});">
+                    <i id="commentUpvoteIcon-${comment.id}" class="far fa-thumbs-up"></i>
+                    <span id="upvoteTotalComments-${comment.id}" class="ms-1">0</span>
+                </button>
+            </div>
+        </div>
+    </div>`;
+
+    var commentsBody = document.getElementById('commentsBody');
+    if (commentsBody) {
+        commentsBody.insertAdjacentHTML('afterbegin', commentHTML);
+    }
+});
+
 function confirmDeleteComment(commentId) {
     document.getElementById('deleteCommentId').value = commentId;
     openModal('confirmDeleteCommentModal');
 }
 
-function deleteComment(){
+function deleteComment() {
     var commentId = document.getElementById('deleteCommentId').value;
     document.getElementById('deleteCommentId').value = '';
-    socket.emit('deleteVideoComment', {commentID: commentId});
-    var commentDiv = document.getElementById('vidComment-' + commentId);
-    commentDiv.parentElement.removeChild(commentDiv);
+    socket.emit('deleteVideoComment', { commentID: commentId });
 }
+
+socket.on('deleteVideoCommentData', function (msg) {
+    var commentId = msg.commentID;
+    var commentDiv = document.getElementById('vidComment-' + commentId);
+    if (commentDiv) {
+        commentDiv.parentElement.removeChild(commentDiv);
+    }
+
+    var commentsBody = document.getElementById('commentsBody');
+    if (commentsBody && commentsBody.children.length === 0) {
+        var emptyMessage = document.getElementById('emptyCommentsMessage');
+        if (emptyMessage) {
+            emptyMessage.style.display = 'block';
+        }
+    }
+});

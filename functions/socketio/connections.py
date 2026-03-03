@@ -256,3 +256,13 @@ def handle_new_popup_viewer(streamData):
 def handle_leaving_popup_viewer(streamData):
     leave_room(streamData["data"])
     return "OK"
+
+@socketio.on("newVideoViewer")
+def handle_new_video_viewer(videoData):
+    join_room(videoData["data"])
+    return "OK"
+
+@socketio.on("removeVideoViewer")
+def handle_leaving_video_viewer(videoData):
+    leave_room(videoData["data"])
+    return "OK"

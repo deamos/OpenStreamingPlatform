@@ -46,7 +46,6 @@ def editVideoSocketIO(message):
         videoAllowComments = False
         if str(message["videoAllowComments"]).upper() == "TRUE":
             videoAllowComments = True
-
         videoQuery = cachedDbCalls.getVideo(videoID)
         if videoQuery is not None:
             if (
@@ -391,31 +390,169 @@ def deleteClipSocketIO(message):
         return abort(401)
 
 
-@socketio.on("deleteVideoComment")
-def deleteVideoCommentSocketIO(message):
-    commentID = int(message["commentID"])
-    commentQuery = comments.videoComments.query.filter_by(id=commentID).first()
-    if commentQuery is not None:
-        recordedVid = cachedDbCalls.getVideo(commentQuery.videoID)
-        if (
-            current_user.has_role("Admin")
-            or recordedVid.owningUser == current_user.id
-            or commentQuery.userID == current_user.id
-        ):
-            upvoteQuery = upvotes.commentUpvotes.query.filter_by(
-                commentID=commentQuery.id
-            ).all()
-            for vote in upvoteQuery:
-                db.session.delete(vote)
-            db.session.delete(commentQuery)
+@socketio.on("newVideoComment")
+def newVideoCommentSocketIO(message):
+    sysSettings = cachedDbCalls.getSystemSettings()
+    
+    if current_user.is_authenticated:
+        videoID = int(message["videoID"])
+        comment = system.strip_html(message["commentText"])
+        currentUser = current_user.id
+
+        recordedVid = cachedDbCalls.getVideo(videoID)
+        if recordedVid is not None:
+            if len(comment) > 2048:
+                comment = comment[:2048]
+
+            newComment = comments.videoComments(currentUser, comment, recordedVid.id)
+            db.session.add(newComment)
             db.session.commit()
+
+            channelQuery = cachedDbCalls.getChannel(recordedVid.channelID)
+            if channelQuery.imageLocation is None:
+                channelImage = (
+                    sysSettings.siteProtocol
+                    + sysSettings.siteAddress
+                    + "/static/img/video-placeholder.jpg"
+                )
+            else:
+                channelImage = (
+                    sysSettings.siteProtocol
+                    + sysSettings.siteAddress
+                    + "/images/"
+                    + channelQuery.imageLocation
+                )
+
+            pictureLocation = ""
+            if current_user.pictureLocation is None:
+                pictureLocation = "/static/img/user2.png"
+            else:
+                pictureLocation = "/images/" + str(current_user.pictureLocation)
+
+            newNotification = notifications.userNotification(
+                templateFilters.get_userName(current_user.id)
+                + " commented on your video - "
+                + recordedVid.channelName,
+                "/play/" + str(recordedVid.id),
+                pictureLocation,
+                recordedVid.owningUser,
+            )
+            db.session.add(newNotification)
+            db.session.commit()
+
+            message_tasks.send_webhook.delay(
+                channelQuery.id,
+                7,
+                channelname=channelQuery.channelName,
+                channelurl=(
+                    sysSettings.siteProtocol
+                    + sysSettings.siteAddress
+                    + "/channel/"
+                    + str(channelQuery.id)
+                ),
+                channeltopic=templateFilters.get_topicName(channelQuery.topic),
+                channelimage=channelImage,
+                streamer=templateFilters.get_userName(channelQuery.owningUser),
+                channeldescription=str(channelQuery.description),
+                videoname=recordedVid.channelName,
+                videodate=recordedVid.videoDate,
+                videodescription=recordedVid.description,
+                videotopic=templateFilters.get_topicName(recordedVid.topic),
+                videourl=(
+                    sysSettings.siteProtocol
+                    + sysSettings.siteAddress
+                    + "/videos/"
+                    + str(recordedVid.videoLocation)
+                ),
+                videothumbnail=(
+                    sysSettings.siteProtocol
+                    + sysSettings.siteAddress
+                    + "/videos/"
+                    + str(recordedVid.thumbnailLocation)
+                ),
+                user=current_user.username,
+                userpicture=(
+                    sysSettings.siteProtocol
+                    + sysSettings.siteAddress
+                    + str(pictureLocation)
+                ),
+                comment=comment,
+            )
+            
             system.newLog(
                 4,
-                "Video Comment Deleted by "
+                "Video Comment Added by "
                 + current_user.username
-                + "to Video ID #"
+                + " to Video ID #"
                 + str(recordedVid.id),
             )
+            
+            import jinja2
+
+            # Render the comment HTML to broadcast
+            from render import render_template
+            
+            try:
+                from flask import current_app
+                with current_app.app_context():
+                    # We can't easily render a macro directly from outside a template, 
+                    # so we will construct a dictionary representing the comment to send to the client
+                    comment_data = {
+                        "id": newComment.id,
+                        "userID": current_user.id,
+                        "userPicture": pictureLocation,
+                        "userName": current_user.username,
+                        "date": str(newComment.sysdate),
+                        "comment": comment,
+                        "upvotes": 0,
+                    }
+                    socketio.emit('newVideoCommentData', {'comment': comment_data}, room='video-' + str(recordedVid.id))
+            except Exception as e:
+                import logging
+                log = logging.getLogger(__name__)
+                log.warning("SocketIO Comment render emit error: " + str(e))
+                pass
+
+        db.session.commit()
+        db.session.close()
+        return "OK"
     db.session.commit()
     db.session.close()
-    return "OK"
+    return abort(401)
+
+
+@socketio.on("deleteVideoComment")
+def deleteVideoCommentSocketIO(message):
+    if current_user.is_authenticated:
+        commentID = int(message["commentID"])
+        commentQuery = comments.videoComments.query.filter_by(id=commentID).first()
+        if commentQuery is not None:
+            recordedVid = cachedDbCalls.getVideo(commentQuery.videoID)
+            if (
+                current_user.has_role("Admin")
+                or recordedVid.owningUser == current_user.id
+                or commentQuery.userID == current_user.id
+            ):
+                videoID = recordedVid.id
+                upvoteQuery = upvotes.commentUpvotes.query.filter_by(
+                    commentID=commentQuery.id
+                ).all()
+                for vote in upvoteQuery:
+                    db.session.delete(vote)
+                db.session.delete(commentQuery)
+                db.session.commit()
+                system.newLog(
+                    4,
+                    "Video Comment Deleted by "
+                    + current_user.username
+                    + " to Video ID #"
+                    + str(recordedVid.id),
+                )
+                
+                socketio.emit('deleteVideoCommentData', {'commentID': commentID}, room='video-' + str(videoID))
+        db.session.commit()
+        db.session.close()
+        return "OK"
+    db.session.commit()
+    db.session.close()
+    return abort(401)

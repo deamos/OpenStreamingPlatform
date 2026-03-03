@@ -230,7 +230,7 @@
   <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
       {% if current_user.is_authenticated == True %}
-      <form action="/play/{{videoID}}/comment" method="post">
+      <form id="commentForm">
         <div class="modal-body">
           <div class="float-end">
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -242,7 +242,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-primary" data-bs-dismiss="modal" aria-label="Close">Close</button>
-          <input type="submit" class="btn btn-primary" value="Submit">
+          <button type="button" class="btn btn-primary" onclick="submitVideoComment({{videoID}});" data-bs-dismiss="modal">Submit</button>
         </div>
       </form>
       {% else %}
