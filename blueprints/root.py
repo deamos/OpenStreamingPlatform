@@ -395,9 +395,9 @@ def vanityURL_live_link(vanityURL):
 
 @root_bp.route("/auth", methods=["POST", "GET"])
 def auth_check():
-    sysSettings = settings.settings.query.with_entities(
-        settings.settings.protectionEnabled
-    ).first()
+    # Fix #4: Use the cached settings call — avoids a raw DB hit on every auth
+    # subrequest cache miss. All other routes already use this pattern.
+    sysSettings = cachedDbCalls.getSystemSettings()
     if sysSettings.protectionEnabled is False:
         return "OK"
 
@@ -418,6 +418,9 @@ def auth_check():
                     db.session.close()
                     return abort(401)
             else:
+                # Fix #3: Close the session before returning — the previous code
+                # leaked a DB connection every time a channel was found but unprotected.
+                db.session.close()
                 return "OK"
 
     db.session.close()
