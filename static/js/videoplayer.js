@@ -1,16 +1,21 @@
 // Socket.IO Connection
-var conn_options = {'sync disconnect on unload':true};
+var conn_options = { 'sync disconnect on unload': true };
 var socket = io();
 
-var easymdeVideoEditor = new EasyMDE({ autoDownloadFontAwesome: false, spellChecker: false, element: document.getElementById("description")});
+var easymdeVideoEditor = new EasyMDE({ autoDownloadFontAwesome: false, spellChecker: false, element: document.getElementById("description") });
 
 socket.on('connect', function () {
     console.log('Connected to SocketIO');
-    socket.emit('getUpvoteTotal', {loc: videoID, vidType: 'video'});
+    socket.emit('getUpvoteTotal', { loc: videoID, vidType: 'video' });
+    socket.emit('newVideoViewer', { data: "video-" + videoID });
+});
+
+window.addEventListener('beforeunload', function () {
+    socket.emit('removeVideoViewer', { data: "video-" + videoID });
 });
 
 setInterval(function () {
-    socket.emit('getUpvoteTotal', {loc: videoID, vidType: 'video'});
+    socket.emit('getUpvoteTotal', { loc: videoID, vidType: 'video' });
 }, 30000);
 
 socket.on('upvoteTotalResponse', function (msg) {
@@ -59,12 +64,12 @@ socket.on('sendChanSubResults', function (msg) {
 });
 
 function secondsToTimeHMS(seconds) {
-    var secondString = (seconds % 60).toString().padStart(2,'0');
+    var secondString = (seconds % 60).toString().padStart(2, '0');
     if (seconds < 60) {
         return `0:00:${secondString}`;
     }
 
-    var minuteString = (Math.floor(seconds / 60) % 60).toString().padStart(2,'0');
+    var minuteString = (Math.floor(seconds / 60) % 60).toString().padStart(2, '0');
     if (seconds < 3600) {
         return `0:${minuteString}:${secondString}`;
     }
@@ -74,7 +79,7 @@ function secondsToTimeHMS(seconds) {
 }
 
 function changeUpvote(type, id) {
-    socket.emit('changeUpvote', {loc: id, vidType: type});
+    socket.emit('changeUpvote', { loc: id, vidType: type });
 }
 
 function toggleChannelSub(chanID) {
@@ -90,13 +95,12 @@ socket.on('checkScreenShot', function (msg) {
 });
 
 function toggleShareTimestamp(requestURL, startTime) {
-    if (document.getElementById('shareTimestamp').checked)
-    {
-        document.getElementById('embedURLInput').value = '<iframe src="' + requestURL + '?embedded=True&autoplay=True&startTime='.replace('?startTime=' + startTime,'') + player.currentTime() + '" width=600 height=345></iframe>';
-        document.getElementById('linkShareInput').value = requestURL.replace('?startTime=' + startTime,'') + '?startTime=' + player.currentTime();
+    if (document.getElementById('shareTimestamp').checked) {
+        document.getElementById('embedURLInput').value = '<iframe src="' + requestURL + '?embedded=True&autoplay=True&startTime='.replace('?startTime=' + startTime, '') + player.currentTime() + '" width=600 height=345></iframe>';
+        document.getElementById('linkShareInput').value = requestURL.replace('?startTime=' + startTime, '') + '?startTime=' + player.currentTime();
     } else {
-        document.getElementById('embedURLInput').value = '<iframe src="' + requestURL + '?embedded=True&autoplay=True" width=600 height=345></iframe>'.replace('?startTime=' + startTime,'');
-        document.getElementById('linkShareInput').value = requestURL.replace('?startTime=' + startTime,'');
+        document.getElementById('embedURLInput').value = '<iframe src="' + requestURL + '?embedded=True&autoplay=True" width=600 height=345></iframe>'.replace('?startTime=' + startTime, '');
+        document.getElementById('linkShareInput').value = requestURL.replace('?startTime=' + startTime, '');
     }
 }
 
@@ -144,9 +148,9 @@ function openClipModal() {
 
     var clipMaxLengthSpan = document.getElementById('clipMaxLength');
     if (maxClipLength > 300) {
-      clipMaxLengthSpan.innerText = 'Infinite';
+        clipMaxLengthSpan.innerText = 'Infinite';
     } else {
-      clipMaxLengthSpan.innerText = secondsToTimeHMS(maxClipLength);
+        clipMaxLengthSpan.innerText = secondsToTimeHMS(maxClipLength);
     }
 
     $("#clipModal").modal('show');
@@ -225,7 +229,7 @@ function createClip() {
     var clipStart = document.getElementById('clipStartTime').value;
     var clipStop = document.getElementById('clipStopTime').value;
 
-    socket.emit('createClip', {videoID: videoID, clipName: clipName, clipDescription: clipDescription, clipStart: clipStart, clipStop:clipStop});
+    socket.emit('createClip', { videoID: videoID, clipName: clipName, clipDescription: clipDescription, clipStart: clipStart, clipStop: clipStop });
     createNewBSAlert("Clip Queued for Creation", "Success");
 }
 
@@ -236,15 +240,81 @@ function hideComments() {
     contentsDiv.className = 'col-9 mx-auto';
 }
 
+function submitVideoComment(videoID) {
+    var commentText = easymde_Comments.value();
+    if (commentText.trim() === "") {
+        return;
+    }
+    socket.emit('newVideoComment', { videoID: videoID, commentText: commentText });
+    easymde_Comments.value("");
+}
+
+socket.on('newVideoCommentData', function (msg) {
+    var comment = msg.comment;
+
+    var emptyMessage = document.getElementById('emptyCommentsMessage');
+    if (emptyMessage) {
+        emptyMessage.style.display = 'none';
+    }
+
+    var commentHTML = `
+<div class="comment" id="vidComment-${comment.id}">
+    <div class="comment-container">
+        <div class="comment-avatar">
+            <a href="/profile/${comment.userName}">
+                <img class="avatar-md" src="${comment.userPicture}" onerror="this.src='/static/img/user2.png';" alt="">
+            </a>
+        </div>
+        <div class="comment-content">
+            <div class="comment-header">
+                <a href="/profile/${comment.userName}" class="comment-username">${comment.userName}</a>
+                <span class="comment-date"><i class="bi bi-calendar-date"></i> ${comment.date}</span>
+            </div>
+            <div class="comment-body">
+                ${comment.comment}
+            </div>
+            <div class="comment-actions">
+                <button id="commentUpvoteButton-${comment.id}" type="button" class="btn btn-sm btn-outline-success" onclick="changeUpvote('comment', ${comment.id});">
+                    <i id="commentUpvoteIcon-${comment.id}" class="far fa-thumbs-up"></i>
+                    <span id="upvoteTotalComments-${comment.id}">0</span>
+                </button>
+                <button type="button" data-id="${comment.id}" class="btn btn-sm btn-danger deleteComment" onclick="confirmDeleteComment('${comment.id}');">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>`;
+
+    var commentsBody = document.getElementById('commentsBody');
+    if (commentsBody) {
+        commentsBody.insertAdjacentHTML('afterbegin', commentHTML);
+    }
+});
+
 function confirmDeleteComment(commentId) {
     document.getElementById('deleteCommentId').value = commentId;
     openModal('confirmDeleteCommentModal');
 }
 
-function deleteComment(){
+function deleteComment() {
     var commentId = document.getElementById('deleteCommentId').value;
     document.getElementById('deleteCommentId').value = '';
-    socket.emit('deleteVideoComment', {commentID: commentId});
-    var commentDiv = document.getElementById('vidComment-' + commentId);
-    commentDiv.parentElement.removeChild(commentDiv);
+    socket.emit('deleteVideoComment', { commentID: commentId });
 }
+
+socket.on('deleteVideoCommentData', function (msg) {
+    var commentId = msg.commentID;
+    var commentDiv = document.getElementById('vidComment-' + commentId);
+    if (commentDiv) {
+        commentDiv.parentElement.removeChild(commentDiv);
+    }
+
+    var commentsBody = document.getElementById('commentsBody');
+    if (commentsBody && commentsBody.children.length === 0) {
+        var emptyMessage = document.getElementById('emptyCommentsMessage');
+        if (emptyMessage) {
+            emptyMessage.style.display = 'block';
+        }
+    }
+});

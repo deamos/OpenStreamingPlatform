@@ -26,22 +26,36 @@
 .chatPanel {
   display: none;
   flex-flow: column;
-  height: calc(100vh - 170px);
+  height: 100%;
 }
+
 .chatPanel .chatHeader {
-  width:100%;
-  flex: 0 1 auto;
-  background-color: var(--box2-background);
-  box-shadow: var(--box-shadow);
+  width: 100%;
+  flex: 0 0 auto;
+  background-color: var(--box1-background);
+  border-bottom: 1px solid var(--input-border);
+  box-shadow: none;
+  padding: 10px 12px;
 }
 
 .chatPanel .chatHeader button {
-    text-decoration: none;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  color: var(--font-color-secondary);
+  transition: color 0.15s ease;
+  padding: 4px 8px;
+}
+
+.chatPanel .chatHeader button:hover {
+  color: var(--accent-color);
 }
 
 .chatPanel .chatContent {
-  flex: 1 1 500px;
-  overflow-x:auto;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: var(--box2-background);
 }
 
 .chatPanel .chatContent .chatEntryContainer {
@@ -49,11 +63,16 @@
 }
 
 .chatPanel .chatContent .chatEntryContainer .chat-messenger {
-  padding: 5px 10px 5px 10px;
+  padding: 8px 12px;
+  background-color: var(--box3-background);
+  min-height: 48px;
+  border-radius: var(--corner-radius-sm);
+  margin: 4px 8px;
+  transition: background-color 0.15s ease;
+}
+
+.chatPanel .chatContent .chatEntryContainer .chat-messenger:hover {
   background-color: var(--box1-background);
-  min-height: 56px;
-  border-radius: 10px;
-  margin: 5px;
 }
 
 .chatPanel .chatContent .chatEntryContainer .chat-messenger .sticker {
@@ -61,9 +80,15 @@
 }
 
 .chatPanel .chatContent .chatEntryContainer .chat-irc {
-  padding: 5px 10px 5px 10px;
-  min-height: 32px;
-  margin: 5px;
+  padding: 4px 12px;
+  min-height: 28px;
+  margin: 2px 8px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.chatPanel .chatContent .chatEntryContainer .chat-irc:hover {
+  background-color: var(--box3-background);
 }
 
 .chatPanel .chatContent .chatEntryContainer .chat-irc .sticker {
@@ -73,49 +98,88 @@
 }
 
 .chatPanel .chatContent .chatEntryContainer .chatEntry .chatImage {
-  width: 64px;
+  width: 56px;
   display: inline-block;
 }
+
 .chatPanel .chatContent .chatEntryContainer .chatEntry .chatImage img {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
 }
+
 .chatPanel .chatContent .chatEntryContainer .chatEntry .chatInfo {
 }
 
 .chatPanel .chatContent .chatEntryContainer .chatEntry .chatInfo .chatTimestamp {
-  color: gray;
+  color: var(--font-color-secondary);
+  font-size: 12px;
 }
 
 .chatPanel .chatContent .chatEntryContainer .chatEntry .chatInfo .chatUsername {
-  font-weight: bold;
+  font-weight: 600;
+  color: var(--accent-color);
 }
 
 .chatPanel .chatContent .chatEntryContainer .chatEntry .chatInfo .chatMessage {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font);
   overflow: hidden;
   word-wrap: break-word;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--font-color);
 }
 
 .chatPanel .chatFooter {
-  flex: 0 1 75px;
-}
-
-.chatPanel .chatFooter input {
-  color: var(--font-color);
-  border: 0 solid black;
-}
-
-.chatInputBox {
-    background-color:var(--box2-background);
-}
-
-.chatInputBox:focus {
-    background-color:var(--box2-background);
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  background-color: var(--box1-background);
+  border-top: 1px solid var(--input-border);
 }
 
 .chatPanel .chatFooter .chatFooterTop {
-  height: 30px;
+  margin-bottom: 0;
+}
+
+.chatPanel .chatFooter .chatFooterTop:has(.btn) {
+  margin-bottom: 8px;
+}
+
+.chatPanel .chatFooter .chatFooterInput .input-group {
+  display: flex;
+  flex-wrap: nowrap;
+}
+
+.chatPanel .chatFooter .chatFooterInput .input-group .chatInputBox {
+  flex: 1;
+  min-width: 0;
+}
+
+.chatPanel .chatFooter .chatFooterInput .input-group .btn {
+  flex-shrink: 0;
+}
+
+.chatInputBox {
+  background-color: var(--box3-background);
+  border: 1px solid var(--input-border);
+  border-radius: var(--corner-radius-sm) 0 0 var(--corner-radius-sm);
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--font-color);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.chatInputBox:focus {
+  background-color: var(--box3-background);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(145, 70, 255, 0.25);
+  outline: none;
+  z-index: 1;
+}
+
+.chatInputBox::placeholder {
+  color: var(--font-color-secondary);
 }
 
 .chatMembersOverlay {
@@ -354,9 +418,10 @@
     display: none;
     width: 100%;
     right: 0px;
-    box-shadow: 0 1px 15px 1px rgba(0,0,0,.08);
-    background-color: #fff;
-    border-radius: 6px;
+    box-shadow: var(--box-shadow);
+    background-color: var(--box1-background);
+    border: 1px solid var(--input-border);
+    border-radius: var(--corner-radius-sm);
     transition-duration: 200ms;
     transition-delay: 0ms;
     transform-style: flat;
@@ -382,16 +447,18 @@
     left: 20px;
     right: 20px;
     height: 40px;
-    border-bottom: 1px solid #edeff1;
+    border-bottom: 1px solid var(--input-border);
 }
 .chatsticker-composer-popover-input {
     font-weight: 400;
     font-size: 14px;
-    color: #6e7a89;
+    color: var(--font-color);
+    background-color: var(--box3-background);
     height: 40px;
     width: 100%;
     box-sizing: border-box;
-    border-bottom: 1px solid black;
+    border: none;
+    border-bottom: 1px solid var(--input-border);
     outline: none;
 }
 .chatsticker-composer-popover-body {
@@ -449,49 +516,58 @@
 }
 
 .profileBox {
-  background-color: var(--box2-background);
+  background-color: var(--box1-background);
   width: 380px;
-  height:115px;
-  border: 0px solid black;
+  height: 115px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--corner-radius-sm);
+  box-shadow: var(--box-shadow);
 }
 
 .profileBoxHeader {
-  background-color: var(--box1-background);
-  border-radius: 5px 5px 0px 0px;
-  color:var(--font-color);
-  height:60px;
-  width:100%;
+  background-color: var(--box3-background);
+  border-radius: var(--corner-radius-sm) var(--corner-radius-sm) 0 0;
+  color: var(--font-color);
+  height: 60px;
+  width: 100%;
+  padding: 12px;
 }
 
 .profileBoxHeader .close {
-  color:var(--font-color);
+  color: var(--font-color-secondary);
+  transition: color 0.15s ease;
+}
+
+.profileBoxHeader .close:hover {
+  color: var(--font-color);
 }
 
 .profileBoxPic {
-  width:40px;
-  height:40px;
-  background-color: green;
+  width: 40px;
+  height: 40px;
+  background-color: var(--accent-color);
   text-align: center;
+  border-radius: 50%;
 }
 
 #iconBar-owner {
-  color: gold;
+  color: #ffd700;
 }
 #iconBar-admin {
-  color: gold;
+  color: #ffd700;
 }
 #iconBar-mod {
-  color: orange;
+  color: #ff9500;
 }
 #iconBar-member {
-  color:gold;
+  color: var(--accent-success);
 }
 #iconBar-muted {
-  color:red;
+  color: var(--accent-danger);
 }
 #iconBar-voice {
-  color:white;
+  color: var(--font-color);
 }
 #iconBar-visitor {
-  color:white;
+  color: var(--font-color-secondary);
 }

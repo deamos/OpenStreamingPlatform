@@ -28,9 +28,9 @@ class ExtendedRegisterForm(RegisterForm):
     if globalvars.recaptchaEnabled is True:
         recaptcha = RecaptchaField()
 
-    def validate(self):
+    def validate(self, **kwargs):
         success = True
-        if not super(ExtendedRegisterForm, self).validate():
+        if not super(ExtendedRegisterForm, self).validate(**kwargs):
             success = False
         if (
             db.session.query(User)
@@ -58,9 +58,9 @@ class ExtendedConfirmRegisterForm(ConfirmRegisterForm):
     if globalvars.recaptchaEnabled is True:
         recaptcha = RecaptchaField()
 
-    def validate(self):
+    def validate(self, **kwargs):
         success = True
-        if not super(ExtendedConfirmRegisterForm, self).validate():
+        if not super(ExtendedConfirmRegisterForm, self).validate(**kwargs):
             success = False
         if (
             db.session.query(User)
@@ -78,7 +78,7 @@ class ExtendedConfirmRegisterForm(ConfirmRegisterForm):
 
 
 class OSPLoginForm(LoginForm):
-    def validate(self):
+    def validate(self, **kwargs):
         isvalid = False
         userQuery = User.query.filter_by(
             username=self.email.data.strip(), authType=0
@@ -92,7 +92,7 @@ class OSPLoginForm(LoginForm):
             if userQuery is not None:
                 isvalid = True
         if isvalid is True:
-            response = super(OSPLoginForm, self).validate()
+            response = super(OSPLoginForm, self).validate(**kwargs)
             return response
         else:
             flash("Invalid Username or Password", "error")

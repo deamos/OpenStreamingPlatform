@@ -187,7 +187,6 @@ app.config["SQLALCHEMY_POOL_RECYCLE"] = 300
 app.config["SQLALCHEMY_POOL_TIMEOUT"] = 600
 app.config["MYSQL_DATABASE_CHARSET"] = "utf8"
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "encoding": "utf8",
     "pool_use_lifo": True,
     "pool_size": 20,
     "pool_pre_ping": True,
@@ -733,6 +732,9 @@ from blueprints.settings.settings import settings_bp
 from blueprints.oauth import oauth_bp
 from blueprints.m3u8 import m3u8_bp
 from blueprints.activitypub import activitypub_bp, discovery_bp
+from blueprints.livestreams import livestreams_bp
+from blueprints.videos import videos_bp
+from blueprints.clips import clips_bp
 
 # Register all Blueprints
 app.register_blueprint(errorhandler_bp)
@@ -751,6 +753,9 @@ app.register_blueprint(oauth_bp)
 app.register_blueprint(m3u8_bp)
 app.register_blueprint(activitypub_bp)
 app.register_blueprint(discovery_bp)
+app.register_blueprint(livestreams_bp)
+app.register_blueprint(videos_bp)
+app.register_blueprint(clips_bp)
 
 app.logger.info({"level": "info", "message": "Initializing Template Filters"})
 # ----------------------------------------------------------------------------#

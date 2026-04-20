@@ -105,7 +105,6 @@ RUN cp /tmp/flask-nginx-rtmp-manager/installs/osp-edge/setup/nginx/services/* /u
 # Install Python, Gunicorn, and uWSGI
 RUN apk add python3 \
   py3-pip \
-  py3-setuptools \
   python3-dev \
   py3-gunicorn \
   uwsgi-python3

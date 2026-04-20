@@ -647,6 +647,7 @@ def getAllStreams() -> list:
         .join(Channel.Channel, and_(Channel.Channel.id == Stream.Stream.linkedChannel, Channel.Channel.private == False, Channel.Channel.protected == False))
         .with_entities(
             Stream.Stream.id,
+            Stream.Stream.linkedChannel,
             Stream.Stream.topic,
             Stream.Stream.streamName,
             Stream.Stream.startTimestamp,
@@ -953,6 +954,42 @@ def getAllClipsForUser(userId: int) -> list:
         RecordedVideo.Clips.description,
         RecordedVideo.Clips.published,
     ).all()
+
+
+@cache.memoize(timeout=60)
+def getAllClips() -> list:
+    """Returns all published clips from public, non-protected channels."""
+    return (
+        RecordedVideo.Clips.query.filter_by(published=True)
+        .join(
+            Channel.Channel,
+            and_(
+                Channel.Channel.id == RecordedVideo.Clips.channelID,
+                Channel.Channel.protected == False,
+                Channel.Channel.private == False,
+            ),
+        )
+        .join(Sec.User, Sec.User.id == RecordedVideo.Clips.owningUser)
+        .with_entities(
+            RecordedVideo.Clips.id,
+            RecordedVideo.Clips.clipName,
+            RecordedVideo.Clips.uuid,
+            RecordedVideo.Clips.thumbnailLocation,
+            RecordedVideo.Clips.owningUser,
+            RecordedVideo.Clips.views,
+            RecordedVideo.Clips.length,
+            Channel.Channel.protected,
+            RecordedVideo.Clips.channelID,
+            Channel.Channel.channelName,
+            RecordedVideo.Clips.topic,
+            Sec.User.pictureLocation,
+            Sec.User.bannerLocation,
+            RecordedVideo.Clips.parentVideo,
+            RecordedVideo.Clips.description,
+            RecordedVideo.Clips.published,
+        )
+        .all()
+    )
 
 
 @cache.memoize(timeout=120)

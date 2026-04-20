@@ -303,7 +303,7 @@ def rtmp_record_auth_check(channelLoc: str) -> dict:
                 Stream.Stream.query.filter_by(
                     complete=False, linkedChannel=channelRequest.id
                 )
-                .with_entities(Stream.Stream.id)
+                .with_entities(Stream.Stream.id, Stream.Stream.streamName, Stream.Stream.topic)
                 .first()
             )
 
@@ -313,8 +313,8 @@ def rtmp_record_auth_check(channelLoc: str) -> dict:
                 newRecording = RecordedVideo.RecordedVideo(
                     userQuery.id,
                     channelRequest.id,
-                    channelRequest.channelName,
-                    channelRequest.topic,
+                    existingStream.streamName,
+                    existingStream.topic,
                     0,
                     "",
                     currentTime,

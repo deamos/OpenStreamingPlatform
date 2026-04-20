@@ -29,35 +29,34 @@
 
 <!--Start Body Block-->
 {% block body %}
-    <div class="row gx-0">
-        <div id="mainContentPanel" class="col-xl-6 col-lg-12 col-md-12 col-sm-12 col-12">
+    <div class="vod-page-layout">
+        <div id="mainContentPanel" class="vod-main-content">
             <div class="video-panel">
                 {{ panels.video_player(streamURL, video.thumbnailLocation) }}
-                <div class="row gx-0 boxShadow">
-                    <div class="col-xl-8 col-lg-8 col-md-12">
-                        {{ panels.video_metadata_panel(video) }}
-                    </div>
-                    <div class="col-xl-4 col-lg-4 col-md-12 box2-fill">
-                        <div class="row gx-0">
-                            <div class="col">
-                                {{ panels.video_control_panel(streamURL, video, current_user) }}
-                            </div>
+                <div class="video-info-bar box2-fill">
+                    <div class="d-flex align-items-start py-2 px-3">
+                        <div class="flex-grow-1">
+                            {{ panels.video_metadata_panel(video) }}
                         </div>
-                        <div class="row gx-0">
-                            <div class="col">
-                                {{ panels.video_views_panel(video) }}
-                            </div>
+                        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                            {{ panels.video_control_panel(streamURL, video, current_user) }}
+                            {{ panels.video_views_panel(video) }}
                         </div>
                     </div>
                 </div>
-                {{ panels.comments_panel(video.id | get_videoComments, video.allowComments, sysSettings.allowComments) }}
+                <div class="other-videos-section box2-fill px-3 py-3">
+                    <h5 class="mb-3 fw-semibold">Other Videos</h5>
+                    <ul class="d-flex flex-wrap gap-3 list-unstyled mb-0">
+                        {% for vid in randomRecorded[:6] %}
+                            {{ cards.video_card(vid) }}
+                        {% endfor %}
+                    </ul>
+                </div>
             </div>
         </div>
-        <div id="sidePanel" class="col-xl-6 col-lg-12 col-md-12 col-sm-12">
-            <div class="side-video-panel">
-                <div class="side-video-panel-container">
-                    {{ panels.videos_panel(randomRecorded, title="Other Videos", heightOverride=True, justification="center", shadow=False) }}
-                </div>
+        <div id="sidePanel-comments" class="vod-comments-sidebar">
+            <div class="side-comments-panel">
+                {{ panels.comments_panel(video.id | get_videoComments, video.allowComments, sysSettings.allowComments) }}
             </div>
         </div>
     </div>
