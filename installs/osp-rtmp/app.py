@@ -39,6 +39,10 @@ except:
     config.secretKey = os.getenv("OSP_RTMP_SECRETKEY")
     config.debugMode = os.getenv("OSP_RTMP_DEBUG").lower() in ("true", "1", "t")
 
+    config.redisHost = os.getenv("OSP_REDIS_HOST", "127.0.0.1")
+    config.redisPort = int(os.getenv("OSP_REDIS_PORT", 6379))
+    config.redisPassword = os.getenv("OSP_REDIS_PASSWORD", "")
+
 # ----------------------------------------------------------------------------#
 # Global Vars Imports
 # ----------------------------------------------------------------------------#

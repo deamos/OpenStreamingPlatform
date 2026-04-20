@@ -193,6 +193,9 @@ services:
     environment:
       - OSP_API_HOST=http://osp_core
       - OSP_RTMP_SECRETKEY=changeme
+      - OSP_REDIS_HOST=osp_redis
+      - OSP_REDIS_PORT=6379
+      - OSP_REDIS_PASSWORD=
     volumes:
       - "/srv/docker/osp-app/data/www:/var/www"
       - "/srv/docker/osp-app/data/tmpfs/live:/var/www/live"

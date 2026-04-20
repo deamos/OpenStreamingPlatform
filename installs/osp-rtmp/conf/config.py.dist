@@ -10,3 +10,8 @@ ospCoreAPI = "http://127.0.0.1:5010"
 # sentryIO_Enabled = False
 # sentryIO_DSN = "https://subdomain.ingest.sentry.io/0"
 # sentryIO_Environment = "Dev"
+
+# Redis Configuration
+redisHost = "127.0.0.1"
+redisPort = 6379
+redisPassword = ""
