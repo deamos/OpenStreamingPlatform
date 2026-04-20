@@ -791,8 +791,8 @@ install_osp() {
   log_exec sudo systemctl enable osp.target
 
   log_exec sudo cp "$DIR/setup/nginx/locations/"* /usr/local/nginx/conf/locations
-  log_exec sudo cp "$DIR/setup/nginx/upstream/osp.conf" /usr/local/nginx/conf/upstream
-  log_exec sudo cp "$DIR/setup/nginx/upstream/osp-edge.conf" /usr/local/nginx/conf/upstream
+  # Deploy all upstream configs (includes osp-maps.conf, osp.conf, osp-edge.conf, etc.)
+  log_exec sudo cp -rf "$DIR/setup/nginx/upstream/"*.conf /usr/local/nginx/conf/upstream
 
   # Create web directories
   log_step "Creating video directories..."
@@ -892,8 +892,8 @@ upgrade_osp() {
 
     log_step "Upgrading Nginx configurations..."
     log_exec sudo cp -rf /opt/osp/setup/nginx/locations/* /usr/local/nginx/conf/locations
-    log_exec sudo cp -rf /opt/osp/setup/nginx/upstream/osp.conf /usr/local/nginx/conf/upstream
-    log_exec sudo cp -rf /opt/osp/setup/nginx/upstream/osp-edge.conf /usr/local/nginx/conf/upstream
+    # Deploy all upstream configs (includes osp-maps.conf, osp.conf, osp-edge.conf, etc.)
+    log_exec sudo cp -rf /opt/osp/setup/nginx/upstream/*.conf /usr/local/nginx/conf/upstream
     log_exec sudo cp "$DIR/setup/gunicorn/osp.target" /etc/systemd/system/
     log_exec sudo cp "$DIR/setup/gunicorn/osp-worker@.service" /etc/systemd/system/
     log_exec sudo systemctl daemon-reload
