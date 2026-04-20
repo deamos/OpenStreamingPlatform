@@ -301,7 +301,7 @@ socket.on('newRestreamAck', function (msg) {
 
     var buttonText = '<button type="button" class="btn btn-sm btn-danger" onclick="deleteRestream(\'' + restreamID + '\')"><i class="far fa-trash-alt"></i></button>';
 
-    restreamNameCell.appendChild(document.createTextNode(restreamName));
+    restreamNameCell.innerHTML = restreamName + ' <span class="badge bg-secondary ms-2 restream-status-badge" id="restreamStatus-' + restreamID + '">Offline</span>';
     restreamURLCell.appendChild(document.createTextNode(restreamURL));
     restreamEnableCell.innerHTML = restreamEnableText;
     buttonCell.innerHTML = buttonText;

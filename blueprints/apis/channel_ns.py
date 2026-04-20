@@ -4,6 +4,7 @@ from flask import request
 import uuid
 import shutil
 import socket
+import json
 
 from classes import settings
 from classes import Channel
@@ -389,6 +390,38 @@ class api_1_GetRestreams(Resource):
         else:
             db.session.commit()
             return {"results": {"message": "Request Error"}}, 400
+
+@api.route("/<string:channelEndpointID>/restreamStatus")
+@api.doc(security="apikey")
+@api.doc(params={"channelEndpointID": "GUID Channel Location"})
+class api_1_GetRestreamStatus(Resource):
+    def get(self, channelEndpointID):
+        """
+        Returns live status of all restream destinations for a channel
+        """
+        if "X-API-KEY" in request.headers:
+            requestAPIKey = apikey.apikey.query.filter_by(key=request.headers["X-API-KEY"]).first()
+            if requestAPIKey is None or not requestAPIKey.isValid():
+                return {"results": {"message": "Unauthorized"}}, 401
+        else:
+            from flask_security import current_user
+            if not current_user.is_authenticated:
+                return {"results": {"message": "Unauthorized"}}, 401
+            
+            # Check if user is the owner or admin
+            channelQuery = Channel.Channel.query.filter_by(channelLoc=channelEndpointID).first()
+            if channelQuery is None or (channelQuery.owningUser != current_user.id and not current_user.has_role("Admin")):
+                return {"results": {"message": "Unauthorized"}}, 401
+
+        status_data = globalvars.r.get(f"osp:restream_status:{channelEndpointID}")
+        if status_data:
+            try:
+                status = json.loads(status_data)
+                return {"results": status}, 200
+            except:
+                pass
+        
+        return {"results": {}}, 200
 
 
 # Invites Endpoint for a Channel

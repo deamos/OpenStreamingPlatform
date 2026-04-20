@@ -452,3 +452,32 @@ class api_1_rtmp_playbackauth(Resource):
                                         return {"results": True}, 200
         db.session.close()
         return {"results": False}, 400
+
+@api.route("/restreamStatus")
+class api_1_rtmp_restreamStatus(Resource):
+    @api.doc(responses={200: "Success", 400: "Request Error"})
+    def post(self):
+        """
+        Receive live restream status from OSP-RTMP and save to Redis
+        """
+        # Perform RTMP IP Authorization Check
+        authorized = checkRTMPAuthIP(request)
+        if authorized[0] is False:
+            return {"results": {"message": "Unauthorized RTMP Server - " + authorized[1]}}, 400
+
+        data = request.get_json()
+        if data and "channelLoc" in data and "status" in data:
+            import json
+            from globals import globalvars
+            channelLoc = data["channelLoc"]
+            status = data["status"]
+            
+            # Save to Redis with a 30 second TTL
+            try:
+                globalvars.r.set(f"osp:restream_status:{channelLoc}", json.dumps(status), ex=30)
+                return {"results": {"success": True}}, 200
+            except Exception as e:
+                log.error(f"Failed to save restream status to Redis: {e}")
+                return {"results": {"success": False, "message": "Redis Error"}}, 500
+        else:
+            return {"results": {"success": False, "message": "Invalid Request"}}, 400

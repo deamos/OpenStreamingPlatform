@@ -2,10 +2,16 @@ import subprocess
 import requests
 
 from flask import Blueprint, request, redirect, current_app, abort
+import threading
 
 from globals import globalvars
 
 rtmp_bp = Blueprint("rtmp", __name__)
+
+def log_stream(stream, channel_loc, dest_name):
+    for line in iter(stream.readline, b''):
+        current_app.logger.warning(f"[Restream {channel_loc}->{dest_name}] {line.decode('utf-8', errors='replace').strip()}")
+    stream.close()
 
 
 @rtmp_bp.route("/auth-key", methods=["POST"])
@@ -88,46 +94,47 @@ def user_auth_check():
                 )
                 if restreamDataRequest.status_code == 200:
                     restreamDataResults = restreamDataRequest.json()
-                    globalvars.restreamSubprocesses[channelLocation] = []
+                    globalvars.restreamSubprocesses[channelLocation] = {}
+                    r = globalvars.get_redis()
 
                     # Iterate Over Restream Destinations and Create ffmpeg Subprocess to Handle
                     for destination in restreamDataResults["results"]:
                         if destination["enabled"] is True:
-                            p = subprocess.Popen(
-                                [
+                            max_bitrate = sysSettingsResults["results"].get("restreamMaxBitRate", 0)
+                            if max_bitrate > 0:
+                                cmd = [
                                     "/usr/bin/ffmpeg",
-                                    '-hwaccel',
-                                    'auto',
-                                    "-i",
-                                    inputLocation,
-                                    "-c:v",
-                                    "libx264",
-                                    "-preset",
-                                    "veryfast",
-                                    "-maxrate",
-                                    str(
-                                        sysSettingsResults["results"][
-                                            "restreamMaxBitRate"
-                                        ]
-                                    )
-                                    + "k",
-                                    "-bufsize",
-                                    "6000k",
-                                    "-c:a",
-                                    "aac",
-                                    "-b:a",
-                                    "160k",
-                                    "-ac",
-                                    "2",
-                                    "-f",
-                                    "flv",
+                                    "-i", inputLocation,
+                                    "-c:v", "libx264",
+                                    "-preset", "veryfast",
+                                    "-maxrate", f"{max_bitrate}k",
+                                    "-bufsize", f"{max_bitrate*2}k",
+                                    "-c:a", "aac",
+                                    "-b:a", "160k",
+                                    "-ac", "2",
+                                    "-f", "flv",
                                     destination["url"],
-                                    
-                                ],
+                                ]
+                            else:
+                                cmd = [
+                                    "/usr/bin/ffmpeg",
+                                    "-i", inputLocation,
+                                    "-c:v", "copy",
+                                    "-c:a", "copy",
+                                    "-f", "flv",
+                                    destination["url"],
+                                ]
+                            
+                            p = subprocess.Popen(
+                                cmd,
                                 stdout=subprocess.DEVNULL,
-                                stderr=subprocess.DEVNULL,
+                                stderr=subprocess.PIPE,
                             )
-                            globalvars.restreamSubprocesses[channelLocation].append(p)
+                            globalvars.restreamSubprocesses[channelLocation][str(destination["id"])] = p
+                            r.sadd(f"osp:rtmp:pids:{channelLocation}", str(p.pid))
+                            
+                            t = threading.Thread(target=log_stream, args=(p.stderr, channelLocation, destination["name"]), daemon=True)
+                            t.start()
                 else:
                     return abort(400)
 
@@ -137,7 +144,8 @@ def user_auth_check():
             )
             if edgeNodeDataRequest.status_code == 200:
                 edgeNodeDataResults = edgeNodeDataRequest.json()
-                globalvars.edgeRestreamSubprocesses[channelLocation] = []
+                globalvars.edgeRestreamSubprocesses[channelLocation] = {}
+                r = globalvars.get_redis()
 
                 # Iterate Over Edge Node Results and Create ffmpeg Subprocess to Handle
                 for node in edgeNodeDataResults["results"]:
@@ -148,8 +156,6 @@ def user_auth_check():
                         ):
                             subprocessConstructor = [
                                 "/usr/bin/ffmpeg",
-                                '-hwaccel',
-                                'auto',
                                 "-i",
                                 inputLocation,
                                 "-c",
@@ -180,11 +186,13 @@ def user_auth_check():
                             p = subprocess.Popen(
                                 subprocessConstructor,
                                 stdout=subprocess.DEVNULL,
-                                stderr=subprocess.DEVNULL,
+                                stderr=subprocess.PIPE,
                             )
-                            globalvars.edgeRestreamSubprocesses[channelLocation].append(
-                                p
-                            )
+                            globalvars.edgeRestreamSubprocesses[channelLocation][str(node["id"])] = p
+                            r.sadd(f"osp:rtmp:pids:{channelLocation}", str(p.pid))
+                            
+                            t = threading.Thread(target=log_stream, args=(p.stderr, channelLocation, f"Edge_{node['address']}"), daemon=True)
+                            t.start()
                 return "OK"
             else:
                 return abort(400)
@@ -227,7 +235,7 @@ def user_deauth_check():
 
             # End RTMP Restream Function
             if channelLocation in globalvars.restreamSubprocesses:
-                for restream in globalvars.restreamSubprocesses[channelLocation]:
+                for restream_id, restream in globalvars.restreamSubprocesses[channelLocation].items():
                     restream.kill()
                     try:
                         restream.wait(timeout=30)
@@ -241,7 +249,7 @@ def user_deauth_check():
 
             # End RTMP Edge Restreams
             if channelLocation in globalvars.edgeRestreamSubprocesses:
-                for p in globalvars.edgeRestreamSubprocesses[channelLocation]:
+                for edge_id, p in globalvars.edgeRestreamSubprocesses[channelLocation].items():
                     p.kill()
                     try:
                         p.wait(timeout=30)
@@ -252,6 +260,10 @@ def user_deauth_check():
                     del globalvars.edgeRestreamSubprocesses[channelLocation]
                 except KeyError:
                     pass
+            
+            # Clean up PIDs in Redis
+            r = globalvars.get_redis()
+            r.delete(f"osp:rtmp:pids:{channelLocation}")
 
             return "OK"
         else:

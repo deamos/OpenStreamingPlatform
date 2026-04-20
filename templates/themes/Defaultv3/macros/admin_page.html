@@ -426,9 +426,10 @@
                     </div>
                </div>
                 <div class="row">
-                    <div class="col-3">
+                    <div class="col-4">
                         <label for="maximumBitrateRtmp" class="form-label">Maximum Bitrate for RTMP Restream (Kb/s)</label>
                         <input type="number" name="restreamMaxBitrate"  id="maximumBitrateRtmp" class="form-control boxShadow" value="{{sysSettings.restreamMaxBitrate}}">
+                        <small>Set to 0 to disable re-encoding and use original stream settings (-c copy). Highly recommended if no global cap is needed.</small>
                     </div>
                </div>
                <div class="row mt-2">

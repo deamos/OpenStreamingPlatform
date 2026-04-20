@@ -112,6 +112,60 @@ app.register_blueprint(root_bp)
 app.register_blueprint(api_v1)
 
 # ----------------------------------------------------------------------------#
+# Health Monitor and PID Cleanup
+# ----------------------------------------------------------------------------#
+import threading
+import time
+import signal
+import requests
+
+def cleanup_stale_pids():
+    r = globalvars.get_redis()
+    for key in r.scan_iter("osp:rtmp:pids:*"):
+        for pid in r.smembers(key):
+            try:
+                os.kill(int(pid), signal.SIGTERM)
+                app.logger.info(f"Killed stale ffmpeg process PID {pid} for {key}")
+            except ProcessLookupError:
+                pass
+        r.delete(key)
+
+def restream_monitor_thread():
+    while True:
+        try:
+            r = globalvars.get_redis()
+            for channel_loc, process_dict in list(globalvars.restreamSubprocesses.items()):
+                status_payload = {}
+                for dest_id, proc in list(process_dict.items()):
+                    retcode = proc.poll()
+                    if retcode is not None:
+                        app.logger.warning(f"[HealthMonitor] Restream ffmpeg for {channel_loc} to dest {dest_id} exited with {retcode}")
+                        status_payload[dest_id] = {"state": "Error", "message": f"Exited with code {retcode}"}
+                        # Process died, remove it from dict
+                        # In a more advanced setup we could restart it here
+                        del globalvars.restreamSubprocesses[channel_loc][dest_id]
+                    else:
+                        status_payload[dest_id] = {"state": "Running", "message": ""}
+                
+                # Push status to Core
+                if status_payload:
+                    try:
+                        requests.post(
+                            globalvars.apiLocation + "/apiv1/rtmp/restreamStatus",
+                            json={"channelLoc": channel_loc, "status": status_payload},
+                            timeout=5
+                        )
+                    except Exception as e:
+                        app.logger.error(f"Failed to push restream status to core: {e}")
+        except Exception as e:
+            app.logger.error(f"[HealthMonitor] Error in monitor loop: {e}")
+        time.sleep(10)
+
+cleanup_stale_pids()
+monitor = threading.Thread(target=restream_monitor_thread, daemon=True)
+monitor.start()
+
+# ----------------------------------------------------------------------------#
 # Finalize App Init
 # ----------------------------------------------------------------------------#
 if __name__ == "__main__":

@@ -1555,8 +1555,8 @@
                                                             <tbody>
                                                                 {% set channelRestreamDestinations = channel.id | get_channelRestreamDestinations %}
                                                                 {% for restreamDestination in channelRestreamDestinations %}
-                                                                <tr id="restreamTableRow-{{restreamDestination.id}}" class="align-middle">
-                                                                    <td>{{restreamDestination.name}}</td>
+                                                                <tr id="restreamTableRow-{{restreamDestination.id}}" class="align-middle" data-dest-id="{{restreamDestination.id}}">
+                                                                    <td>{{restreamDestination.name}} <span class="badge bg-secondary ms-2 restream-status-badge" id="restreamStatus-{{restreamDestination.id}}">Offline</span></td>
                                                                     <td>{{restreamDestination.url}}</td>
                                                                     <td><div class="form-check form-switch"><input type="checkbox" class="form-check-input" id="restreamEnableToggle-{{restreamDestination.id}}" name="restreamEnableToggle-{{restreamDestination.id}}" onchange="toggleRestream('{{restreamDestination.id}}')" {% if restreamDestination.enabled == True %} checked {% endif %}></div></td>
                                                                     <td><button type="button" class="btn btn-danger" onclick="deleteRestream('{{restreamDestination.id}}')"><i class="far fa-trash-alt"></i></button></td>
@@ -1564,6 +1564,36 @@
                                                                 {% endfor %}
                                                             </tbody>
                                                         </table>
+                                                        {% if channelRestreamDestinations|length > 0 %}
+                                                        <script>
+                                                            function updateRestreamStatus_{{channel.id}}() {
+                                                                $.ajax({
+                                                                    url: '/apiv1/channel/{{channel.channelLoc}}/restreamStatus',
+                                                                    type: 'GET',
+                                                                    success: function(response) {
+                                                                        var status = response.results;
+                                                                        // Reset all badges to offline first
+                                                                        $('#restreamTable-{{channel.id}} .restream-status-badge').removeClass('bg-success bg-danger bg-warning').addClass('bg-secondary').text('Offline');
+                                                                        
+                                                                        // Update with actual status
+                                                                        for (var destId in status) {
+                                                                            var badge = $('#restreamStatus-' + destId);
+                                                                            if (badge.length) {
+                                                                                var state = status[destId].state;
+                                                                                if (state === 'Running') {
+                                                                                    badge.removeClass('bg-secondary bg-danger bg-warning').addClass('bg-success').text('Running');
+                                                                                } else if (state === 'Error') {
+                                                                                    badge.removeClass('bg-secondary bg-success bg-warning').addClass('bg-danger').text('Error');
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }
+                                                            setInterval(updateRestreamStatus_{{channel.id}}, 10000);
+                                                            updateRestreamStatus_{{channel.id}}();
+                                                        </script>
+                                                        {% endif %}
                                                     </div>
                                                 </div>
                                             </div>

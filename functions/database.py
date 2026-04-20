@@ -318,7 +318,7 @@ def dbFixes():
         sysSettings.serverMessageTitle = "Server Message"
         db.session.commit()
     if sysSettings.restreamMaxBitrate is None:
-        sysSettings.restreamMaxBitrate = 3500
+        sysSettings.restreamMaxBitrate = 0
         db.session.commit()
 
     # Fix for Edge Conf Build on Restart
