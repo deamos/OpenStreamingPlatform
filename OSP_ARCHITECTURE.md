@@ -199,13 +199,13 @@ OSP uses a **custom-compiled nginx** from source at `/usr/local/nginx/`, NOT the
 /usr/local/nginx/conf/
   nginx.conf               ← Main config (http block, proxy_cache_path)
   upstream/
-    osp.conf               ← upstream socket_nodes { ... } (ports 5000–5009, sticky)
+    osp.conf               ← upstream socket_nodes { sticky; max_fails=3 fail_timeout=30s; } (ports 5000–5009)
     osp-edge.conf          ← upstream ospedge_node (edge server address)
     osp-maps.conf          ← map directives for $ospChannelID, $bypass_auth_cache
   locations/
     osp-redirects.conf     ← /ospAuth, /videos, /keys, /images, /live, etc.
     osp-socketio.conf      ← Socket.IO WebSocket proxy
-    osp.conf               ← catch-all proxy_pass to socket_nodes
+    osp.conf               ← /static/ served direct from disk (immutable, 1y) + catch-all proxy_pass
     ejabberd.conf          ← XMPP HTTP bind proxy (if ejabberd installed)
   services/
     *.conf                 ← RTMP server block (port 1935)
@@ -358,6 +358,7 @@ Redis is a central dependency — multiple subsystems use it simultaneously:
 | Flask-Limiter | — | Rate limit counters |
 | Flask-SocketIO | — | Message bus between workers; events emitted on one worker are broadcast to all via Redis pub/sub |
 | Celery broker | `CACHE_REDIS_*` | Task queue for background jobs |
+| **Viewer counters** | `osp:viewers:<channelLoc>` | INCR/DECR on every SocketIO connect/disconnect; flushed to DB by Celery Beat every 30s |
 | OSP-Proxy cache | `channelLoc` → upstream | 30-second lookup cache |
 | Startup guards | `OSP_DB_INIT_HANDLER`, `OSP_XMPP_INIT_HANDLER`, `OSP_SYSTEM_FIXES_HANDLER` | Prevents multiple workers from running initialization simultaneously on startup |
 
@@ -419,12 +420,14 @@ Each of the 11 workers can hold up to 50 connections (20 pool + 30 overflow). Wi
 - Processes webhook delivery
 - Handles video thumbnail generation (post-recording)
 - Scheduled cleanup tasks (video/clip retention enforcement, etc.)
+- **Syncs live viewer counts** from Redis to MariaDB every 30 seconds (`sync_viewer_counts_to_db`)
 - Any long-running operations that shouldn't block an HTTP request
 
 ### Task Definitions
 Located in `functions/scheduled_tasks/`:
 - `scheduler.py` — Celery Beat periodic task schedule
 - `message_tasks.py` — email and notification tasks
+- `channel_tasks.py` — `sync_viewer_counts_to_db` (every 30s) — reads `osp:viewers:*` Redis keys, bulk-writes `currentViewers` to Channel + Stream tables, invalidates channel cache
 - Additional task modules imported via `celeryFunc.py`
 
 ---
@@ -529,15 +532,16 @@ Client HTTP request
 nginx (port 80/443)
   ↓
 Match location block in /usr/local/nginx/conf/locations/
-  ├── /socket.io  → WebSocket upgrade → socket_nodes upstream  (osp-socketio.conf)
-  ├── /videos     → auth_request /ospAuth → serve from /var/www/videos/
-  ├── /keys       → auth_request /ospAuth → serve from /var/www/keys/
+  ├── /socket.io    → WebSocket upgrade → socket_nodes upstream  (osp-socketio.conf)
+  ├── /videos       → auth_request /ospAuth → serve from /var/www/videos/
+  ├── /keys         → auth_request /ospAuth → serve from /var/www/keys/
   ├── /stream-thumb → auth_request /ospAuth → serve from /var/www/stream-thumb/
-  ├── /live       → serve from /var/www/live/  (no auth currently)
-  ├── /live-adapt → serve from /var/www/live-adapt/  (no auth currently)
-  ├── /static     → serve from /opt/osp/static/
-  ├── /images     → serve from /var/www/images/
-  └── /           → proxy_pass to socket_nodes upstream  (osp.conf)
+  ├── /live         → serve from /var/www/live/  (no auth currently)
+  ├── /live-adapt   → serve from /var/www/live-adapt/  (no auth currently)
+  ├── /static/      → serve DIRECTLY from /opt/osp/static/ (nginx, no Gunicorn)
+  │                    Cache-Control: public, immutable; expires 1y
+  ├── /images       → serve from /var/www/images/
+  └── /             → proxy_pass to socket_nodes upstream  (osp.conf)
 ```
 
 ### The `/ospAuth` Subrequest Detail
@@ -827,3 +831,25 @@ The `/ospAuth` location previously used chained `if` blocks to extract `$channel
 
 ### ejabberd Domain Must Match OSP Config
 The XMPP domain (`osp.internal` by default) must match across `ejabberd.yml`, `conf/config.py` (`ejabberdHost`), and the OSP admin settings. Mismatches prevent chat rooms from being created correctly.
+
+### nginx Upstream Health Checks (`max_fails=3 fail_timeout=30s`)
+Added to all 10 server entries in `setup/nginx/upstream/osp.conf`. Without these, a crashed
+worker silently continues receiving traffic. With them, nginx stops routing to a failed worker
+after 3 consecutive request failures and retries after 30 seconds. Deploy via `upgrade_osp`.
+
+### `/static/` Served Directly by nginx (Immutable Cache)
+`setup/nginx/locations/osp.conf` now has a `location /static/` block that serves Flask static
+assets directly from `/opt/osp/static/` with `Cache-Control: public, immutable` and
+`expires 1y`. Flask's `?v=<hash>` query parameter handles cache-busting. Returning visitors
+get zero Gunicorn round-trips for all CSS/JS/font assets. Do **not** remove this location block
+or it falls through to the catch-all `/` proxy_pass.
+
+### Viewer Count is Redis-Backed (flushed to DB every 30s)
+`currentViewers` on `Channel` and `Stream` is **no longer written synchronously** on SocketIO
+events. Instead:
+- `connections.py` does `INCR osp:viewers:<channelLoc>` on `newViewer` and `DECR` on `removeViewer` (atomic Redis, ~0.1 ms)
+- Redis keys carry a 2-hour TTL for self-cleanup after stream ends
+- `channel_tasks.sync_viewer_counts_to_db` (Celery Beat, 30s interval) reads all active
+  channel Redis keys, bulk-writes to MariaDB, and invalidates the Flask-Cache for each channel
+- `addUserCount` still writes directly to DB — it tracks *historical* totalViewers, not live count
+- **If Celery Beat is stopped**, viewer counts displayed in the UI will become stale (up to 30s lag by design; more if Beat is down)
