@@ -505,12 +505,11 @@ def changeClipMetadata(clipID: int, name: str, topicID: int, description: str, c
                     db.session.add(newTag)
                     db.session.commit()
 
-            db.session.commit()
+            # Get parent video ID before committing the update that might change the clip object
+            parentVideoID = clipQuery.parentVideo 
 
             # Invalidate caches for the specific clip and related lists
             cache.delete_memoized(cachedDbCalls.getClip, clipQuery.id)
-            # Need to get parent video ID before committing the update that might change the clip object
-            parentVideoID = clipQuery.parentVideo # Assuming parentVideo is loaded
 
             # Invalidate caches for the clip's parent video's clips
             if parentVideoID is not None:
@@ -525,6 +524,8 @@ def changeClipMetadata(clipID: int, name: str, topicID: int, description: str, c
                 cache.delete_memoized(cachedDbCalls.getAllClipsForChannel_View, channelID)
             if owningUser is not None:
                 cache.delete_memoized(cachedDbCalls.getAllClipsForUser, owningUser)
+
+            db.session.commit()
 
             system.newLog(6, f"Clip Metadata Changed - ID #{str(clipID)}")
             return True
