@@ -14,7 +14,7 @@ def tags_page():
     return render_template(
         themes.checkOverride("tags.html"),
         tagCounts=tag_counts,
-        title="Labels",
+        title="Tags",
     )
 
 
@@ -29,5 +29,5 @@ def tag_view_page(tagName: str):
         channelList=content["channels"],
         recordedVids=content["videos"],
         clipsList=content["clips"],
-        title=f"Label: {tagName}",
+        title=f"Tag: {tagName}",
     )

@@ -4,9 +4,9 @@
 
 {% block head %}
 <title>{{sysSettings.siteName}} - {{ title }}</title>
-<meta name="description" content="Browse all labels used across channels, videos, and clips on {{sysSettings.siteName}}.">
+<meta name="description" content="Browse all tags used across channels, videos, and clips on {{sysSettings.siteName}}.">
 <meta property="og:site_name" content="{{sysSettings.siteName}}" />
-<meta property="og:title" content="{{sysSettings.siteName}} - Labels" />
+<meta property="og:title" content="{{sysSettings.siteName}} - Tags" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="{{request.url|normalize_url}}" />
 <style>
@@ -84,10 +84,10 @@
 <div class="tag-cloud-container">
   <div class="tag-cloud-header">
     <i class="bi bi-tags-fill"></i>
-    <h1>Labels</h1>
+    <h1>Tags</h1>
   </div>
   <p class="tag-cloud-hint">
-    {{ tagCounts | count }} label{{ 's' if tagCounts | count != 1 else '' }} in use across all channels, videos, and clips.
+    {{ tagCounts | count }} tag{{ 's' if tagCounts | count != 1 else '' }} in use across all channels, videos, and clips.
     Tag size reflects popularity.
   </p>
 

@@ -880,13 +880,13 @@ def getAllTagsWithCounts() -> list:
 
     video_q = db.session.query(
         RecordedVideo.video_tags.name.label("name")
-    )
+    ).filter(RecordedVideo.video_tags.name != None, RecordedVideo.video_tags.name != "")
     channel_q = db.session.query(
         Channel.channel_tags.name.label("name")
-    )
+    ).filter(Channel.channel_tags.name != None, Channel.channel_tags.name != "")
     clip_q = db.session.query(
         RecordedVideo.clip_tags.name.label("name")
-    )
+    ).filter(RecordedVideo.clip_tags.name != None, RecordedVideo.clip_tags.name != "")
 
     union_sq = union_all(video_q, channel_q, clip_q).alias("all_tags")
     results = (
