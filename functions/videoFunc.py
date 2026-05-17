@@ -476,7 +476,12 @@ def getClipCreationTimeFromFiles(clip: RecordedVideo.Clips) -> None:
 def changeClipMetadata(clipID: int, name: str, topicID: int, description: str, clipTags: list) -> bool:
     # TODO Add Webhook for Clip Metadata Change
 
-    clipQuery = RecordedVideo.Clips.query.filter_by(id=int(clipID)).with_entities(RecordedVideo.Clips.id, RecordedVideo.Clips.owningUser).first()
+    clipQuery = RecordedVideo.Clips.query.filter_by(id=int(clipID)).with_entities(
+        RecordedVideo.Clips.id,
+        RecordedVideo.Clips.owningUser,
+        RecordedVideo.Clips.parentVideo,
+        RecordedVideo.Clips.channelID,
+    ).first()
 
     if clipQuery is not None:
         if (
