@@ -158,6 +158,12 @@
             </a>
         </li>
         <li class="nav-item d-lg-none mx-3 my-1 mx-lg-0 my-lg-0">
+            <a href="/tags">
+                <i class="textShadow bi bi-tags-fill bs-icon"></i>
+                <span class="ms-2" style="position: relative; top: -4px;">Labels</span>
+            </a>
+        </li>
+        <li class="nav-item d-lg-none mx-3 my-1 mx-lg-0 my-lg-0">
             <a href="/video">
                 <i class="textShadow bi bi-camera-video-fill bs-icon"></i>
                 <span class="ms-2" style="position: relative; top: -4px;">Videos</span>
@@ -222,6 +228,7 @@
         {{ coreui.ui_sidebar_item("Clips", "/clips", "bi bi-scissors") }}
         {{ coreui.ui_sidebar_item("Channels", "/channel", "bi bi-tv-fill") }}
         {{ coreui.ui_sidebar_item("Topics", "/topic", "bi bi-hash") }}
+        {{ coreui.ui_sidebar_item("Labels", "/tags", "bi bi-tags-fill") }}
         {{ coreui.ui_sidebar_item("Streamers", "/streamer", "bi-people-fill") }}
         {% for page in static_pages %}
             {% if page.isTopBar == False %}

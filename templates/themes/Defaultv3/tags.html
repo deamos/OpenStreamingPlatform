@@ -1,0 +1,122 @@
+{% extends "themes/" + sysSettings.systemTheme + "/layout.html" %}
+
+{% import "themes/" + sysSettings.systemTheme + "/macros/core_ui.html" as core_ui with context %}
+
+{% block head %}
+<title>{{sysSettings.siteName}} - {{ title }}</title>
+<meta name="description" content="Browse all labels used across channels, videos, and clips on {{sysSettings.siteName}}.">
+<meta property="og:site_name" content="{{sysSettings.siteName}}" />
+<meta property="og:title" content="{{sysSettings.siteName}} - Labels" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="{{request.url|normalize_url}}" />
+<style>
+  .tag-cloud-container {
+    padding: 2rem 1.5rem;
+  }
+  .tag-cloud-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.1));
+    padding-bottom: 1rem;
+  }
+  .tag-cloud-header h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0;
+  }
+  .tag-cloud-header i {
+    font-size: 1.6rem;
+    opacity: 0.8;
+  }
+  .tag-cloud-hint {
+    font-size: 0.85rem;
+    opacity: 0.55;
+    margin-bottom: 2rem;
+  }
+  .tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+  }
+  .tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+    white-space: nowrap;
+    background: linear-gradient(135deg, var(--osp-accent, #6c63ff) 0%, var(--osp-accent2, #48cfad) 100%);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  }
+  .tag-pill:hover {
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+    color: #fff;
+    filter: brightness(1.15);
+  }
+  .tag-pill .tag-count {
+    background: rgba(0,0,0,0.22);
+    border-radius: 999px;
+    font-size: 0.7em;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .tag-empty {
+    text-align: center;
+    padding: 4rem 2rem;
+    opacity: 0.45;
+  }
+  .tag-empty i {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="tag-cloud-container">
+  <div class="tag-cloud-header">
+    <i class="bi bi-tags-fill"></i>
+    <h1>Labels</h1>
+  </div>
+  <p class="tag-cloud-hint">
+    {{ tagCounts | count }} label{{ 's' if tagCounts | count != 1 else '' }} in use across all channels, videos, and clips.
+    Tag size reflects popularity.
+  </p>
+
+  {% if tagCounts %}
+    {% set maxCount = tagCounts[0][1] if tagCounts else 1 %}
+    {% set minCount = tagCounts[-1][1] if tagCounts else 1 %}
+    {% set countRange = (maxCount - minCount) if (maxCount - minCount) > 0 else 1 %}
+    <div class="tag-cloud">
+      {% for name, cnt in tagCounts %}
+        {# Scale font from 0.85rem (min) to 2.2rem (max) based on count #}
+        {% set ratio = (cnt - minCount) / countRange %}
+        {% set fontSize = 0.85 + ratio * 1.35 %}
+        {% set paddingV = 0.25 + ratio * 0.3 %}
+        {% set paddingH = 0.65 + ratio * 0.5 %}
+        <a href="/tags/{{ name | urlencode }}/"
+           class="tag-pill"
+           id="tag-{{ loop.index }}"
+           style="font-size: {{ '%.2f' | format(fontSize) }}rem;
+                  padding: {{ '%.2f' | format(paddingV) }}rem {{ '%.2f' | format(paddingH) }}rem;">
+          <span>{{ name }}</span>
+          <span class="tag-count" style="padding: 0.15em 0.5em;">{{ cnt }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="tag-empty">
+      <i class="bi bi-tags"></i>
+      <p>No labels have been added yet.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

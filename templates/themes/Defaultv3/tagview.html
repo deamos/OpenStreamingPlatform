@@ -1,0 +1,104 @@
+{% extends "themes/" + sysSettings.systemTheme + "/layout.html" %}
+
+{% import "themes/" + sysSettings.systemTheme + "/macros/core_ui.html" as core_ui with context %}
+{% import "themes/" + sysSettings.systemTheme + "/macros/cards.html" as cards with context %}
+{% import "themes/" + sysSettings.systemTheme + "/macros/panels.html" as panels with context %}
+
+{% block head %}
+<title>{{sysSettings.siteName}} - {{ title }}</title>
+<meta name="description" content="All channels, videos, and clips tagged with &quot;{{ tagName }}&quot; on {{sysSettings.siteName}}.">
+<meta property="og:site_name" content="{{sysSettings.siteName}}" />
+<meta property="og:title" content="{{sysSettings.siteName}} - {{ title }}" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="{{request.url|normalize_url}}" />
+<style>
+  .tagview-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.1));
+    margin-bottom: 0.5rem;
+  }
+  .tagview-header .tag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 1rem;
+    border-radius: 999px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--osp-accent, #6c63ff) 0%, var(--osp-accent2, #48cfad) 100%);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  .tagview-header .back-link {
+    font-size: 0.85rem;
+    opacity: 0.6;
+    margin-left: auto;
+    text-decoration: none;
+  }
+  .tagview-header .back-link:hover {
+    opacity: 1;
+  }
+  .tagview-counts {
+    display: flex;
+    gap: 1.5rem;
+    padding: 0.5rem 1.5rem 1rem;
+    font-size: 0.85rem;
+    opacity: 0.6;
+  }
+  .tagview-counts span {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="tagview-header">
+  <i class="bi bi-tags-fill" style="font-size:1.4rem; opacity:0.7;"></i>
+  <span class="tag-badge">
+    <i class="bi bi-tag-fill" style="font-size:0.9em;"></i>
+    {{ tagName }}
+  </span>
+  <a href="/tags/" class="back-link">
+    <i class="bi bi-arrow-left"></i> All Labels
+  </a>
+</div>
+
+<div class="tagview-counts">
+  {% if channelList %}
+  <span><i class="bi bi-tv-fill"></i> {{ channelList | count }} channel{{ 's' if channelList | count != 1 else '' }}</span>
+  {% endif %}
+  {% if recordedVids %}
+  <span><i class="bi bi-camera-video-fill"></i> {{ recordedVids | count }} video{{ 's' if recordedVids | count != 1 else '' }}</span>
+  {% endif %}
+  {% if clipsList %}
+  <span><i class="bi bi-scissors"></i> {{ clipsList | count }} clip{{ 's' if clipsList | count != 1 else '' }}</span>
+  {% endif %}
+  {% if not channelList and not recordedVids and not clipsList %}
+  <span style="opacity:0.5;">No content found for this label.</span>
+  {% endif %}
+</div>
+
+{% if channelList %}
+  {{ panels.channels_panel(channelList, title="Channels") }}
+{% endif %}
+
+{% if recordedVids %}
+  {{ panels.videos_panel(recordedVids, order=1) }}
+{% endif %}
+
+{% if clipsList %}
+  {{ panels.clips_panel(clipsList) }}
+{% endif %}
+
+{% if not channelList and not recordedVids and not clipsList %}
+<div style="text-align:center; padding: 4rem 2rem; opacity: 0.4;">
+  <i class="bi bi-inbox" style="font-size:3rem; display:block; margin-bottom:1rem;"></i>
+  <p>No channels, videos, or clips are tagged with &ldquo;{{ tagName }}&rdquo; yet.</p>
+</div>
+{% endif %}
+{% endblock %}

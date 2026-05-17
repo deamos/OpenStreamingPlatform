@@ -870,6 +870,130 @@ def searchTags(term: str) -> list:
     return [row[0] for row in combined]
 
 
+@cache.memoize(timeout=120)
+def getAllTagsWithCounts() -> list:
+    """
+    Returns a list of (name, total_count) tuples across video_tags, channel_tags,
+    and clip_tags, sorted by count descending. Used for the tag cloud page.
+    """
+    from sqlalchemy import func, union_all, literal_column
+
+    video_q = db.session.query(
+        RecordedVideo.video_tags.name.label("name")
+    )
+    channel_q = db.session.query(
+        Channel.channel_tags.name.label("name")
+    )
+    clip_q = db.session.query(
+        RecordedVideo.clip_tags.name.label("name")
+    )
+
+    union_sq = union_all(video_q, channel_q, clip_q).alias("all_tags")
+    results = (
+        db.session.query(
+            union_sq.c.name,
+            func.count(union_sq.c.name).label("cnt"),
+        )
+        .group_by(union_sq.c.name)
+        .order_by(func.count(union_sq.c.name).desc())
+        .all()
+    )
+    return results  # list of Row(name, cnt)
+
+
+@cache.memoize(timeout=60)
+def getContentByTagName(tagName: str) -> dict:
+    """
+    Returns channels, videos, and clips that carry the given tag name.
+    """
+    channels = (
+        Channel.Channel.query
+        .join(Channel.channel_tags, Channel.channel_tags.channelID == Channel.Channel.id)
+        .filter(Channel.channel_tags.name == tagName, Channel.Channel.private == False)
+        .with_entities(
+            Channel.Channel.id,
+            Channel.Channel.channelName,
+            Channel.Channel.channelLoc,
+            Channel.Channel.imageLocation,
+            Channel.Channel.description,
+            Channel.Channel.owningUser,
+            Channel.Channel.topic,
+            Channel.Channel.views,
+            Channel.Channel.currentViewers,
+            Channel.Channel.protected,
+        )
+        .distinct()
+        .all()
+    )
+
+    videos = (
+        RecordedVideo.RecordedVideo.query
+        .join(RecordedVideo.video_tags, RecordedVideo.video_tags.videoID == RecordedVideo.RecordedVideo.id)
+        .filter(
+            RecordedVideo.video_tags.name == tagName,
+            RecordedVideo.RecordedVideo.published == True,
+            RecordedVideo.RecordedVideo.pending == False,
+        )
+        .with_entities(
+            RecordedVideo.RecordedVideo.id,
+            RecordedVideo.RecordedVideo.uuid,
+            RecordedVideo.RecordedVideo.channelName,
+            RecordedVideo.RecordedVideo.channelID,
+            RecordedVideo.RecordedVideo.videoDate,
+            RecordedVideo.RecordedVideo.videoLocation,
+            RecordedVideo.RecordedVideo.thumbnailLocation,
+            RecordedVideo.RecordedVideo.gifLocation,
+            RecordedVideo.RecordedVideo.description,
+            RecordedVideo.RecordedVideo.topic,
+            RecordedVideo.RecordedVideo.views,
+            RecordedVideo.RecordedVideo.length,
+            RecordedVideo.RecordedVideo.owningUser,
+            RecordedVideo.RecordedVideo.published,
+            RecordedVideo.RecordedVideo.pending,
+            RecordedVideo.RecordedVideo.allowComments,
+            RecordedVideo.RecordedVideo.originalStreamID,
+        )
+        .order_by(RecordedVideo.RecordedVideo.videoDate.desc())
+        .distinct()
+        .all()
+    )
+
+    clips = (
+        RecordedVideo.Clips.query
+        .join(RecordedVideo.clip_tags, RecordedVideo.clip_tags.clipID == RecordedVideo.Clips.id)
+        .filter(
+            RecordedVideo.clip_tags.name == tagName,
+            RecordedVideo.Clips.published == True,
+        )
+        .join(Channel.Channel, Channel.Channel.id == RecordedVideo.Clips.channelID)
+        .filter(Channel.Channel.protected == False, Channel.Channel.private == False)
+        .with_entities(
+            RecordedVideo.Clips.id,
+            RecordedVideo.Clips.uuid,
+            RecordedVideo.Clips.clipName,
+            RecordedVideo.Clips.channelID,
+            RecordedVideo.Clips.owningUser,
+            RecordedVideo.Clips.views,
+            RecordedVideo.Clips.length,
+            RecordedVideo.Clips.videoLocation,
+            RecordedVideo.Clips.thumbnailLocation,
+            RecordedVideo.Clips.gifLocation,
+            RecordedVideo.Clips.description,
+            RecordedVideo.Clips.topic,
+            RecordedVideo.Clips.parentVideo,
+            RecordedVideo.Clips.published,
+            Channel.Channel.protected,
+            Channel.Channel.channelName,
+        )
+        .order_by(RecordedVideo.Clips.views.desc())
+        .distinct()
+        .all()
+    )
+
+    return {"channels": channels, "videos": videos, "clips": clips}
+
+
+
 @cache.memoize(timeout=60)
 def getVideoCommentCount(videoID: int) -> int:
     videoCommentsQuery = comments.videoComments.query.filter_by(videoID=videoID).count()

@@ -735,6 +735,7 @@ from blueprints.activitypub import activitypub_bp, discovery_bp
 from blueprints.livestreams import livestreams_bp
 from blueprints.videos import videos_bp
 from blueprints.clips import clips_bp
+from blueprints.tags import tags_bp
 
 # Register all Blueprints
 app.register_blueprint(errorhandler_bp)
@@ -756,6 +757,7 @@ app.register_blueprint(discovery_bp)
 app.register_blueprint(livestreams_bp)
 app.register_blueprint(videos_bp)
 app.register_blueprint(clips_bp)
+app.register_blueprint(tags_bp)
 
 app.logger.info({"level": "info", "message": "Initializing Template Filters"})
 # ----------------------------------------------------------------------------#
