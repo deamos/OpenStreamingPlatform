@@ -846,6 +846,31 @@ def getVideoTags(videoID: int) -> list:
 
 
 @cache.memoize(timeout=60)
+def searchTags(term: str) -> list:
+    """
+    Returns up to 25 distinct tag names matching the partial term across
+    video_tags, channel_tags, and clip_tags tables (case-insensitive LIKE).
+    """
+    if term is None or len(term) < 3:
+        return []
+    search_term = "%" + term + "%"
+    video_q = (
+        db.session.query(RecordedVideo.video_tags.name)
+        .filter(RecordedVideo.video_tags.name.like(search_term))
+    )
+    channel_q = (
+        db.session.query(Channel.channel_tags.name)
+        .filter(Channel.channel_tags.name.like(search_term))
+    )
+    clip_q = (
+        db.session.query(RecordedVideo.clip_tags.name)
+        .filter(RecordedVideo.clip_tags.name.like(search_term))
+    )
+    combined = video_q.union(channel_q).union(clip_q).limit(25).all()
+    return [row[0] for row in combined]
+
+
+@cache.memoize(timeout=60)
 def getVideoCommentCount(videoID: int) -> int:
     videoCommentsQuery = comments.videoComments.query.filter_by(videoID=videoID).count()
     return videoCommentsQuery

@@ -1505,8 +1505,29 @@ var tagify_videoTags = new Tagify(videoTags, {
   pattern: /^.{0,{{ maxTagLength }}}$/,
   texts: {
     duplicate: "Duplicates are not allowed"
+  },
+  dropdown: {
+    enabled: 3,
+    maxItems: 15,
+    closeOnSelect: true,
+    highlightFirst: true,
+    searchKeys: ['value']
   }
 })
+tagify_videoTags.on('input', function(e) {
+  var term = e.detail.value;
+  tagify_videoTags.whitelist = null;
+  if (term.length >= 3) {
+    tagify_videoTags.loading(true);
+    fetch('/apiv1/tag/suggest?term=' + encodeURIComponent(term))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        tagify_videoTags.whitelist = data.results.map(function(v) { return {value: v}; });
+        tagify_videoTags.loading(false).dropdown.show.call(tagify_videoTags, term);
+      })
+      .catch(function() { tagify_videoTags.loading(false); });
+  }
+});
 </script>
 {% endmacro %}
 
@@ -1568,8 +1589,29 @@ var tagify_videoTags = new Tagify(videoTags, {
   pattern: /^.{0,{{ maxTagLength }}}$/,
   texts: {
     duplicate: "Duplicates are not allowed"
+  },
+  dropdown: {
+    enabled: 3,
+    maxItems: 15,
+    closeOnSelect: true,
+    highlightFirst: true,
+    searchKeys: ['value']
   }
 })
+tagify_videoTags.on('input', function(e) {
+  var term = e.detail.value;
+  tagify_videoTags.whitelist = null;
+  if (term.length >= 3) {
+    tagify_videoTags.loading(true);
+    fetch('/apiv1/tag/suggest?term=' + encodeURIComponent(term))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        tagify_videoTags.whitelist = data.results.map(function(v) { return {value: v}; });
+        tagify_videoTags.loading(false).dropdown.show.call(tagify_videoTags, term);
+      })
+      .catch(function() { tagify_videoTags.loading(false); });
+  }
+});
 </script>
 {% endmacro %}
 
@@ -1623,8 +1665,29 @@ var tagify_clipTags = new Tagify(clipTags, {
   pattern: /^.{0,{{ maxTagLength }}}$/,
   texts: {
     duplicate: "Duplicates are not allowed"
+  },
+  dropdown: {
+    enabled: 3,
+    maxItems: 15,
+    closeOnSelect: true,
+    highlightFirst: true,
+    searchKeys: ['value']
   }
 })
+tagify_clipTags.on('input', function(e) {
+  var term = e.detail.value;
+  tagify_clipTags.whitelist = null;
+  if (term.length >= 3) {
+    tagify_clipTags.loading(true);
+    fetch('/apiv1/tag/suggest?term=' + encodeURIComponent(term))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        tagify_clipTags.whitelist = data.results.map(function(v) { return {value: v}; });
+        tagify_clipTags.loading(false).dropdown.show.call(tagify_clipTags, term);
+      })
+      .catch(function() { tagify_clipTags.loading(false); });
+  }
+});
 </script>
 {% endmacro %}
 
@@ -1678,8 +1741,29 @@ var tagify_clipTags = new Tagify(clipTags, {
   pattern: /^.{0,{{ maxTagLength }}}$/,
   texts: {
     duplicate: "Duplicates are not allowed"
+  },
+  dropdown: {
+    enabled: 3,
+    maxItems: 15,
+    closeOnSelect: true,
+    highlightFirst: true,
+    searchKeys: ['value']
   }
 })
+tagify_clipTags.on('input', function(e) {
+  var term = e.detail.value;
+  tagify_clipTags.whitelist = null;
+  if (term.length >= 3) {
+    tagify_clipTags.loading(true);
+    fetch('/apiv1/tag/suggest?term=' + encodeURIComponent(term))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        tagify_clipTags.whitelist = data.results.map(function(v) { return {value: v}; });
+        tagify_clipTags.loading(false).dropdown.show.call(tagify_clipTags, term);
+      })
+      .catch(function() { tagify_clipTags.loading(false); });
+  }
+});
 </script>
 {% endmacro %}
 

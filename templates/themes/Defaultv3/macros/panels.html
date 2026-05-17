@@ -1709,8 +1709,29 @@
        pattern: /^.{0,{{ maxTagLength }}}$/,
        texts: {
            duplicate: "Duplicates are not allowed"
+       },
+       dropdown: {
+           enabled: 3,
+           maxItems: 15,
+           closeOnSelect: true,
+           highlightFirst: true,
+           searchKeys: ['value']
        }
     })
+    tagify_{{ channel.id }}.on('input', function(e) {
+        var term = e.detail.value;
+        tagify_{{ channel.id }}.whitelist = null;
+        if (term.length >= 3) {
+            tagify_{{ channel.id }}.loading(true);
+            fetch('/apiv1/tag/suggest?term=' + encodeURIComponent(term))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    tagify_{{ channel.id }}.whitelist = data.results.map(function(v) { return {value: v}; });
+                    tagify_{{ channel.id }}.loading(false).dropdown.show.call(tagify_{{ channel.id }}, term);
+                })
+                .catch(function() { tagify_{{ channel.id }}.loading(false); });
+        }
+    });
 </script>
 {% endmacro %}
 

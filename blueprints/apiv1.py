@@ -16,6 +16,7 @@ from .apis.topic_ns import api as topicNS
 from .apis.user_ns import api as userNS
 from .apis.xmpp_ns import api as xmppNS
 from .apis.rtmp_ns import api as rtmpNS
+from .apis.tag_ns import api as tagNS
 
 
 class fixedAPI(Api):
@@ -52,3 +53,4 @@ api.add_namespace(topicNS)
 api.add_namespace(userNS)
 api.add_namespace(xmppNS)
 api.add_namespace(rtmpNS)
+api.add_namespace(tagNS)
