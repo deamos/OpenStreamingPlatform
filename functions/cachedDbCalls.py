@@ -1020,30 +1020,20 @@ def getAllClips() -> list:
 def getClip(clipId: int) -> Union[dict, None]:
     return (
         RecordedVideo.Clips.query.filter_by(id=clipId, published=True)
-        .join(
-            Channel.Channel,
-            and_(
-                Channel.Channel.id == RecordedVideo.Clips.channelID
-            ),
-        )
-        .join(Sec.User, Sec.User.id == RecordedVideo.Clips.owningUser)
         .with_entities(
             RecordedVideo.Clips.id,
-            RecordedVideo.Clips.clipName,
             RecordedVideo.Clips.uuid,
-            RecordedVideo.Clips.thumbnailLocation,
-            RecordedVideo.Clips.owningUser,
-            RecordedVideo.Clips.views,
-            RecordedVideo.Clips.length,
-            Channel.Channel.protected,
-            RecordedVideo.Clips.channelID,
-            Channel.Channel.channelName,
-            RecordedVideo.Clips.topic,
-            Sec.User.pictureLocation,
-            Sec.User.bannerLocation,
             RecordedVideo.Clips.parentVideo,
+            RecordedVideo.Clips.startTime,
+            RecordedVideo.Clips.endTime,
+            RecordedVideo.Clips.length,
+            RecordedVideo.Clips.views,
+            RecordedVideo.Clips.clipName,
+            RecordedVideo.Clips.videoLocation,
             RecordedVideo.Clips.description,
-            RecordedVideo.Clips.published,
+            RecordedVideo.Clips.thumbnailLocation,
+            RecordedVideo.Clips.gifLocation,
+            RecordedVideo.Clips.published
         )
         .first()    
     )
