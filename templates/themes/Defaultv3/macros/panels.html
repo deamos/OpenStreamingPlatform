@@ -19,15 +19,40 @@
 {%- set listClass = '' | generateRandomString %}
 <div id="{{ listClass }}" class="live-container boxShadow">
   <h3 class="textShadow"><b>{{ title }}</b></h3>
-  <ul id="topStreamList" class="mb-2 itemList d-flex flex-wrap justify-content-md-start justify-content-evenly list" style="width:100%">
-      {% for stream in streamList %}
-          {% if stream.linkedChannel | is_channelObjVisible %}
-            {{ cards.live_stream_card(stream) }}
-          {% endif %}
-      {% endfor %}
-  </ul>
-  <ul id="paging_{{ listClass }}" class="pagination justify-content-center panel-pagination"></ul>
+  
+  {% set ns = namespace(visibleCount=0) %}
+  {% for stream in streamList %}
+      {% if stream.linkedChannel | is_channelObjVisible %}
+          {% set ns.visibleCount = ns.visibleCount + 1 %}
+      {% endif %}
+  {% endfor %}
+
+  {% if ns.visibleCount > 0 %}
+      <ul id="topStreamList" class="mb-2 itemList d-flex flex-wrap justify-content-md-start justify-content-evenly list" style="width:100%">
+          {% for stream in streamList %}
+              {% if stream.linkedChannel | is_channelObjVisible %}
+                {{ cards.live_stream_card(stream) }}
+              {% endif %}
+          {% endfor %}
+      </ul>
+      <ul id="paging_{{ listClass }}" class="pagination justify-content-center panel-pagination"></ul>
+  {% else %}
+      <div class="no-streams-placeholder d-flex flex-column align-items-center justify-content-center text-center p-5 my-4">
+          <div class="placeholder-icon-wrap mb-4">
+              <i class="fas fa-video-slash text-muted" style="font-size: 4rem; opacity: 0.5;"></i>
+          </div>
+          <h4 class="text-white mb-2">No Streams Online</h4>
+          <p class="text-muted mb-4" style="max-width: 400px; font-size: 14px;">
+              Nobody is broadcasting live at the moment. Try checking back in a little while, or explore the channels page to see offline content.
+          </p>
+          <a href="/channel" class="btn btn-primary px-4 py-2" style="background-color: var(--accent-color); border: none; border-radius: 8px; font-weight: 600; transition: background-color 0.15s ease;">
+              <i class="fas fa-th-list me-2"></i>Browse Channels
+          </a>
+      </div>
+  {% endif %}
 </div>
+
+{% if ns.visibleCount > 0 %}
 <script>
     list_{{ listClass }}_options = {
         valueNames: ['list_streamName', 'list_streamOwner', 'list_streamViewers', 'list_streamTopic'],
@@ -44,6 +69,7 @@
         document.getElementById('{{ listClass }}').scrollIntoView();
     })
 </script>
+{% endif %}
 {% endmacro %}
 
 {% macro topics_panel(topicList, title="Topics") %}
