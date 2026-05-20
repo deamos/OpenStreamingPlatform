@@ -978,29 +978,41 @@
 
 {% macro core_chat_members_view() %}
 <div id="chatMembers" class="chatMembersOverlay">
-  <div class="row w-100">
-    <button id="btnRefreshMembers" onclick="clickRefreshMembers();" class="col-6 btn btn-warning">Refresh Members</button>
-    <button id="btnRefreshSelf" onclick="clickRefreshStatus();" class="col-6 btn btn-warning">Refresh Own Status</button>
+  <div class="chat-members-topbar d-flex align-items-center justify-content-between mb-3 gap-2">
+    <div class="chat-members-search-container flex-grow-1">
+      <i class="fas fa-search chat-members-search-icon"></i>
+      <input type="text" id="chatMembersSearch" class="form-control form-control-sm chat-members-search" placeholder="Search members..." oninput="filterChatMembers();">
+    </div>
+    <div class="d-flex gap-1 flex-shrink-0">
+      <button id="btnRefreshMembers" onclick="clickRefreshMembers();" class="btn btn-sm btn-icon-round" data-toggle="tooltip" data-placement="bottom" title="Refresh Members">
+        <i class="fas fa-sync"></i>
+      </button>
+      <button id="btnRefreshSelf" onclick="clickRefreshStatus();" class="btn btn-sm btn-icon-round" data-toggle="tooltip" data-placement="bottom" title="Refresh Own Status">
+        <i class="fas fa-user-check"></i>
+      </button>
+    </div>
   </div>
-  <div class="membersList card my-3">
-      <div class="card-header bg-primary"><b>Global Chat Mod</b></div>
-      <div id="GlobalChatModList" class="card-body"></div>
-  </div>
-  <div class="membersList card my-3">
-      <div class="card-header bg-primary"><b>Owner</b></div>
-      <div id="OwnerList" class="card-body"></div>
-  </div>
-  <div class="membersList card my-3">
-      <div class="card-header bg-primary"><b>Moderator</b></div>
-      <div id="ModeratorList" class="card-body"></div>
-  </div>
-  <div class="membersList card my-3">
-      <div class="card-header bg-primary"><b>Participant</b></div>
-      <div id="ParticipantList" class="card-body"></div>
-  </div>
-  <div class="membersList card my-3">
-      <div class="card-header bg-primary"><b>Muted</b></div>
-      <div id="VisitorList" class="card-body"></div>
+  <div class="chat-members-list-wrapper">
+    <div class="chat-members-section" id="section-gcm" style="display: none;">
+      <div class="chat-members-section-header">Global Chat Mod <span class="chat-members-section-count" id="count-gcm">(0)</span></div>
+      <div id="GlobalChatModList" class="chat-members-section-body"></div>
+    </div>
+    <div class="chat-members-section" id="section-owner" style="display: none;">
+      <div class="chat-members-section-header">Owner <span class="chat-members-section-count" id="count-owner">(0)</span></div>
+      <div id="OwnerList" class="chat-members-section-body"></div>
+    </div>
+    <div class="chat-members-section" id="section-admin" style="display: none;">
+      <div class="chat-members-section-header">Moderator <span class="chat-members-section-count" id="count-admin">(0)</span></div>
+      <div id="ModeratorList" class="chat-members-section-body"></div>
+    </div>
+    <div class="chat-members-section" id="section-member" style="display: none;">
+      <div class="chat-members-section-header">Participant <span class="chat-members-section-count" id="count-member">(0)</span></div>
+      <div id="ParticipantList" class="chat-members-section-body"></div>
+    </div>
+    <div class="chat-members-section" id="section-none" style="display: none;">
+      <div class="chat-members-section-header">Muted <span class="chat-members-section-count" id="count-none">(0)</span></div>
+      <div id="VisitorList" class="chat-members-section-body"></div>
+    </div>
   </div>
 </div>
 {% endmacro %}

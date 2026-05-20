@@ -634,6 +634,14 @@ socket.on('channelOccups', function (occupantsString) {
     "none":'VisitorList'
   };
 
+  const counts = {
+    "gcm": 0,
+    "owner": 0,
+    "admin": 0,
+    "member": 0,
+    "none": 0
+  };
+
   // Update the chatMembers Div with listing of Members
   for (const affil in chatListMap) {
     document.getElementById(chatListMap[affil]).textContent = "";
@@ -645,6 +653,7 @@ socket.on('channelOccups', function (occupantsString) {
     const { username, affiliation, role:userRole } = user;
 
     let listSection = chatListMap[affiliation];
+    let countSection = affiliation;
     let htmlString = `<span class="user"><a href="javascript:void(0);" onclick="displayProfileBox(this)">${username}</a></span>`;
     if (affiliation === 'owner') {
         htmlString = `<span class="user"><a href="/profile/${username}" target="_blank" id="a-owner-${username}">${username}</a></span>`;
@@ -652,14 +661,84 @@ socket.on('channelOccups', function (occupantsString) {
         htmlString = `<span class="user"><a href="/profile/${username}" target="_blank" id="a-gcm-${username}">${username}</a></span>`;
     } else if (affiliation === 'none' && userRole === 'participant') {
         listSection = "ParticipantList";
+        countSection = "member";
     }
     userDiv.innerHTML = htmlString;
+    userDiv.setAttribute('data-username', username.toLowerCase());
 
     document.getElementById(listSection).appendChild(userDiv);
+    if (counts[countSection] !== undefined) {
+        counts[countSection]++;
+    }
   }
+
+  // Update headers and visibility
+  for (const affil in chatListMap) {
+    const countEl = document.getElementById(`count-${affil}`);
+    if (countEl) {
+      countEl.textContent = `(${counts[affil]})`;
+    }
+    const sectionEl = document.getElementById(`section-${affil}`);
+    if (sectionEl) {
+      if (counts[affil] === 0) {
+        sectionEl.style.display = "none";
+      } else {
+        sectionEl.style.display = "block";
+      }
+    }
+  }
+
+  // Re-apply filter if a search query is active
+  filterChatMembers();
 
   return true;
 });
+
+function filterChatMembers() {
+    var searchInput = document.getElementById('chatMembersSearch');
+    if (!searchInput) return;
+    
+    var query = searchInput.value.toLowerCase().trim();
+    var members = document.querySelectorAll('.chat-members-section-body .member');
+    
+    members.forEach(function(member) {
+        var username = member.getAttribute('data-username') || '';
+        if (query === '' || username.indexOf(query) !== -1) {
+            member.style.setProperty('display', 'block', 'important');
+        } else {
+            member.style.setProperty('display', 'none', 'important');
+        }
+    });
+
+    // Recalculate visible counts and show/hide empty sections
+    const chatListMap = {
+        "gcm": 'GlobalChatModList',
+        "owner": 'OwnerList',
+        "admin": 'ModeratorList',
+        "member": 'ParticipantList',
+        "none": 'VisitorList'
+    };
+
+    for (const affil in chatListMap) {
+        const sectionId = chatListMap[affil];
+        const sectionEl = document.getElementById(`section-${affil}`);
+        if (sectionEl) {
+            const bodyEl = document.getElementById(sectionId);
+            const visibleMembers = bodyEl.querySelectorAll('.member:not([style*="display: none"])').length;
+            
+            const countEl = document.getElementById(`count-${affil}`);
+            if (countEl) {
+                countEl.textContent = `(${visibleMembers})`;
+            }
+
+            if (visibleMembers === 0) {
+                sectionEl.style.display = 'none';
+            } else {
+                sectionEl.style.display = 'block';
+            }
+        }
+    }
+}
 
 function exitRoom(room) {
   console.log("Left Room: " + room);

@@ -183,8 +183,134 @@
 }
 
 .chatMembersOverlay {
-    display:none;
+    padding: 12px;
+    height: 100%;
+    display: none;
+    flex-direction: column;
 }
+
+.chat-members-topbar {
+    margin-bottom: 12px;
+}
+
+.chat-members-search-container {
+    position: relative;
+    flex-grow: 1;
+}
+
+.chat-members-search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--font-color-secondary);
+    pointer-events: none;
+}
+
+.chat-members-search {
+    width: 100%;
+    height: 32px;
+    padding-left: 28px !important;
+    background-color: var(--box3-background) !important;
+    border: 1px solid var(--input-border) !important;
+    color: var(--font-color) !important;
+    border-radius: var(--corner-radius-sm) !important;
+    font-size: 13px !important;
+}
+
+.chat-members-search:focus {
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 0 2px rgba(145, 70, 255, 0.25) !important;
+    outline: none;
+}
+
+.btn-icon-round {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50% !important;
+    border: 1px solid var(--input-border) !important;
+    background-color: var(--box1-background) !important;
+    color: var(--font-color-secondary) !important;
+    transition: all 0.15s ease !important;
+}
+
+.btn-icon-round:hover {
+    background-color: var(--box3-background) !important;
+    color: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
+}
+
+.btn-icon-round:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.chat-members-list-wrapper {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.chat-members-section {
+    margin-bottom: 16px;
+}
+
+.chat-members-section-header {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: var(--font-color-secondary);
+    text-transform: uppercase;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--input-border);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-members-section-count {
+    font-size: 10px;
+    opacity: 0.8;
+}
+
+.chat-members-section-body .member {
+    padding: 6px 8px;
+    margin: 2px 0;
+    border-radius: var(--corner-radius-sm);
+    transition: background-color 0.15s ease;
+}
+
+.chat-members-section-body .member:hover {
+    background-color: var(--box3-background);
+}
+
+.chat-members-section-body .member .user a {
+    color: var(--font-color);
+    font-weight: 500;
+    transition: color 0.15s ease;
+}
+
+.chat-members-section-body .member:hover .user a {
+    color: var(--accent-color);
+}
+
+/* Custom styling for Owner and Global Chat Mod to highlight them */
+#OwnerList .member .user a {
+    color: #ffd700; /* Gold color for owner */
+}
+#GlobalChatModList .member .user a {
+    color: #ffd700; /* Gold color for global mod */
+}
+#ModeratorList .member .user a {
+    color: #ff9500; /* Orange/Purple accent for mods */
+}
+
 .modDisplayOverlay {
     display:none;
 }
