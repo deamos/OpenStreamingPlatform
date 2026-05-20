@@ -654,58 +654,186 @@
 }
 
 .profileBox {
-  background-color: var(--box1-background);
-  width: 380px;
-  height: 115px;
-  border: 1px solid var(--input-border);
-  border-radius: var(--corner-radius-sm);
-  box-shadow: var(--box-shadow);
+  background-color: var(--box1-background) !important;
+  width: 320px !important;
+  height: auto !important;
+  border: 1px solid var(--input-border) !important;
+  border-top: 4px solid var(--accent-color) !important; /* Top accent stripe */
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+  padding: 16px !important;
+  font-family: inherit;
+  color: var(--font-color) !important;
 }
 
 .profileBoxHeader {
-  background-color: var(--box3-background);
-  border-radius: var(--corner-radius-sm) var(--corner-radius-sm) 0 0;
-  color: var(--font-color);
-  height: 60px;
-  width: 100%;
-  padding: 12px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  height: auto !important;
+  margin-bottom: 16px !important;
+  position: relative;
 }
 
-.profileBoxHeader .close {
-  color: var(--font-color-secondary);
-  transition: color 0.15s ease;
+.profileBoxHeader .btn-close {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  padding: 6px;
+  background-size: 8px;
+  filter: invert(1) grayscale(1) brightness(1.5); /* Make close button white in dark mode */
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
 }
 
-.profileBoxHeader .close:hover {
-  color: var(--font-color);
+.profileBoxHeader .btn-close:hover {
+  opacity: 1;
 }
 
 .profileBoxPic {
-  width: 40px;
-  height: 40px;
-  background-color: var(--accent-color);
-  text-align: center;
-  border-radius: 50%;
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 50% !important;
+  object-fit: cover;
+  border: 2px solid var(--input-border);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
 }
 
-#iconBar-owner {
-  color: #ffd700;
+#profileBox-username {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: var(--font-color) !important;
+  letter-spacing: -0.2px;
+  line-height: 1.2;
 }
-#iconBar-admin {
-  color: #ffd700;
+
+.profileBox-iconBar {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  flex-wrap: wrap;
 }
-#iconBar-mod {
-  color: #ff9500;
+
+.iconBarIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
-#iconBar-member {
-  color: var(--accent-success);
+
+#iconBar-owner { background-color: rgba(255, 215, 0, 0.15); color: #ffd700; }
+#iconBar-admin { background-color: rgba(255, 149, 0, 0.15); color: #ff9500; }
+#iconBar-member { background-color: rgba(145, 70, 255, 0.15); color: var(--accent-hover); }
+#iconBar-mod { background-color: rgba(145, 70, 255, 0.15); color: var(--accent-hover); }
+#iconBar-voice { background-color: rgba(52, 199, 89, 0.15); color: #34c759; }
+#iconBar-visitor { background-color: rgba(142, 142, 147, 0.15); color: var(--font-color-secondary); }
+#iconBar-muted { background-color: rgba(255, 59, 48, 0.15); color: #ff3b30; }
+
+.profileBoxBottom {
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
 }
-#iconBar-muted {
-  color: var(--accent-danger);
+
+.profileBoxBottom .btn {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 6px 14px !important;
+  border-radius: var(--corner-radius-sm) !important;
+  height: 32px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none !important;
+  transition: all 0.15s ease !important;
 }
-#iconBar-voice {
-  color: var(--font-color);
+
+#profileBox-openProfileButton {
+  background-color: var(--accent-color) !important;
+  border: 1px solid var(--accent-color) !important;
+  color: #fff !important;
 }
-#iconBar-visitor {
-  color: var(--font-color-secondary);
+
+#profileBox-openProfileButton:hover {
+  background-color: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
+}
+
+#profileBox-muteButton {
+  background-color: var(--box3-background) !important;
+  border: 1px solid var(--input-border) !important;
+  color: var(--font-color) !important;
+}
+
+#profileBox-muteButton:hover {
+  background-color: var(--box2-background) !important;
+  border-color: var(--accent-color) !important;
+  color: var(--accent-color) !important;
+}
+
+#profileBox-modControls .btn {
+  background-color: var(--box3-background) !important;
+  border: 1px solid var(--input-border) !important;
+  color: var(--font-color-secondary) !important;
+  padding: 6px 10px !important;
+}
+
+#profileBox-modControls .btn:hover {
+  background-color: var(--box2-background) !important;
+  border-color: var(--accent-color) !important;
+  color: var(--accent-color) !important;
+}
+
+#profileBox-deleteMessage .btn {
+  background-color: rgba(255, 59, 48, 0.1) !important;
+  border: 1px solid rgba(255, 59, 48, 0.2) !important;
+  color: #ff3b30 !important;
+  padding: 6px 10px !important;
+}
+
+#profileBox-deleteMessage .btn:hover {
+  background-color: #ff3b30 !important;
+  border-color: #ff3b30 !important;
+  color: #fff !important;
+}
+
+/* Mod control dropdown menu styles matching Twitch-theme */
+#profileBox-modControls .dropdown-menu {
+  background-color: var(--box1-background) !important;
+  border: 1px solid var(--input-border) !important;
+  border-radius: var(--corner-radius-sm) !important;
+  box-shadow: var(--box-shadow) !important;
+  padding: 6px 0 !important;
+}
+
+#profileBox-modControls .dropdown-header {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--font-color-secondary) !important;
+  padding: 8px 12px 4px 12px !important;
+}
+
+#profileBox-modControls .dropdown-item {
+  color: var(--font-color) !important;
+  font-size: 12px !important;
+  padding: 6px 12px !important;
+  transition: all 0.1s ease !important;
+}
+
+#profileBox-modControls .dropdown-item:hover {
+  background-color: var(--accent-color) !important;
+  color: #fff !important;
+}
+
+#profileBox-modControls .dropdown-divider {
+  border-color: var(--input-border) !important;
+  margin: 4px 0 !important;
 }
