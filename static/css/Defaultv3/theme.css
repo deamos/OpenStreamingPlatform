@@ -2261,6 +2261,12 @@ select:focus {
 }
 
 @media (max-width: 1199px) {
+  .stream-panel {
+    height: auto !important;
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+  }
+
   .channel-description-panels.mobile-hidden {
     display: none !important;
   }
