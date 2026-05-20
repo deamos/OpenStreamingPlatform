@@ -578,12 +578,13 @@
     z-index: 2147483003;
     position: absolute;
     display: none;
-    width: 100%;
+    width: 330px !important;
     right: 0px;
-    box-shadow: var(--box-shadow);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
     background-color: var(--box1-background);
     border: 1px solid var(--input-border);
-    border-radius: var(--corner-radius-sm);
+    border-top: 3px solid var(--accent-color);
+    border-radius: 8px;
     transition-duration: 200ms;
     transition-delay: 0ms;
     transform-style: flat;
@@ -599,82 +600,132 @@
   bottom: 50px;
 }
 .chatsticker-emoji-picker {
-    width: 330px;
-    height: 260px;
+    width: 100% !important;
+    height: 300px;
     background-color: var(--box1-background);
 }
 .chatsticker-composer-popover-header {
     position: absolute;
     top: 0;
-    left: 20px;
-    right: 20px;
-    height: 40px;
+    left: 16px;
+    right: 16px;
+    height: 50px;
+    display: flex;
+    align-items: center;
     border-bottom: 1px solid var(--input-border);
 }
 .chatsticker-composer-popover-input {
     font-weight: 400;
-    font-size: 14px;
+    font-size: 13px;
     color: var(--font-color);
     background-color: var(--box3-background);
-    height: 40px;
+    height: 32px;
     width: 100%;
     box-sizing: border-box;
-    border: none;
-    border-bottom: 1px solid var(--input-border);
+    border: 1px solid var(--input-border);
+    border-radius: 20px;
     outline: none;
+    padding: 0 14px 0 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23888888'%3E%3Cpath d='M505 442.7L405.3 343c-4.5-4.5-10.6-7-17-7H372c27.6-35.3 44-79.7 44-128C416 93.1 322.9 0 208 0S0 93.1 0 208s93.1 208 208 208c48.3 0 92.7-16.4 128-44v16.3c0 6.4 2.5 12.5 7 17l99.7 99.7c9.4 9.4 24.6 9.4 33.9 0l28.3-28.3c9.4-9.4 9.4-24.6.1-34zM208 336c-70.7 0-128-57.2-128-128 0-70.7 57.2-128 128-128 70.7 0 128 57.2 128 128 0 70.7-57.2 128-128 128z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 10px 50%;
+    background-size: 12px 12px;
+    transition: border-color 0.15s ease;
+}
+.chatsticker-composer-popover-input:focus {
+    border-color: var(--accent-color);
 }
 .chatsticker-composer-popover-body {
     position: absolute;
-    top: 40px;
+    top: 50px;
     left: 0;
     right: 0;
     bottom: 5px;
-    padding: 0 20px;
-    overflow-y: scroll;
+    padding: 0 16px;
+    overflow-y: auto;
+}
+.chatsticker-composer-popover-body::-webkit-scrollbar {
+    width: 6px;
+}
+.chatsticker-composer-popover-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.chatsticker-composer-popover-body::-webkit-scrollbar-thumb {
+    background-color: var(--input-border);
+    border-radius: 3px;
 }
 .chatsticker-emoji-picker-group {
-    margin: 10px -5px;
-}
-.chatsticker-emoji-picker-group {
-    margin: 10px -5px;
+    margin: 12px 0;
 }
 .chatsticker-emoji-picker-group-title {
-    color: var(--font-color);
-    font-weight: 400;
-    font-size: 13px;
-    margin: 5px;
+    color: var(--font-color-secondary);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 8px 6px;
 }
 .chatsticker-emoji-picker-emoji {
-    padding: 5px;
-    width: 30px;
-    line-height: 30px;
-    display: inline-table;
-    text-align: center;
+    padding: 4px;
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    vertical-align: middle;
-    font-size: 28px;
-    transition: -webkit-transform 60ms ease-out;
-    transition: transform 60ms ease-out;
-    transition: transform 60ms ease-out,-webkit-transform 60ms ease-out;
-    transition-delay: 60ms;
-    font-family: Apple Color Emoji,Segoe UI Emoji,NotoColorEmoji,Segoe UI Symbol,Android Emoji,EmojiSymbols;
+    border-radius: 6px;
+    transition: background-color 0.15s ease;
+}
+.chatsticker-emoji-picker-emoji img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    transition: transform 0.15s ease;
 }
 .chatsticker-emoji-picker-emoji:hover {
-    transition-delay: 0ms;
-    -webkit-transform: scale(1.4);
-    -ms-transform: scale(1.4);
-    transform: scale(1.4);
+    background-color: var(--box3-background);
+}
+.chatsticker-emoji-picker-emoji:hover img {
+    transform: scale(1.15);
 }
 .chatsticker-composer-popover-caret {
     position: absolute;
     bottom: -8px;
-    right: 0%;
+    right: 54px;
     width: 0;
     height: 0;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-top: 8px solid #fff;
-    right: 54px;
+    border-top: 8px solid var(--box1-background);
+}
+
+#openEmojiButton {
+    background-color: var(--box3-background) !important;
+    border: 1px solid var(--input-border) !important;
+    border-left: none !important;
+    color: var(--font-color-secondary) !important;
+    border-radius: 0 !important;
+    transition: all 0.15s ease;
+    padding: 0 16px !important;
+}
+
+#openEmojiButton:hover {
+    color: var(--font-color) !important;
+    background-color: var(--box1-background) !important;
+}
+
+#sendChat {
+    background-color: var(--accent-color) !important;
+    border: 1px solid var(--accent-color) !important;
+    color: #fff !important;
+    border-radius: 0 var(--corner-radius-sm) var(--corner-radius-sm) 0 !important;
+    transition: all 0.15s ease;
+    padding: 0 16px !important;
+}
+
+#sendChat:hover {
+    background-color: var(--accent-color-hover, #772ce8) !important;
+    border-color: var(--accent-color-hover, #772ce8) !important;
 }
 
 .profileBox {
