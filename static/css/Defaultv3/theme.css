@@ -2219,3 +2219,67 @@ select:focus {
 .login-box .hint a:hover {
   color: var(--accent-color);
 }
+
+/* Mobile Tab Bar styles */
+.mobile-tabs-container {
+  display: flex;
+  background-color: var(--box2-background);
+  border-bottom: 1px solid var(--input-border);
+  margin-top: 8px;
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+}
+
+.mobile-tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--font-color-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+  outline: none !important;
+}
+
+.mobile-tab-btn i {
+  margin-right: 6px;
+}
+
+.mobile-tab-btn:hover {
+  color: var(--font-color);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.mobile-tab-btn.active {
+  color: var(--accent-color);
+  border-bottom-color: var(--accent-color);
+  background-color: rgba(119, 44, 232, 0.05);
+}
+
+@media (max-width: 1199px) {
+  .channel-description-panels.mobile-hidden {
+    display: none !important;
+  }
+  
+  .channel-description-panels.mobile-active {
+    display: block !important;
+  }
+  
+  #sidePanel.mobile-hidden {
+    display: none !important;
+  }
+  
+  #sidePanel.mobile-active {
+    display: block !important;
+    height: 480px !important;
+    margin-bottom: 24px;
+  }
+  
+  .side-chat-pane {
+    height: 100% !important;
+  }
+}
