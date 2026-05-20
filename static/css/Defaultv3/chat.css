@@ -324,7 +324,37 @@
 }
 
 .modDisplayOverlay {
-    display:none;
+    display: none;
+    position: absolute;
+    top: 50px; /* Below chat header */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--box1-background);
+    padding: 16px;
+    z-index: 5;
+    flex-direction: column;
+}
+
+.btn-ban-trash {
+    color: var(--font-color-secondary) !important;
+    background: transparent !important;
+    border: none !important;
+    opacity: 0.7;
+    transition: all 0.15s ease;
+    width: 28px;
+    height: 28px;
+    border-radius: 50% !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+}
+
+.btn-ban-trash:hover {
+    color: #ff3b30 !important;
+    background: rgba(255, 59, 48, 0.1) !important;
+    opacity: 1;
 }
 
 .chatbox-popout {

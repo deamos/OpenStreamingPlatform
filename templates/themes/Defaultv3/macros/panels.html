@@ -968,11 +968,26 @@
 {% endmacro %}
 
 {% macro core_chat_mod_view() %}
-<div id="modDisplay" class="modDisplayOverlay">
-    <div class="membersList card my-3">
-      <div class="card-header bg-primary"><b>Banned Users</b></div>
-      <div id="OutcastList" class="card-body"></div>
+<div id="modDisplay" class="modDisplayOverlay" style="display: none;">
+  <!-- Modern Topbar for Banned Users -->
+  <div class="chat-members-topbar d-flex align-items-center justify-content-between mb-3 gap-2">
+    <div class="chat-members-search-container flex-grow-1">
+      <i class="fas fa-search chat-members-search-icon"></i>
+      <input type="text" id="banSearch" class="form-control form-control-sm chat-members-search" placeholder="Search banned..." oninput="filterBannedUsers();">
     </div>
+    <div class="d-flex gap-1 flex-shrink-0">
+      <button onclick="openModDisplay();" class="btn btn-sm btn-icon-round" data-toggle="tooltip" data-placement="bottom" title="Return to Chat">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="chat-members-section flex-grow-1 d-flex flex-column min-h-0">
+    <div class="chat-members-section-header">Banned Users <span class="chat-members-section-count" id="count-banned">(0)</span></div>
+    <div class="chat-members-list-wrapper">
+      <div id="OutcastList" class="chat-members-section-body"></div>
+    </div>
+  </div>
 </div>
 {% endmacro %}
 

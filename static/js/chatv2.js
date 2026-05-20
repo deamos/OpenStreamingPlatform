@@ -1032,18 +1032,43 @@ socket.on('returnBanList', function(msg) {
     document.getElementById('chatMembers').style.display = 'none';
     document.getElementById('chat').style.display = 'none';
 
-    banList = document.getElementById('OutcastList');
+    var banList = document.getElementById('OutcastList');
     banList.innerHTML = "";
+    
+    var countBanned = document.getElementById('count-banned');
+    if (countBanned) {
+        countBanned.textContent = `(${msg['results'].length})`;
+    }
+
     for (let i = 0; i < msg['results'].length; i++){
-        var iDiv = document.createElement('div');
-        iDiv.className = 'bannedUser';
         var username = msg["results"][i]["username"];
         var useruuid = msg["results"][i]["useruuid"];
-        var onclickCmd = "clearBan('" + useruuid + "');"
-        iDiv.innerHTML = '<span class="my-2" id="bannedUser-' + username + '">' + username + '<button class="btn btn-sm btn-danger mx-2" onclick=' + onclickCmd + '><i class="fas fa-trash"></i></button></span>';
+        
+        var iDiv = document.createElement('div');
+        iDiv.className = 'member d-flex align-items-center justify-content-between my-2 p-1';
+        iDiv.setAttribute('data-username', username.toLowerCase());
+        
+        // Unban button
+        var onclickCmd = "clearBan('" + useruuid + "');";
+        
+        var htmlContent = `
+            <div class="d-flex align-items-center min-w-0">
+                <img src="/static/img/user2.png" id="banned-avatar-${username}" class="member-avatar rounded-circle me-2" alt="">
+                <span class="user text-truncate" style="color: var(--font-color); font-weight: 500;">${username}</span>
+            </div>
+            <button class="btn btn-sm btn-ban-trash" onclick="${onclickCmd}" data-toggle="tooltip" data-placement="bottom" title="Unban ${username}">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        `;
+        iDiv.innerHTML = htmlContent;
         banList.appendChild(iDiv);
+        
+        // Load the user's avatar image asynchronously
+        loadMemberAvatar(username, document.getElementById(`banned-avatar-${username}`));
     }
-    console.log(msg);
+    
+    // Maintain active search filter if there is one
+    filterBannedUsers();
 });
 
 function loadMemberAvatar(username, imgElement) {
@@ -1069,4 +1094,34 @@ function loadMemberAvatar(username, imgElement) {
         .catch(function(err) {
             imgElement.src = '/static/img/user2.png';
         });
+}
+
+function filterBannedUsers() {
+    var searchInput = document.getElementById('banSearch');
+    if (!searchInput) return;
+    
+    var filterValue = searchInput.value.toLowerCase().trim();
+    var listBody = document.getElementById('OutcastList');
+    if (!listBody) return;
+    
+    var bannedRows = listBody.getElementsByClassName('member');
+    var visibleCount = 0;
+    
+    for (let i = 0; i < bannedRows.length; i++) {
+        var row = bannedRows[i];
+        var username = row.getAttribute('data-username');
+        if (username) {
+            if (username.indexOf(filterValue) > -1) {
+                row.style.display = 'flex';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        }
+    }
+    
+    var countEl = document.getElementById('count-banned');
+    if (countEl) {
+        countEl.textContent = `(${visibleCount})`;
+    }
 }
