@@ -648,25 +648,28 @@ socket.on('channelOccups', function (occupantsString) {
   }
   for (const user of OccupantsArray) {
     const userDiv = document.createElement('div');
-    userDiv.className = "member my-1";
+    userDiv.className = "member d-flex align-items-center my-1";
 
     const { username, affiliation, role:userRole } = user;
 
     let listSection = chatListMap[affiliation];
     let countSection = affiliation;
-    let htmlString = `<span class="user"><a href="javascript:void(0);" onclick="displayProfileBox(this)">${username}</a></span>`;
-    if (affiliation === 'owner') {
-        htmlString = `<span class="user"><a href="/profile/${username}" target="_blank" id="a-owner-${username}">${username}</a></span>`;
-    } else if (affiliation === 'gcm') {
-        htmlString = `<span class="user"><a href="/profile/${username}" target="_blank" id="a-gcm-${username}">${username}</a></span>`;
-    } else if (affiliation === 'none' && userRole === 'participant') {
+    if (affiliation === 'none' && userRole === 'participant') {
         listSection = "ParticipantList";
         countSection = "member";
     }
+
+    // Set the click handler and proper ID for GCM/Owner/etc so they all can open the profile dialog
+    let htmlString = `<img src="/static/img/user2.png" id="member-avatar-${username}" class="member-avatar rounded-circle me-2" alt=""><span class="user"><a href="javascript:void(0);" onclick="displayProfileBox(this)" id="a-${affiliation}-${username}">${username}</a></span>`;
+
     userDiv.innerHTML = htmlString;
     userDiv.setAttribute('data-username', username.toLowerCase());
 
     document.getElementById(listSection).appendChild(userDiv);
+    
+    // Load the user's avatar image asynchronously
+    loadMemberAvatar(username, document.getElementById(`member-avatar-${username}`));
+
     if (counts[countSection] !== undefined) {
         counts[countSection]++;
     }
@@ -832,7 +835,6 @@ function modSetRole(role) {
 // Generate Profile Box on Username Click
 function displayProfileBox(elem) {
     closeProfileBox();
-    var position = getPos(elem);
     var username = elem.textContent;
     var messageDivId = $(elem).closest('div.chatEntryContainer').attr('id');
     var div = document.querySelector("div[data-type='profileBoxTemplate']").cloneNode(true);
@@ -895,10 +897,25 @@ function displayProfileBox(elem) {
     //Begin Async Call to Update Profile Data from API
     updateProfileBox(div, username);
 
+    // Calculate position relative to page viewport and scroll offsets
+    var rect = elem.getBoundingClientRect();
+    var absoluteY = rect.top + window.pageYOffset;
+    var absoluteX = rect.left + window.pageXOffset;
+
+    // Prevent horizontal overflow off the screen
+    var boxWidth = 380;
+    var leftOffset = absoluteX - 75;
+    if (leftOffset + boxWidth > window.innerWidth) {
+        leftOffset = window.innerWidth - boxWidth - 15;
+    }
+    if (leftOffset < 10) {
+        leftOffset = 10;
+    }
+
     // Format ProfileBox
     div.style.position = 'absolute';
-    div.style.top =  (position.y - ChatContentWindow.scrollTop) + "px";
-    div.style.left = position.x - 75 + "px";
+    div.style.top =  absoluteY + "px";
+    div.style.left = leftOffset + "px";
     div.style.zIndex = 10;
     div.style.display= "block";
 
@@ -1028,3 +1045,28 @@ socket.on('returnBanList', function(msg) {
     }
     console.log(msg);
 });
+
+function loadMemberAvatar(username, imgElement) {
+    if (!imgElement) return;
+    if (/Guest[\d]+/.test(username)) {
+        imgElement.src = '/static/img/user2.png';
+        return;
+    }
+    var apiEndpoint = '/apiv1/user/' + username;
+    fetch(apiEndpoint)
+        .then((resp) => resp.json())
+        .then(function (data) {
+            var profileData = data['results'];
+            if (profileData && profileData.length > 0) {
+                var pictureData = profileData[0]['pictureLocation'];
+                if (pictureData !== null && pictureData !== '/images/None' && pictureData !== 'None' && pictureData !== '') {
+                    imgElement.src = pictureData.startsWith('/') ? pictureData : ('/images/' + pictureData);
+                    return;
+                }
+            }
+            imgElement.src = '/static/img/user2.png';
+        })
+        .catch(function(err) {
+            imgElement.src = '/static/img/user2.png';
+        });
+}

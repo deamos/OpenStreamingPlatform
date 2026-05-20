@@ -280,6 +280,8 @@
 }
 
 .chat-members-section-body .member {
+    display: flex;
+    align-items: center;
     padding: 6px 8px;
     margin: 2px 0;
     border-radius: var(--corner-radius-sm);
@@ -288,6 +290,16 @@
 
 .chat-members-section-body .member:hover {
     background-color: var(--box3-background);
+}
+
+.member-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-right: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .chat-members-section-body .member .user a {
