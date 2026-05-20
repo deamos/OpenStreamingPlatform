@@ -325,14 +325,8 @@
 
 .modDisplayOverlay {
     display: none;
-    position: absolute;
-    top: 50px; /* Below chat header */
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--box1-background);
-    padding: 16px;
-    z-index: 5;
+    padding: 12px;
+    height: 100%;
     flex-direction: column;
 }
 
