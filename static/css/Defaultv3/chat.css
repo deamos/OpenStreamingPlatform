@@ -175,8 +175,7 @@
 .chatInputBox {
   background-color: var(--box3-background) !important;
   border: 1px solid var(--input-border) !important;
-  border-right: none !important;
-  border-radius: 8px 0 0 8px !important;
+  border-radius: 8px !important;
   margin: 0 !important;
   padding: 10px 16px !important;
   font-size: 14px;
@@ -192,10 +191,6 @@
   border-color: var(--accent-color) !important;
   box-shadow: none !important;
   outline: none !important;
-}
-
-.chatInputBox:focus + #openEmojiButton {
-  border-color: var(--accent-color) !important;
 }
 
 .chatInputBox::placeholder {
@@ -598,9 +593,9 @@
     z-index: 2147483003;
     position: absolute;
     display: none;
-    left: 8px !important;
-    right: 8px !important;
-    width: auto !important;
+    right: 0px !important;
+    left: auto !important;
+    width: 290px !important;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
     background-color: var(--box1-background);
     border: 1px solid var(--input-border);
@@ -695,7 +690,10 @@
     justify-content: center;
     cursor: pointer;
     border-radius: 6px;
-    transition: background-color 0.15s ease;
+    border: 1px solid var(--input-border);
+    background-color: var(--box3-background);
+    margin: 3px;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .chatsticker-emoji-picker-emoji img {
     width: 30px;
@@ -704,15 +702,16 @@
     transition: transform 0.15s ease;
 }
 .chatsticker-emoji-picker-emoji:hover {
-    background-color: var(--box3-background);
+    background-color: var(--box2-background);
+    border-color: var(--accent-color);
 }
 .chatsticker-emoji-picker-emoji:hover img {
-    transform: scale(1.15);
+    transform: scale(1.1);
 }
 .chatsticker-composer-popover-caret {
     position: absolute;
     bottom: -8px;
-    right: 60px;
+    right: 68px !important;
     width: 0;
     height: 0;
     border-left: 8px solid transparent;
@@ -723,11 +722,10 @@
 #openEmojiButton {
     background-color: var(--box3-background) !important;
     border: 1px solid var(--input-border) !important;
-    border-left: none !important;
     color: var(--font-color-secondary) !important;
-    border-radius: 0 8px 8px 0 !important;
+    border-radius: 8px !important;
     transition: all 0.15s ease;
-    padding: 0 16px 0 8px !important;
+    padding: 0 16px !important;
     margin: 0 !important;
     height: 40px !important;
     box-shadow: none !important;
