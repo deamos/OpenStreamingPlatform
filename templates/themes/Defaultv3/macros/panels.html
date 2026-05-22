@@ -930,7 +930,8 @@
 {% macro stream_control_panel(channel, current_user) %}
 <div id="vidControls" class="video-control-panel d-flex align-items-center gap-2 px-2">
     {% if current_user.is_authenticated and channel.owningUser == current_user.id %}
-    <button type="button" class="btn btn-primary btn-sm" onclick="openModal('editModal');"><i class="fas fa-edit"></i></button>
+    <button type="button" class="btn btn-primary btn-sm" onclick="openModal('editModal');" title="Edit Stream Info"><i class="fas fa-edit"></i></button>
+    <button type="button" class="btn btn-primary btn-sm" onclick="openModal('liveRestreamModal');" title="Live Restream Control"><i class="fas fa-broadcast-tower"></i></button>
     {% endif %}
     <button class="btn btn-primary btn-sm" onclick="openModal('shareModal');"><i class="fas fa-share-alt"></i></button>
     <button id="upvoteButton" type="button" class="btn btn-outline-success btn-sm" title="Upvote" onclick="changeUpvote('stream',{{channel.id}});" {% if current_user.is_authenticated==false %} disabled {% endif %}><i id="upVoteIcon" class="far fa-thumbs-up"></i> <span id="totalUpvotes"></span></button>

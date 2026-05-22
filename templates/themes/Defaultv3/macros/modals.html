@@ -1891,6 +1891,55 @@ tagify_clipTags.on('input', function(e) {
 {% endif %}
 {% endmacro %}
 
+{% macro live_restream_modal(channel) %}
+{% if channel.owningUser == current_user.id %}
+<div class="modal fade" id="liveRestreamModal" tabindex="-1" role="dialog" aria-labelledby="liveRestreamModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="liveRestreamModalTitle"><i class="fas fa-broadcast-tower text-primary me-2"></i>Live Restream Control</h5>
+        <div class="float-end">
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted" style="font-size: 13px;">Control active restreams dynamically while live. Switches toggle immediately.</p>
+        <div class="list-group">
+            {% set channelRestreamDestinations = channel.id | get_channelRestreamDestinations %}
+            {% if channelRestreamDestinations|length > 0 %}
+                {% for restreamDestination in channelRestreamDestinations %}
+                <div class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary mb-2 rounded shadow-sm">
+                    <div>
+                        <strong class="restream-name-label">{{ restreamDestination.name }}</strong>
+                        {% if restreamDestination.enabled %}<span class="badge bg-secondary ms-2 default-badge">Default</span>{% endif %}
+                        <br>
+                        <small class="text-muted restream-url-label" style="word-break: break-all;">{{ restreamDestination.url }}</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="badge bg-secondary restream-status-badge textShadow" id="liveRestreamStatus-{{ restreamDestination.id }}">Offline</span>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="liveRestreamToggle-{{ restreamDestination.id }}" onchange="handleLiveRestreamToggle('{{ restreamDestination.id }}')" {% if restreamDestination.enabled %}checked{% endif %}>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center p-3 text-muted">
+                    <i class="fas fa-info-circle fa-2x mb-2"></i>
+                    <p class="mb-0">No restream destinations configured. Add some in your Channel Settings.</p>
+                </div>
+            {% endif %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+
 {% macro upload_video_thumbnail() %}
 <div class="modal fade" id="videoThumbnailUploadModal" tabindex="-1" role="dialog" aria-labelledby="videoThumbnailUploadModalTitle" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered" role="document">

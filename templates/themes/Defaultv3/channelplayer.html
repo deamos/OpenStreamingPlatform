@@ -107,6 +107,7 @@
 {% block modals %}
     {{ modals.stream_share(request, stream, rtmpURI) }}
     {{ modals.edit_stream(stream, topics) }}
+    {{ modals.live_restream_modal(channel) }}
 {% endblock %}
 
 <!--Start Script Block-->
@@ -524,5 +525,87 @@
     </script>
     {% else %}
     <script src="/static/js/liveWebRTCHandler.js"></script>
+    {% endif %}
+
+    {% if current_user.is_authenticated and channel.owningUser == current_user.id %}
+    <script>
+        function handleLiveRestreamToggle(restreamID) {
+            var toggle = $('#liveRestreamToggle-' + restreamID);
+            var isChecked = toggle.is(':checked');
+            var action = isChecked ? 'start' : 'stop';
+            
+            toggle.prop('disabled', true);
+            socket.emit('toggleLiveRestream', { id: restreamID, action: action });
+        }
+
+        socket.on('toggleLiveRestreamAck', function(data) {
+            var restreamID = data.id;
+            var toggle = $('#liveRestreamToggle-' + restreamID);
+            var badge = $('#liveRestreamStatus-' + restreamID);
+            
+            toggle.prop('disabled', false);
+            
+            if (data.success) {
+                toggle.prop('checked', data.enabled);
+                if (data.status === 'Running') {
+                    badge.removeClass('bg-secondary bg-danger bg-warning').addClass('bg-success').text('Running');
+                } else if (data.status === 'Offline') {
+                    badge.removeClass('bg-success bg-danger bg-warning').addClass('bg-secondary').text('Offline');
+                }
+            } else {
+                toggle.prop('checked', !toggle.is(':checked'));
+                alert('Error: ' + data.message);
+            }
+        });
+
+        {% if stream != None %}
+        function updateLiveRestreamStatus() {
+            $.ajax({
+                url: '/apiv1/channel/{{ channel.channelLoc }}/restreamStatus',
+                type: 'GET',
+                success: function(response) {
+                    var status = response.results;
+                    
+                    $('[id^="liveRestreamStatus-"]').each(function() {
+                        var destId = this.id.split('-')[1];
+                        var badge = $(this);
+                        var toggle = $('#liveRestreamToggle-' + destId);
+                        
+                        if (!status[destId]) {
+                            badge.removeClass('bg-success bg-danger bg-warning').addClass('bg-secondary').text('Offline');
+                            if (!toggle.prop('disabled')) {
+                                toggle.prop('checked', false);
+                            }
+                        }
+                    });
+
+                    for (var destId in status) {
+                        var badge = $('#liveRestreamStatus-' + destId);
+                        var toggle = $('#liveRestreamToggle-' + destId);
+                        if (badge.length) {
+                            var state = status[destId].state;
+                            if (state === 'Running') {
+                                badge.removeClass('bg-secondary bg-danger bg-warning').addClass('bg-success').text('Running');
+                                if (!toggle.prop('disabled')) {
+                                    toggle.prop('checked', true);
+                                }
+                            } else if (state === 'Error') {
+                                badge.removeClass('bg-secondary bg-success bg-warning').addClass('bg-danger').text('Error');
+                                if (!toggle.prop('disabled')) {
+                                    toggle.prop('checked', false);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            setInterval(updateLiveRestreamStatus, 10000);
+            updateLiveRestreamStatus();
+        });
+        {% endif %}
+    </script>
     {% endif %}
 {% endblock %}
