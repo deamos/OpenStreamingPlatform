@@ -299,3 +299,108 @@ def stream_force_close():
         return "OK"
     else:
         abort(400)
+
+@rtmp_bp.route("/restream/control", methods=["POST"])
+def restream_control():
+    data = request.get_json()
+    if not data:
+        return abort(400, "Missing JSON payload")
+    
+    channelLocation = data.get("channelLoc")
+    restreamID = str(data.get("restreamID"))
+    restreamURL = data.get("restreamURL")
+    restreamName = data.get("restreamName", "Restream")
+    action = data.get("action")
+    adaptive = data.get("adaptive", False)
+    
+    if not all([channelLocation, restreamID, restreamURL, action]):
+        return abort(400, "Missing required parameters")
+    
+    r = globalvars.get_redis()
+    
+    if action == "start":
+        sysSettingsRequest = requests.get(globalvars.apiLocation + "/apiv1/server")
+        if sysSettingsRequest.status_code == 200:
+            sysSettingsResults = sysSettingsRequest.json()
+        else:
+            return abort(500, "Unable to reach OSP-Core API")
+            
+        serverRestreamAllowed = False
+        if "allowRestream" not in sysSettingsResults["results"]:
+            serverRestreamAllowed = True
+        elif sysSettingsResults["results"]["allowRestream"] is True:
+            serverRestreamAllowed = True
+            
+        if not serverRestreamAllowed:
+            return abort(403, "Restreaming is disabled by server administrator")
+            
+        if adaptive is True:
+            inputLocation = "rtmp://127.0.0.1:1935/stream-data-adapt/" + channelLocation
+        else:
+            inputLocation = "rtmp://127.0.0.1:1935/stream-data/" + channelLocation
+            
+        if channelLocation not in globalvars.restreamSubprocesses:
+            globalvars.restreamSubprocesses[channelLocation] = {}
+            
+        if restreamID in globalvars.restreamSubprocesses[channelLocation]:
+            return {"results": {"success": True, "message": "Already running"}}
+            
+        max_bitrate = sysSettingsResults["results"].get("restreamMaxBitRate", 0)
+        if max_bitrate > 0:
+            cmd = [
+                "/usr/bin/ffmpeg",
+                "-i", inputLocation,
+                "-c:v", "libx264",
+                "-preset", "veryfast",
+                "-maxrate", f"{max_bitrate}k",
+                "-bufsize", f"{max_bitrate*2}k",
+                "-c:a", "aac",
+                "-b:a", "160k",
+                "-ac", "2",
+                "-f", "flv",
+                restreamURL,
+            ]
+        else:
+            cmd = [
+                "/usr/bin/ffmpeg",
+                "-i", inputLocation,
+                "-c:v", "copy",
+                "-c:a", "copy",
+                "-f", "flv",
+                restreamURL,
+            ]
+            
+        p = subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+        )
+        globalvars.restreamSubprocesses[channelLocation][restreamID] = p
+        r.sadd(f"osp:rtmp:pids:{channelLocation}", str(p.pid))
+        
+        t = threading.Thread(target=log_stream, args=(p.stderr, channelLocation, restreamName), daemon=True)
+        t.start()
+        
+        return {"results": {"success": True, "message": "Restream started"}}
+        
+    elif action == "stop":
+        if channelLocation in globalvars.restreamSubprocesses and restreamID in globalvars.restreamSubprocesses[channelLocation]:
+            p = globalvars.restreamSubprocesses[channelLocation][restreamID]
+            p.kill()
+            try:
+                p.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                p.kill()
+                p.wait(timeout=5)
+            
+            r.srem(f"osp:rtmp:pids:{channelLocation}", str(p.pid))
+            
+            try:
+                del globalvars.restreamSubprocesses[channelLocation][restreamID]
+            except KeyError:
+                pass
+            return {"results": {"success": True, "message": "Restream stopped"}}
+        else:
+            return {"results": {"success": True, "message": "Restream not running"}}
+            
+    return abort(400, "Invalid action")
