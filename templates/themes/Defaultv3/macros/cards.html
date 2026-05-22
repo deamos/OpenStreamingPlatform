@@ -405,3 +405,92 @@
     </div>
 </li>
 {% endmacro %}
+
+{% macro user_settings_content_row(item) %}
+<tr id="{% if item.type == 'video' %}video-{{item.id}}{% else %}clip-{{item.id}}{% endif %}" class="align-middle">
+    <td class="align-middle text-center">
+        <input type="checkbox" class="form-check-input content-selector" value="{{item.id}}" data-type="{{item.type}}">
+    </td>
+    <td class="align-middle">
+        <div class="position-relative" style="width: 120px; min-width: 120px;">
+            <img class="boxShadow {% if item.gifLocation != None %}gif{% endif %} lazy img-fluid rounded" 
+                 id="{% if item.type == 'video' %}videoThumb-{{item.id}}{% else %}clipThumb-{{item.id}}{% endif %}" 
+                 src="/static/img/video-placeholder.jpg" 
+                 data-src="/videos/{{item.thumbnailLocation}}" 
+                 onerror="this.src='/static/img/video-placeholder.jpg';" 
+                 style="border-radius:6px; {% if item.pending == True %}filter: blur(2px);{% endif %}">
+            <span class="badge bg-dark position-absolute bottom-0 end-0 m-1 opacity-75" style="font-size: 0.75rem;">
+                {{item.length|hms_format}}
+            </span>
+        </div>
+    </td>
+    <td class="align-middle">
+        {% if item.type == 'video' %}
+            <a class="text-white fw-bold text-decoration-none" href="/play/{{item.id}}">
+                <span id="vidName-{{item.id}}">{{item.title}}</span>
+            </a>
+            <span id="vidTopic-{{item.id}}" class="d-none">{{item.topic}}</span>
+            <span id="vidDescription-{{item.id}}" class="d-none">{{item.description}}</span>
+            <span id="vidAllowComments-{{item.id}}" class="d-none">{{item.allowComments}}</span>
+            <div class="d-none" id="video-{{item.id}}-tags">{{item.tags}}</div>
+        {% else %}
+            <a class="text-white fw-bold text-decoration-none" href="/clip/{{item.id}}">
+                <span id="clipName-{{item.id}}">{{item.title}}</span>
+            </a>
+            <span id="clipDescription-{{item.id}}" class="d-none">{{item.description}}</span>
+            <div class="d-none" id="clip-{{item.id}}-tags">{{item.tags}}</div>
+        {% endif %}
+    </td>
+    <td class="align-middle">
+        {% if item.type == 'video' %}
+            <span class="badge bg-success"><i class="fas fa-video me-1"></i>Video</span>
+        {% else %}
+            <span class="badge bg-purple" style="background-color: var(--theme-purple, #6f42c1);"><i class="fas fa-cut me-1"></i>Clip</span>
+        {% endif %}
+    </td>
+    <td class="align-middle">
+        <span class="badge bg-secondary">{{item.topic|get_topicName}}</span>
+    </td>
+    <td class="align-middle text-nowrap">
+        {{item.date|normalize_date}}
+    </td>
+    <td class="align-middle text-nowrap">
+        <span class="me-2" title="Views"><i class="fas fa-users text-muted me-1"></i>{{item.views}}</span>
+        <span class="me-2" title="Upvotes"><i class="far fa-thumbs-up text-muted me-1"></i>{% if item.type == 'video' %}{{item.id|get_Video_Upvotes}}{% else %}{{item.id|get_Clip_Upvotes}}{% endif %}</span>
+        {% if item.type == 'video' %}
+            <span title="Comments"><i class="far fa-comment-alt text-muted me-1"></i>{{item.id|get_Video_Comments}}</span>
+        {% else %}
+            <span title="Comments"><i class="far fa-comment-alt text-muted me-1"></i>-</span>
+        {% endif %}
+    </td>
+    <td class="align-middle text-center">
+        <div class="form-check form-switch d-inline-block">
+            {% if item.type == 'video' %}
+                <input class="form-check-input" type="checkbox" id="published-{{item.id}}" name="publishedSelect" onchange="togglePublished('{{item.id}}')" {% if item.published == True %} checked {% endif %}>
+            {% else %}
+                <input class="form-check-input" type="checkbox" id="clipPublished-{{item.id}}" name="publishedSelect" onchange="togglePublishedClip('{{item.id}}')" {% if item.published == True %} checked {% endif %}>
+            {% endif %}
+        </div>
+    </td>
+    <td class="align-middle text-nowrap">
+        <div class="btn-group btn-group-sm" role="group">
+            {% if item.type == 'video' %}
+                <button class="videoEditModalButton btn btn-primary" data-bs-toggle="modal" data-bs-target="#videoEditModal" data-videoid="{{item.id}}" data-toggle="tooltip" data-placement="top" title="Edit Metadata"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-primary" data-bs-toggle="modal" onclick="openSSModal('{{item.id}}', '/videos/{{item.videoLocation}}');" data-toggle="tooltip" data-placement="top" title="Set Thumbnail"><i class="fas fa-camera"></i></button>
+                <button class="btn btn-success" onclick="uploadThumbnailModal('{{item.id}}','video');" data-toggle="tooltip" data-placement="top" title="Upload Thumbnail"><i class="fas fa-upload"></i></button>
+                <button class="videoShareModalButton btn btn-primary" data-bs-toggle="modal" data-bs-target="#videoShareModal" data-videoid="{{item.id}}" data-toggle="tooltip" data-placement="top" title="Share Video"><i class="fas fa-share-alt"></i></button>
+                <button class="videoMoveModalButton btn btn-primary" onclick="moveVideoModal('{{item.id}}');" data-toggle="tooltip" data-placement="top" title="Move Video"><i class="fas fa-arrow-circle-right"></i></button>
+                <button class="btn btn-primary" onclick="openClipModal('{{item.id}}', '/videos/{{item.videoLocation}}');" data-toggle="tooltip" data-placement="top" title="Create Clip"><i class="fas fa-cut"></i></button>
+                <button class="videoDeleteModalButton btn btn-danger" onclick="openVideoDeleteModal('{{ item.id }}');" data-toggle="tooltip" data-placement="top" title="Delete Video"><i class="fas fa-trash-alt"></i></button>
+            {% else %}
+                <button class="clipEditModalButton btn btn-primary" onclick="editClipMetadataModal('{{ item.id }}');" data-toggle="tooltip" data-placement="top" title="Edit Metadata"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-primary" onclick="openClipSSModal('{{item.id}}', '/videos/{{item.videoLocation}}');" data-toggle="tooltip" data-placement="top" title="Set Thumbnail"><i class="fas fa-camera"></i></button>
+                <button class="btn btn-success" onclick="uploadThumbnailModal('{{item.id}}','clip');" data-toggle="tooltip" data-placement="top" title="Upload Thumbnail"><i class="fas fa-upload"></i></button>
+                <button class="clipShareModalButton btn btn-primary" data-bs-toggle="modal" data-bs-target="#videoShareModal" data-clipid="{{item.id}}" data-toggle="tooltip" data-placement="top" title="Share Clip"><i class="fas fa-share-alt"></i></button>
+                <button class="clipDeleteModalButton btn btn-danger" onclick="deleteClipModal('{{item.id}}');" data-toggle="tooltip" data-placement="top" title="Delete Clip"><i class="fas fa-trash-alt"></i></button>
+            {% endif %}
+        </div>
+    </td>
+</tr>
+{% endmacro %}
+

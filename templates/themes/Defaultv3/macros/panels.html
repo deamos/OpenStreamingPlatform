@@ -1296,30 +1296,48 @@
 
 {% macro user_channel_settings_videos(channel) %}
 <div id="videoWindow-{{channel.id}}" style="display:none;">
-    <div class="my-4 mx-3"><h4>Video List</h4></div>
+    <div class="my-4 mx-3"><h4>Content List</h4></div>
     <div class="row mx-lg-2">
-        <ul id="videoList-{{channel.id}}" class="itemList d-flex flex-wrap justify-content-start" style="width:100%">
-          {% set channelVideos = channel.id | get_channelVideos %}
-          {% for video in channelVideos %}
-            {{ cards.user_settings_video_card(video) }}
-          {% endfor %}
-        </ul>
+        <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;" class="text-center">
+                            <input type="checkbox" class="form-check-input" id="selectAll-{{channel.id}}" onclick="toggleSelectAll('{{channel.id}}')">
+                        </th>
+                        <th style="width: 130px;">Thumbnail</th>
+                        <th>Title</th>
+                        <th style="width: 100px;">Type</th>
+                        <th style="width: 120px;">Topic</th>
+                        <th style="width: 120px;">Date</th>
+                        <th style="width: 150px;">Stats</th>
+                        <th style="width: 100px;" class="text-center">Published</th>
+                        <th style="width: 250px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="videoList-{{channel.id}}">
+                    {% set channelContent = channel.id | get_channelContent %}
+                    {% for item in channelContent %}
+                        {{ cards.user_settings_content_row(item) }}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+<script>
+function toggleSelectAll(channelId) {
+    const selectAllCheckbox = document.getElementById('selectAll-' + channelId);
+    const checkboxes = document.querySelectorAll('#videoList-' + channelId + ' .content-selector');
+    checkboxes.forEach(cb => {
+        cb.checked = selectAllCheckbox.checked;
+    });
+}
+</script>
 {% endmacro %}
 
 {% macro user_channel_settings_clips(channel) %}
-<div id="clipWindow-{{channel.id}}" style="display:none;">
-    <div class="my-4 mx-3"><h4>Clip List</h4></div>
-    <div class="row mx-lg-2">
-        <ul id="clipList-{{channel.id}}" class="itemList d-flex flex-wrap justify-content-start" style="width:100%">
-          {% set channelClips = channel.id | get_channelClips  %}
-          {% for clip in channelClips %}
-            {{ cards.user_settings_clip_card(clip) }}
-          {% endfor %}
-        </ul>
-    </div>
-</div>
+<div id="clipWindow-{{channel.id}}" style="display:none;"></div>
 {% endmacro %}
 
 {% macro user_channel_settings_settings(channel, maxTags=4, maxTagLength=12) %}
@@ -2058,8 +2076,7 @@
   <div class="userChannelSettings-leftNav ms-3 col-auto boxShadow">
     <div class="h-100">
         {{ user_channel_settings_menu_option(channel.id, 'statWindow', 'Dashboard', 'fas fa-chart-bar') }}
-        {{ user_channel_settings_menu_option(channel.id, 'videoWindow', 'Videos', 'fas fa-video') }}
-        {{ user_channel_settings_menu_option(channel.id, 'clipWindow', 'Clips', 'fas fa-cut') }}
+        {{ user_channel_settings_menu_option(channel.id, 'videoWindow', 'Content', 'fas fa-film') }}
         {{ user_channel_settings_menu_option(channel.id, 'settingsWindow', 'Settings', 'fas fa-cog') }}
         {{ user_channel_settings_menu_option(channel.id, 'chatSettingsWindow', 'Chat', 'fas fa-comment') }}
     </div>

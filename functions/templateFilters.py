@@ -103,6 +103,7 @@ def init(context):
     context.jinja_env.filters["get_channelVideos"] = get_channelVideos
     context.jinja_env.filters["get_channelClips"] = get_channelClips
     context.jinja_env.filters["get_flaggedForDeletion"] = get_flaggedForDeletion
+    context.jinja_env.filters["get_channelContent"] = get_channelContent
     context.jinja_env.filters["get_channelData"] = get_channelData
     context.jinja_env.filters["get_channelStickers"] = get_channelStickers
     context.jinja_env.filters["get_users"] = get_users
@@ -1070,3 +1071,55 @@ def get_channelStickers(channelID: int) -> list:
 def get_users(value) -> list:
     users = cachedDbCalls.getUsers()
     return users
+
+
+def get_channelContent(channelID: int) -> list:
+    videos = get_channelVideos(channelID)
+    clips = get_channelClips(channelID)
+    
+    combined = []
+    
+    # Standardize videos
+    for v in videos:
+        combined.append({
+            'type': 'video',
+            'id': v.id,
+            'title': v.channelName,
+            'thumbnailLocation': v.thumbnailLocation,
+            'gifLocation': v.gifLocation,
+            'videoLocation': v.videoLocation,
+            'topic': v.topic,
+            'date': v.videoDate,
+            'length': v.length,
+            'views': v.views,
+            'description': v.description,
+            'allowComments': v.allowComments,
+            'published': v.published,
+            'pending': v.pending,
+            'tags': get_videoTags_csv(v.id)
+        })
+        
+    # Standardize clips
+    for c in clips:
+        combined.append({
+            'type': 'clip',
+            'id': c.id,
+            'title': c.clipName,
+            'thumbnailLocation': c.thumbnailLocation,
+            'gifLocation': c.gifLocation,
+            'videoLocation': c.videoLocation,
+            'topic': c.topic,
+            'date': c.clipDate,
+            'length': c.length,
+            'views': c.views,
+            'description': c.description,
+            'allowComments': False,
+            'published': c.published,
+            'pending': False,
+            'parentVideo': c.parentVideo,
+            'tags': get_clipTags_csv(c.id)
+        })
+        
+    # Sort combined list by date descending
+    combined.sort(key=lambda x: x['date'] if x['date'] else datetime.datetime.min, reverse=True)
+    return combined

@@ -37,7 +37,7 @@ $(document).on("click", ".clipDeleteModalButton", function () {
 $(document).on("click", ".videoShareModalButton", function () {
     var videoID = $(this).data('videoid');
     $("#FBShareBtn").attr("onclick","window.open('https://www.facebook.com/sharer/sharer.php?u=" + siteProtocol + siteAddress + "/play/" + videoID + "','facebook-share-dialog','width=626,height=436');return false;");
-    $("#TwitterShareBtn").attr("onclick","window.open('https://twitter.com/share?url=" + siteProtocol + siteAddress + "/play/" + videoID + "&text=Check out this Video!','twitter-share-dialog','width=626,height=436');return false;");
+    $("#TwitterShareBtn").attr("onclick","window.open('https://x.com/intent/tweet?url=" + siteProtocol + siteAddress + "/play/" + videoID + "&text=Check out this Video!','twitter-share-dialog','width=626,height=436');return false;");
     $("#embedURLInput").attr('value',"<iframe src='" + siteProtocol + siteAddress + "/play/" + videoID + "?embedded=True&autoplay=True' width=600 height=345></iframe>");
     $("#linkShareInput").attr('value',siteProtocol + siteAddress + "/play/" + videoID);
 });
@@ -45,7 +45,7 @@ $(document).on("click", ".videoShareModalButton", function () {
 $(document).on("click", ".clipShareModalButton", function () {
     var clipID = $(this).data('clipid');
     $("#FBShareBtn").attr("onclick","window.open('https://www.facebook.com/sharer/sharer.php?u=" + siteProtocol + siteAddress + "/clip/" + clipID + "','facebook-share-dialog','width=626,height=436');return false;");
-    $("#TwitterShareBtn").attr("onclick","window.open('https://twitter.com/share?url=" + siteProtocol + siteAddress + "/clip/" + clipID + "&text=Check out this Video!','twitter-share-dialog','width=626,height=436');return false;");
+    $("#TwitterShareBtn").attr("onclick","window.open('https://x.com/intent/tweet?url=" + siteProtocol + siteAddress + "/clip/" + clipID + "&text=Check out this Video!','twitter-share-dialog','width=626,height=436');return false;");
     $("#embedURLInput").attr('value',"<iframe src='" + siteProtocol + siteAddress + "/clip/" + clipID + "?embedded=True&autoplay=True' width=600 height=345></iframe>");
     $("#linkShareInput").attr('value',siteProtocol + siteAddress + "/clip/" + clipID);
 });
