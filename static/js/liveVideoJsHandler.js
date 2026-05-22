@@ -2,7 +2,6 @@
 function monitor_vid(vidplayer){
 
     videoJSObj = vidplayer;
-    currentReadyState = videoJSObj.readyState();
 
     videoWindowState = document.getElementsByTagName('video');
 
@@ -19,6 +18,15 @@ function monitor_vid(vidplayer){
 
             videoContainer.style.display = "block";
             offlineWindow.style.display = "none";
+
+            var currentReadyState = 0;
+            try {
+                if (videoJSObj && typeof videoJSObj.readyState === 'function') {
+                    currentReadyState = videoJSObj.readyState();
+                }
+            } catch (e) {
+                console.log("Error getting readyState:", e);
+            }
 
             if (currentReadyState <= 2) {
                 try {

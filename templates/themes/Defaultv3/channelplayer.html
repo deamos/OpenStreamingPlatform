@@ -558,7 +558,6 @@
             }
         });
 
-        {% if stream != None %}
         function updateLiveRestreamStatus() {
             $.ajax({
                 url: '/apiv1/channel/{{ channel.channelLoc }}/restreamStatus',
@@ -574,6 +573,7 @@
                         if (!status[destId]) {
                             badge.removeClass('bg-success bg-danger bg-warning').addClass('bg-secondary').text('Offline');
                             if (!toggle.prop('disabled')) {
+                                toggle.prop('disabled', false); // Ensure toggle is enabled when offline so owner can start it
                                 toggle.prop('checked', false);
                             }
                         }
@@ -605,7 +605,6 @@
             setInterval(updateLiveRestreamStatus, 10000);
             updateLiveRestreamStatus();
         });
-        {% endif %}
     </script>
     {% endif %}
 {% endblock %}
