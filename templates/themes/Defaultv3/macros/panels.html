@@ -1297,6 +1297,34 @@
 {% macro user_channel_settings_videos(channel) %}
 <div id="videoWindow-{{channel.id}}" style="display:none;">
     <div class="my-4 mx-3"><h4>Content List</h4></div>
+    
+    <!-- Filtering, Searching, and Sorting Controls -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3 mx-3 gap-2">
+        <!-- Filter Tabs / Buttons -->
+        <div class="btn-group btn-group-sm" role="group" id="contentFilters-{{channel.id}}">
+            <button type="button" class="btn btn-primary" onclick="filterContent('{{channel.id}}', 'all')">All</button>
+            <button type="button" class="btn btn-outline-primary" onclick="filterContent('{{channel.id}}', 'video')">Videos</button>
+            <button type="button" class="btn btn-outline-primary" onclick="filterContent('{{channel.id}}', 'clip')">Clips</button>
+            <button type="button" class="btn btn-outline-primary" onclick="filterContent('{{channel.id}}', 'published')">Published</button>
+            <button type="button" class="btn btn-outline-primary" onclick="filterContent('{{channel.id}}', 'unpublished')">Unpublished</button>
+        </div>
+        
+        <!-- Search and Sort controls -->
+        <div class="d-flex align-items-center gap-2">
+            <!-- Search -->
+            <input type="text" class="form-control form-control-sm" id="contentSearch-{{channel.id}}" placeholder="Search by title..." onkeyup="searchContent('{{channel.id}}')" style="width: 200px; background-color: var(--box2-background, #2c2f33); color: #fff; border: 1px solid #555;">
+            
+            <!-- Sort dropdown -->
+            <select class="form-select form-select-sm" id="contentSort-{{channel.id}}" onchange="sortContent('{{channel.id}}')" style="width: 180px; background-color: var(--box2-background, #2c2f33); color: #fff; border: 1px solid #555;">
+                <option value="date-desc">Date (Newest First)</option>
+                <option value="date-asc">Date (Oldest First)</option>
+                <option value="views-desc">Views (Highest First)</option>
+                <option value="title-asc">Title (A-Z)</option>
+                <option value="title-desc">Title (Z-A)</option>
+            </select>
+        </div>
+    </div>
+
     <div class="row mx-lg-2">
         <div class="table-responsive">
             <table class="table table-dark table-striped table-hover align-middle">
@@ -1305,8 +1333,9 @@
                         <th style="width: 40px;" class="text-center">
                             <input type="checkbox" class="form-check-input" id="selectAll-{{channel.id}}" onclick="toggleSelectAll('{{channel.id}}')">
                         </th>
-                        <th style="width: 130px;">Thumbnail</th>
+                        <th style="width: 170px;">Thumbnail</th>
                         <th>Title</th>
+                        <th>Tags</th>
                         <th style="width: 100px;">Type</th>
                         <th style="width: 120px;">Topic</th>
                         <th style="width: 120px;">Date</th>
@@ -1332,6 +1361,88 @@ function toggleSelectAll(channelId) {
     checkboxes.forEach(cb => {
         cb.checked = selectAllCheckbox.checked;
     });
+}
+
+// Global filter state per channel settings page instance
+window['currentFilter_' + '{{channel.id}}'] = 'all';
+
+function filterContent(channelId, filterType) {
+    window['currentFilter_' + channelId] = filterType;
+    
+    // Update button active states
+    const btnGroup = document.getElementById('contentFilters-' + channelId);
+    const buttons = btnGroup.querySelectorAll('.btn');
+    buttons.forEach(btn => {
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-outline-primary');
+    });
+    
+    // Add primary class to clicked button
+    event.currentTarget.classList.remove('btn-outline-primary');
+    event.currentTarget.classList.add('btn-primary');
+    
+    applyFilterAndSearch(channelId);
+}
+
+function searchContent(channelId) {
+    applyFilterAndSearch(channelId);
+}
+
+function applyFilterAndSearch(channelId) {
+    const searchVal = document.getElementById('contentSearch-' + channelId).value.toLowerCase();
+    const rows = document.querySelectorAll('#videoList-' + channelId + ' .content-row');
+    const filterType = window['currentFilter_' + channelId];
+    
+    rows.forEach(row => {
+        const type = row.getAttribute('data-type');
+        const published = row.getAttribute('data-published') === 'true';
+        const title = row.getAttribute('data-title');
+        
+        let matchFilter = false;
+        if (filterType === 'all') {
+            matchFilter = true;
+        } else if (filterType === 'video' && type === 'video') {
+            matchFilter = true;
+        } else if (filterType === 'clip' && type === 'clip') {
+            matchFilter = true;
+        } else if (filterType === 'published' && published) {
+            matchFilter = true;
+        } else if (filterType === 'unpublished' && !published) {
+            matchFilter = true;
+        }
+        
+        const matchSearch = title.includes(searchVal);
+        
+        if (matchFilter && matchSearch) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function sortContent(channelId) {
+    const sortVal = document.getElementById('contentSort-' + channelId).value;
+    const tbody = document.getElementById('videoList-' + channelId);
+    const rows = Array.from(tbody.querySelectorAll('.content-row'));
+    
+    rows.sort((a, b) => {
+        if (sortVal === 'date-desc') {
+            return new Date(b.getAttribute('data-date')) - new Date(a.getAttribute('data-date'));
+        } else if (sortVal === 'date-asc') {
+            return new Date(a.getAttribute('data-date')) - new Date(b.getAttribute('data-date'));
+        } else if (sortVal === 'views-desc') {
+            return parseInt(b.getAttribute('data-views') || 0) - parseInt(a.getAttribute('data-views') || 0);
+        } else if (sortVal === 'title-asc') {
+            return a.getAttribute('data-title').localeCompare(b.getAttribute('data-title'));
+        } else if (sortVal === 'title-desc') {
+            return b.getAttribute('data-title').localeCompare(a.getAttribute('data-title'));
+        }
+        return 0;
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
 }
 </script>
 {% endmacro %}

@@ -407,12 +407,17 @@
 {% endmacro %}
 
 {% macro user_settings_content_row(item) %}
-<tr id="{% if item.type == 'video' %}video-{{item.id}}{% else %}clip-{{item.id}}{% endif %}" class="align-middle">
+<tr id="{% if item.type == 'video' %}video-{{item.id}}{% else %}clip-{{item.id}}{% endif %}" class="align-middle content-row"
+    data-type="{{item.type}}"
+    data-published="{% if item.published == True %}true{% else %}false{% endif %}"
+    data-title="{{item.title|lower}}"
+    data-date="{{item.date}}"
+    data-views="{{item.views}}">
     <td class="align-middle text-center">
         <input type="checkbox" class="form-check-input content-selector" value="{{item.id}}" data-type="{{item.type}}">
     </td>
     <td class="align-middle">
-        <div class="position-relative" style="width: 120px; min-width: 120px;">
+        <div class="position-relative" style="width: 160px; min-width: 160px;">
             <img class="boxShadow {% if item.gifLocation != None %}gif{% endif %} lazy img-fluid rounded" 
                  id="{% if item.type == 'video' %}videoThumb-{{item.id}}{% else %}clipThumb-{{item.id}}{% endif %}" 
                  src="/static/img/video-placeholder.jpg" 
@@ -439,6 +444,15 @@
             </a>
             <span id="clipDescription-{{item.id}}" class="d-none">{{item.description}}</span>
             <div class="d-none" id="clip-{{item.id}}-tags">{{item.tags}}</div>
+        {% endif %}
+    </td>
+    <td class="align-middle">
+        {% if item.tags %}
+            {% for tag in item.tags.split(',') %}
+                <span class="badge bg-secondary text-light m-1">{{tag}}</span>
+            {% endfor %}
+        {% else %}
+            <span class="text-muted" style="font-size: 0.85rem;">-</span>
         {% endif %}
     </td>
     <td class="align-middle">
