@@ -1912,8 +1912,6 @@ tagify_clipTags.on('input', function(e) {
                     <div>
                         <strong class="restream-name-label">{{ restreamDestination.name }}</strong>
                         {% if restreamDestination.enabled %}<span class="badge bg-secondary ms-2 default-badge">Default</span>{% endif %}
-                        <br>
-                        <small class="text-muted restream-url-label" style="word-break: break-all;">{{ restreamDestination.url }}</small>
                     </div>
                     <div class="d-flex align-items-center gap-3">
                         <span class="badge bg-secondary restream-status-badge textShadow" id="liveRestreamStatus-{{ restreamDestination.id }}">Offline</span>

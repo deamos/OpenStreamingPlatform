@@ -32,6 +32,9 @@ function monitor_vid(vidplayer){
             nameDiv.innerHTML = nameDivHTML;
             topicDiv.innerHTML = topicDivHTML;
 
+            var restreamBtn = document.getElementById('liveRestreamControlButton');
+            if (restreamBtn) { restreamBtn.style.display = 'inline-block'; }
+
             var playerStatus = webRTCPlayer.getState();
             if (playerStatus === 'idle' || playerStatus === 'error') {
                 webRTCPlayer.load(0);
@@ -41,6 +44,8 @@ function monitor_vid(vidplayer){
         } else {
             try {
                 webRTCPlayer.pause();
+                var restreamBtn = document.getElementById('liveRestreamControlButton');
+                if (restreamBtn) { restreamBtn.style.display = 'none'; }
                 onlineBadge.className = 'btn btn-secondary boxShadow';
                 onlineBadge.innerHTML = 'OFFLINE';
                 videoContainer.style.display = "none";

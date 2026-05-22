@@ -48,11 +48,15 @@ function monitor_vid(vidplayer){
             nameDiv.innerHTML = nameDivHTML;
             topicDiv.innerHTML = topicDivHTML;
 
+            var restreamBtn = document.getElementById('liveRestreamControlButton');
+            if (restreamBtn) { restreamBtn.style.display = 'inline-block'; }
 
         } else {
             try {
                 videoJSObj.pause();
                 videoJSObj.reset();
+                var restreamBtn = document.getElementById('liveRestreamControlButton');
+                if (restreamBtn) { restreamBtn.style.display = 'none'; }
                 onlineBadge.className = 'btn btn-secondary boxShadow';
                 onlineBadge.innerHTML = 'OFFLINE';
                 videoContainer.style.display = "none";
