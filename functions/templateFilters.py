@@ -402,11 +402,11 @@ def get_videoComments(videoID: int) -> list:
 
 
 def get_clipTags(clipId: int) -> list:
-    return RecordedVideo.clip_tags.query.filter_by(clipID=clipId).all()
+    return cachedDbCalls.getClipTags(clipId)
 
 
 def get_clipTags_csv(clipId: int) -> str:
-    tagQuery = RecordedVideo.clip_tags.query.filter_by(clipID=clipId).all()
+    tagQuery = cachedDbCalls.getClipTags(clipId)
     tagArray = []
     for tag in tagQuery:
         tagArray.append(tag.name)
@@ -414,12 +414,12 @@ def get_clipTags_csv(clipId: int) -> str:
     return tagString
 
 
-def get_videoTags(videoId: int) -> RecordedVideo.video_tags:
-    return RecordedVideo.video_tags.query.filter_by(videoID=videoId).all()
+def get_videoTags(videoId: int) -> list:
+    return cachedDbCalls.getVideoTags(videoId)
 
 
 def get_videoTags_csv(videoId: int) -> str:
-    tagQuery = RecordedVideo.video_tags.query.filter_by(videoID=videoId).all()
+    tagQuery = cachedDbCalls.getVideoTags(videoId)
     tagArray = []
     for tag in tagQuery:
         tagArray.append(tag.name)

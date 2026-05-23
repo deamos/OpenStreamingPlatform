@@ -844,6 +844,10 @@ def getVideoUpvotes(videoID: int) -> int:
 def getVideoTags(videoID: int) -> list:
     return RecordedVideo.video_tags.query.filter_by(videoID=videoID).with_entities(RecordedVideo.video_tags.id, RecordedVideo.video_tags.name).all()
 
+@cache.memoize(timeout=30)
+def getClipTags(clipID: int) -> list:
+    return RecordedVideo.clip_tags.query.filter_by(clipID=clipID).with_entities(RecordedVideo.clip_tags.id, RecordedVideo.clip_tags.name).all()
+
 
 @cache.memoize(timeout=60)
 def searchTags(term: str) -> list:
