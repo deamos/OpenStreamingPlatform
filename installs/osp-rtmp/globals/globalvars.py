@@ -5,6 +5,7 @@ videoRoot = "/var/www/"
 
 # Build Channel Restream Subprocess Dictionary
 restreamSubprocesses = {}
+restreamMetadata = {}
 
 # Build Edge Restream Subprocess Dictionary
 activeEdgeNodes = []

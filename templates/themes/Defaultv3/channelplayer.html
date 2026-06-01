@@ -589,6 +589,16 @@
                                 if (!toggle.prop('disabled')) {
                                     toggle.prop('checked', true);
                                 }
+                            } else if (state === 'Retrying') {
+                                badge.removeClass('bg-secondary bg-success bg-danger').addClass('bg-warning').text('Retrying');
+                                if (!toggle.prop('disabled')) {
+                                    toggle.prop('checked', true);
+                                }
+                            } else if (state === 'Disconnected') {
+                                badge.removeClass('bg-secondary bg-success bg-danger').addClass('bg-warning').text('Disconnected');
+                                if (!toggle.prop('disabled')) {
+                                    toggle.prop('checked', true);
+                                }
                             } else if (state === 'Error') {
                                 badge.removeClass('bg-secondary bg-success bg-warning').addClass('bg-danger').text('Error');
                                 if (!toggle.prop('disabled')) {

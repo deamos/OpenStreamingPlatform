@@ -135,23 +135,69 @@ def cleanup_stale_pids():
         r.delete(key)
 
 def restream_monitor_thread():
+    import subprocess
+    import time
     while True:
         try:
             r = globalvars.get_redis()
-            for channel_loc, process_dict in list(globalvars.restreamSubprocesses.items()):
-                status_payload = {}
-                for dest_id, proc in list(process_dict.items()):
-                    retcode = proc.poll()
-                    if retcode is not None:
-                        app.logger.warning(f"[HealthMonitor] Restream ffmpeg for {channel_loc} to dest {dest_id} exited with {retcode}")
-                        status_payload[dest_id] = {"state": "Error", "message": f"Exited with code {retcode}"}
-                        # Process died, remove it from dict
-                        # In a more advanced setup we could restart it here
-                        del globalvars.restreamSubprocesses[channel_loc][dest_id]
-                    else:
-                        status_payload[dest_id] = {"state": "Running", "message": ""}
+            if not hasattr(globalvars, 'restreamMetadata'):
+                globalvars.restreamMetadata = {}
                 
-                # Push status to Core
+            for channel_loc, meta_dict in list(globalvars.restreamMetadata.items()):
+                status_payload = {}
+                for dest_id, meta in list(meta_dict.items()):
+                    proc = globalvars.restreamSubprocesses.get(channel_loc, {}).get(dest_id)
+                    
+                    if proc is None:
+                        if meta.get("state") == "Running":
+                            meta["state"] = "Disconnected"
+                        status_payload[dest_id] = {"state": meta.get("state", "Disconnected"), "message": "No active subprocess"}
+                    else:
+                        retcode = proc.poll()
+                        if retcode is not None:
+                            app.logger.warning(f"[HealthMonitor] Restream ffmpeg for {channel_loc} to dest {dest_id} exited with {retcode}")
+                            
+                            try:
+                                del globalvars.restreamSubprocesses[channel_loc][dest_id]
+                            except KeyError:
+                                pass
+                                
+                            retry_count = meta.get("retry_count", 0)
+                            if retry_count < 5:
+                                meta["retry_count"] = retry_count + 1
+                                meta["state"] = "Retrying"
+                                meta["last_retry_time"] = time.time()
+                                app.logger.info(f"[HealthMonitor] Retrying restream for {channel_loc} to dest {dest_id} (Attempt {meta['retry_count']}/5)")
+                                
+                                try:
+                                    p = subprocess.Popen(
+                                        meta["cmd"],
+                                        stdout=subprocess.DEVNULL,
+                                        stderr=subprocess.PIPE,
+                                    )
+                                    if channel_loc not in globalvars.restreamSubprocesses:
+                                        globalvars.restreamSubprocesses[channel_loc] = {}
+                                    globalvars.restreamSubprocesses[channel_loc][dest_id] = p
+                                    r.sadd(f"osp:rtmp:pids:{channel_loc}", str(p.pid))
+                                    
+                                    from blueprints.rtmp import log_stream
+                                    t = threading.Thread(target=log_stream, args=(p.stderr, channel_loc, meta["name"]), daemon=True)
+                                    t.start()
+                                    
+                                    meta["state"] = "Running"
+                                    status_payload[dest_id] = {"state": "Running", "message": ""}
+                                except Exception as restart_err:
+                                    app.logger.error(f"[HealthMonitor] Failed to restart restream: {restart_err}")
+                                    meta["state"] = "Disconnected"
+                                    status_payload[dest_id] = {"state": "Disconnected", "message": str(restart_err)}
+                            else:
+                                meta["state"] = "Error"
+                                status_payload[dest_id] = {"state": "Error", "message": f"Exited with code {retcode} (Max retries exceeded)"}
+                        else:
+                            meta["state"] = "Running"
+                            meta["retry_count"] = 0
+                            status_payload[dest_id] = {"state": "Running", "message": ""}
+                
                 if status_payload:
                     try:
                         requests.post(

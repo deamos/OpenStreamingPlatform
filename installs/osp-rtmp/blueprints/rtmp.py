@@ -133,6 +133,20 @@ def user_auth_check():
                             globalvars.restreamSubprocesses[channelLocation][str(destination["id"])] = p
                             r.sadd(f"osp:rtmp:pids:{channelLocation}", str(p.pid))
                             
+                            import time
+                            if not hasattr(globalvars, "restreamMetadata"):
+                                globalvars.restreamMetadata = {}
+                            if channelLocation not in globalvars.restreamMetadata:
+                                globalvars.restreamMetadata[channelLocation] = {}
+                            globalvars.restreamMetadata[channelLocation][str(destination["id"])] = {
+                                "cmd": cmd,
+                                "name": destination["name"],
+                                "url": destination["url"],
+                                "retry_count": 0,
+                                "last_retry_time": time.time(),
+                                "state": "Running"
+                            }
+                            
                             t = threading.Thread(target=log_stream, args=(p.stderr, channelLocation, destination["name"]), daemon=True)
                             t.start()
                 else:
@@ -246,6 +260,11 @@ def user_deauth_check():
                 del globalvars.restreamSubprocesses[channelLocation]
             except KeyError:
                 pass
+            if hasattr(globalvars, "restreamMetadata") and channelLocation in globalvars.restreamMetadata:
+                try:
+                    del globalvars.restreamMetadata[channelLocation]
+                except KeyError:
+                    pass
 
             # End RTMP Edge Restreams
             if channelLocation in globalvars.edgeRestreamSubprocesses:
@@ -378,6 +397,20 @@ def restream_control():
         globalvars.restreamSubprocesses[channelLocation][restreamID] = p
         r.sadd(f"osp:rtmp:pids:{channelLocation}", str(p.pid))
         
+        import time
+        if not hasattr(globalvars, "restreamMetadata"):
+            globalvars.restreamMetadata = {}
+        if channelLocation not in globalvars.restreamMetadata:
+            globalvars.restreamMetadata[channelLocation] = {}
+        globalvars.restreamMetadata[channelLocation][restreamID] = {
+            "cmd": cmd,
+            "name": restreamName,
+            "url": restreamURL,
+            "retry_count": 0,
+            "last_retry_time": time.time(),
+            "state": "Running"
+        }
+        
         t = threading.Thread(target=log_stream, args=(p.stderr, channelLocation, restreamName), daemon=True)
         t.start()
         
@@ -399,6 +432,11 @@ def restream_control():
                 del globalvars.restreamSubprocesses[channelLocation][restreamID]
             except KeyError:
                 pass
+            if hasattr(globalvars, "restreamMetadata") and channelLocation in globalvars.restreamMetadata and restreamID in globalvars.restreamMetadata[channelLocation]:
+                try:
+                    del globalvars.restreamMetadata[channelLocation][restreamID]
+                except KeyError:
+                    pass
             return {"results": {"success": True, "message": "Restream stopped"}}
         else:
             return {"results": {"success": True, "message": "Restream not running"}}

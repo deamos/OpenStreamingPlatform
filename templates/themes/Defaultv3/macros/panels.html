@@ -1832,6 +1832,10 @@ function sortContent(channelId) {
                                                                                 var state = status[destId].state;
                                                                                 if (state === 'Running') {
                                                                                     badge.removeClass('bg-secondary bg-danger bg-warning').addClass('bg-success').text('Running');
+                                                                                } else if (state === 'Retrying') {
+                                                                                    badge.removeClass('bg-secondary bg-success bg-danger').addClass('bg-warning').text('Retrying');
+                                                                                } else if (state === 'Disconnected') {
+                                                                                    badge.removeClass('bg-secondary bg-success bg-danger').addClass('bg-warning').text('Disconnected');
                                                                                 } else if (state === 'Error') {
                                                                                     badge.removeClass('bg-secondary bg-success bg-warning').addClass('bg-danger').text('Error');
                                                                                 }
