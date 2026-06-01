@@ -48,7 +48,7 @@ def check_isValidChannelViewer(channelID: int) -> bool:
                 .with_entities(Channel.Channel.owningUser)
                 .first()
             )
-            if channelQuery.owningUser is current_user.id:
+            if channelQuery.owningUser == current_user.id:
                 if channelID not in globalvars.inviteCache:
                     globalvars.inviteCache[channelID] = {}
                 globalvars.inviteCache[channelID][current_user.id] = {
@@ -98,7 +98,7 @@ def check_isUserValidRTMPViewer(userID: int, channelID: int) -> bool:
             .first()
         )
         if channelQuery is not None:
-            if channelQuery.owningUser is userQuery.id:
+            if channelQuery.owningUser == userQuery.id:
                 # db.session.close()
                 return True
             else:
@@ -129,7 +129,7 @@ def flag_delete_user(userID: int) -> bool:
             + " has queued their account for deletion.  The account will be deleted in 48 from "
             + str(datetime.datetime.now()),
             "/settings/admin",
-            "/images/" + str(userQuery.pictureLocation, userQuery.bannerLocation),
+            "/images/" + str(userQuery.pictureLocation),
         )
         if existingFlag is None:
             newUserFlag = Sec.UsersFlaggedForDeletion(userQuery.id)

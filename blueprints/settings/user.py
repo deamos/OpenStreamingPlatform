@@ -269,7 +269,10 @@ def user_addInviteCode():
                         )
                         flash("Added Invite Code to Channel", "success")
                         if "redirectURL" in request.args:
-                            return redirect(request.args.get("redirectURL"))
+                            redirect_url = request.args.get("redirectURL")
+                            # Only allow relative paths to prevent open redirect
+                            if redirect_url and redirect_url.startswith("/") and not redirect_url.startswith("//"):
+                                return redirect(redirect_url)
                     else:
                         flash("Invite Code Already Applied", "error")
                 else:

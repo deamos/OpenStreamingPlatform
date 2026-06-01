@@ -158,6 +158,18 @@ def delete_clip_page(clipID):
 @login_required
 def clip_change_page(clipID):
 
+    clipQuery = RecordedVideo.Clips.query.filter_by(id=int(clipID)).with_entities(
+        RecordedVideo.Clips.owningUser
+    ).first()
+
+    if clipQuery is None:
+        flash("No Such Clip", "error")
+        return redirect(url_for("root.main_page"))
+
+    if clipQuery.owningUser != current_user.id and not current_user.has_role("Admin"):
+        flash("Unauthorized", "error")
+        return redirect(url_for(".view_clip_page", clipID=clipID))
+
     clipTags = None
     if "clipTags" in request.form:
         clipTags = request.form["clipTags"]

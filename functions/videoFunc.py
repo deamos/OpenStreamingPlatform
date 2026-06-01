@@ -206,9 +206,18 @@ def moveVideo(videoID: int, newChannel: int):
 
     recordedVidQuery = RecordedVideo.RecordedVideo.query.filter_by(
         id=int(videoID), owningUser=current_user.id
-    ).with_entities(RecordedVideo.RecordedVideo.id, RecordedVideo.RecordedVideo.videoLocation, RecordedVideo.RecordedVideo.thumbnailLocation, RecordedVideo.RecordedVideo.gifLocation).first()
+    ).with_entities(
+        RecordedVideo.RecordedVideo.id,
+        RecordedVideo.RecordedVideo.channelID,
+        RecordedVideo.RecordedVideo.owningUser,
+        RecordedVideo.RecordedVideo.videoLocation,
+        RecordedVideo.RecordedVideo.thumbnailLocation,
+        RecordedVideo.RecordedVideo.gifLocation,
+    ).first()
 
     if recordedVidQuery is not None:
+        # Capture the original channel ID before any mutations for cache invalidation
+        old_channel_id = recordedVidQuery.channelID
         newChannelQuery = Channel.Channel.query.filter_by(
             id=newChannel, owningUser=current_user.id
         ).with_entities(Channel.Channel.id, Channel.Channel.channelLoc).first()

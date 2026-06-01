@@ -208,7 +208,7 @@ class api_1_ListChannel(Resource):
                                 channelQuery.channelName = args["channelName"]
                         if "description" in args:
                             if args["description"] is not None:
-                                channelQuery.description = args["channelName"]
+                                channelQuery.description = args["description"]
                         if "topicID" in args:
                             if args["topicID"] is not None:
                                 possibleTopics = topics.topics.query.filter_by(
