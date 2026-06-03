@@ -14,9 +14,9 @@ readonly OSPLOG="/var/log/osp/installer.log"
 OSP_VERSION=$(<version)
 readonly OSP_VERSION
 
-readonly NGINX_BUILD_VERSION="1.25.5"
-readonly NGINX_RTMP_VERSION="1.2.12"
-readonly NGINX_ZLIB_VERSION="1.3.1"
+readonly NGINX_BUILD_VERSION="1.31.1"
+readonly NGINX_RTMP_VERSION="1.2.13"
+readonly NGINX_ZLIB_VERSION="1.3.2"
 readonly EJABBERD_VERSION="23.04"
 
 #######################################################
