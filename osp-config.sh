@@ -382,7 +382,7 @@ reset_nginx() {
 
       cd /
       run_with_spinner "Removing previous Nginx..." sudo rm -rf /usr/local/nginx
-      run_with_spinner "Rebuilding Nginx from source..." bash -c "$(declare -f install_nginx_core log_exec log_msg pkg_install pkg_update wait_for_pkg_lock update_and_install_safely install_prereq install_ffmpeg create_web_dirs confirm_service_is_running run_with_spinner log_step); install_nginx_core"
+      install_nginx_core
       run_with_spinner "Restoring Nginx conf..." sudo cp -R /tmp/nginxbak/conf/* /usr/local/nginx/conf/
       run_with_spinner "Restarting Nginx-OSP..." bash -c "
         sudo systemctl enable nginx-osp &&
