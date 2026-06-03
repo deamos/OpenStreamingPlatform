@@ -492,15 +492,13 @@ install_nginx_core() {
 
     run_with_spinner "Downloading required modules..." bash -c "
       sudo wget -q 'https://github.com/winshining/nginx-http-flv-module/archive/refs/tags/v$NGINX_RTMP_VERSION.tar.gz' &&
-      sudo wget -q 'https://github.com/madler/zlib/archive/refs/tags/v$NGINX_ZLIB_VERSION.tar.gz' &&
-      sudo wget -q 'https://github.com/xuges/nginx-sticky-module-ng/archive/refs/heads/master.tar.gz'
+      sudo wget -q 'https://github.com/madler/zlib/archive/refs/tags/v$NGINX_ZLIB_VERSION.tar.gz'
     "
 
     run_with_spinner "Decompressing sources..." bash -c "
       sudo tar xfz nginx-$NGINX_BUILD_VERSION.tar.gz &&
       sudo tar xfz v$NGINX_RTMP_VERSION.tar.gz &&
-      sudo tar xfz v$NGINX_ZLIB_VERSION.tar.gz &&
-      sudo tar xfz master.tar.gz
+      sudo tar xfz v$NGINX_ZLIB_VERSION.tar.gz
     "
 
     cd "nginx-$NGINX_BUILD_VERSION" || { echo "Unable to build Nginx! Aborting."; exit 1; }
@@ -512,7 +510,6 @@ install_nginx_core() {
         --with-http_auth_request_module \
         --with-http_stub_status_module \
         --add-module="../nginx-http-flv-module-$NGINX_RTMP_VERSION" \
-        --add-module=../nginx-sticky-module-ng-master \
         "--with-zlib=../zlib-$NGINX_ZLIB_VERSION" \
         --with-cc-opt="-Wimplicit-fallthrough=0"
 
